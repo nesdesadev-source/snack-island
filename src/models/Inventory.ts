@@ -2,31 +2,33 @@ export type InventoryType = 'solid' | 'liquid';
 
 export type InventoryUnit = 'pcs' | 'kg' | 'L' | 'mL' | 'g';
 
+// This matches the actual database schema from Supabase
 export interface Inventory {
   id: string;
-  item_name: string;
+  name: string;
   unit: InventoryUnit;
-  current_stock: number;
-  cost_per_unit: number;
+  quantity: number;
   reorder_level: number;
-  type: InventoryType;
+  supplier_id?: string;
+  created_at?: string;
+  updated_at?: string;
+  created_by?: string;
+  updated_by?: string;
 }
 
 export interface CreateInventoryInput {
-  item_name: string;
+  name: string;
   unit: InventoryUnit;
-  current_stock: number;
-  cost_per_unit: number;
+  quantity: number;
   reorder_level: number;
-  type: InventoryType;
+  supplier_id: string;
 }
 
 export interface UpdateInventoryInput {
-  item_name?: string;
+  name?: string;
   unit?: InventoryUnit;
-  current_stock?: number;
-  cost_per_unit?: number;
+  quantity?: number;
   reorder_level?: number;
-  type?: InventoryType;
+  supplier_id?: string;
 }
 

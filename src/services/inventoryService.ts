@@ -42,8 +42,22 @@ export const inventoryService = {
   // READ ALL
   // ============================
   async getAll() {
+    // Try RPC first (preferred method)
     const { data, error } = await supabase.rpc('get_inventory')
-    if (error) throw error
+    
+    if (error) {
+      // Fallback to direct table query
+      const directResult = await supabase
+        .from('inventory')
+        .select('*')
+      
+      if (directResult.error) {
+        throw directResult.error
+      }
+      
+      return directResult.data
+    }
+    
     return data
   },
 

@@ -3,8 +3,8 @@
     <!-- Header Section -->
     <div class="sidebar-header">
       <div class="brand">
-        <div class="brand-icon">C</div>
-        <span class="brand-name">Akahon</span>
+        <div class="brand-icon">S</div>
+        <span class="brand-name">Snack Bar Island</span>
       </div>
       <button class="menu-toggle" @click="toggleSidebar">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
