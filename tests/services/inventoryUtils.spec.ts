@@ -10,7 +10,7 @@ import {
   calculateEstimatedServingsRemaining,
   calculateBatchUsagePercentage,
   calculateReorderQuantity
-} from '../../src/services/inventoryService';
+} from '../../src/modules/inventory/inventoryUtils';
 import type { Inventory, LiquidBatch } from '../../src/models';
 
 describe('Inventory Service - Stock Calculations', () => {

@@ -1,139 +1,85 @@
-import type { LiquidBatch } from '../models';
+// src/services/inventoryService.ts
+import { supabase } from '../supabase'
 
-/**
- * Calculates the stock level after deducting usage amount
- * Prevents stock from going below zero
- */
-export function calculateStockAfterDeduction(
-  currentStock: number,
-  usageAmount: number
-): number {
-  const result = currentStock - usageAmount;
-  return Math.max(0, result);
+interface AddItemParams {
+  name: string;
+  unit: string; 
+  quantity: number;
+  reorder_level: number;
+  supplier_id: string;
+  user_id: string;
 }
 
-/**
- * Checks if current stock is at or below the reorder level
- */
-export function isLowStock(
-  currentStock: number,
-  reorderLevel: number
-): boolean {
-  return currentStock <= reorderLevel;
+interface UpdateItemParams {
+  id: string;
+  name: string;
+  unit: string;
+  quantity: number;
+  reorder_level: number;
+  supplier_id: string;
+  user_id: string;
 }
 
-/**
- * Calculates the progress percentage of a liquid batch
- * Returns value between 0-100 (or more if overused)
- */
-export function calculateBatchProgress(batch: LiquidBatch): number {
-  if (batch.expected_servings === 0) return 0;
-  
-  const progress = (batch.servings_used / batch.expected_servings) * 100;
-  return Math.round(progress);
-}
+export const inventoryService = {
+  // ============================
+  // CREATE
+  // ============================
+  async addItem({ name, unit, quantity, reorder_level, supplier_id, user_id }: AddItemParams) {
+    const { data, error } = await supabase.rpc('add_inventory_item', {
+      _name: name,
+      _unit: unit,
+      _quantity: quantity,
+      _reorder_level: reorder_level,
+      _supplier_id: supplier_id,
+      _created_by: user_id
+    })
 
-/**
- * Determines if a batch should be replaced based on usage
- * Default threshold is 100%, but can be set lower (e.g., 90%) for early warning
- */
-export function shouldReplaceBatch(
-  batch: LiquidBatch,
-  threshold: number = 100
-): boolean {
-  const progress = calculateBatchProgress(batch);
-  return progress >= threshold;
-}
+    if (error) throw error
+    return data
+  },
 
-/**
- * Calculates liquid efficiency by comparing expected vs actual usage
- * Returns percentage where:
- * - 100% = perfect match
- * - >100% = more efficient (used less than expected)
- * - <100% = less efficient (used more than expected)
- */
-export function calculateLiquidEfficiency(
-  expectedUsage: number,
-  actualUsage: number
-): number {
-  if (actualUsage === 0) return Infinity;
-  
-  const efficiency = (expectedUsage / actualUsage) * 100;
-  return Math.round(efficiency * 100) / 100;
-}
+  // ============================
+  // READ ALL
+  // ============================
+  async getAll() {
+    const { data, error } = await supabase.rpc('get_inventory')
+    if (error) throw error
+    return data
+  },
 
-/**
- * Calculates the cost of ingredient usage
- */
-export function calculateUsageCost(
-  usageAmount: number,
-  costPerUnit: number
-): number {
-  return usageAmount * costPerUnit;
-}
+  // ============================
+  // READ ONE
+  // ============================
+  async getById(id: string) {
+    const { data, error } = await supabase.rpc('get_inventory_item', { _id: id })
+    if (error) throw error
+    return data
+  },
 
-/**
- * Adjusts stock level based on manual adjustment or actual count
- * If actualStock is provided, it overrides the calculated adjustment
- * Prevents stock from going below zero
- */
-export function calculateAdjustedStock(
-  currentStock: number,
-  adjustment: number,
-  actualStock?: number
-): number {
-  if (actualStock !== undefined) {
-    return actualStock;
+  // ============================
+  // UPDATE
+  // ============================
+  async updateItem({ id, name, unit, quantity, reorder_level, supplier_id, user_id }: UpdateItemParams) {
+    const { error } = await supabase.rpc('update_inventory_item', {
+      _id: id,
+      _name: name,
+      _unit: unit,
+      _quantity: quantity,
+      _reorder_level: reorder_level,
+      _supplier_id: supplier_id,
+      _updated_by: user_id
+    })
+
+    if (error) throw error
+    return true
+  },
+
+  // ============================
+  // DELETE
+  // ============================
+  async deleteItem(id: string) {
+    const { error } = await supabase.rpc('delete_inventory_item', { _id: id })
+    if (error) throw error
+    return true
   }
-  
-  const adjusted = currentStock + adjustment;
-  return Math.max(0, adjusted);
 }
-
-/**
- * Calculates how many servings remain in a liquid batch
- */
-export function calculateEstimatedServingsRemaining(
-  batch: LiquidBatch
-): number {
-  const remaining = batch.expected_servings - batch.servings_used;
-  return Math.max(0, remaining);
-}
-
-/**
- * Calculates the usage percentage of a batch
- * Can exceed 100% if batch is overused
- */
-export function calculateBatchUsagePercentage(
-  servingsUsed: number,
-  expectedServings: number
-): number {
-  if (expectedServings === 0) return 0;
-  
-  const percentage = (servingsUsed / expectedServings) * 100;
-  return Math.round(percentage);
-}
-
-/**
- * Calculates how much stock to reorder to reach optimal level
- * Returns 0 if current stock is above reorder level
- * If no optimal stock is provided, uses reorder level as target
- * Always ensures target is at least at the reorder level
- */
-export function calculateReorderQuantity(
-  currentStock: number,
-  reorderLevel: number,
-  optimalStock?: number
-): number {
-  if (currentStock > reorderLevel) {
-    return 0;
-  }
-  
-  const targetStock = optimalStock !== undefined 
-    ? Math.max(optimalStock, reorderLevel)
-    : reorderLevel;
-  const reorderAmount = targetStock - currentStock;
-  
-  return Math.max(0, reorderAmount);
-}
-
