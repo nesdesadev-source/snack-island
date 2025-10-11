@@ -1,0 +1,4 @@
+---
+alwaysApply: true
+---
+Each module should start with test creation before any code changes
