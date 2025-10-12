@@ -38,12 +38,12 @@ const getCurrentComponent = () => {
       return Dashboard
     case 'inventory':
       return Inventory
-    // case 'sales':
-    //   return Sales
+    case 'sales':
+      return Sales
     case 'expenses':
       return Expenses
-    // case 'users':
-    //   return Users
+    case 'users':
+      return Users
     default:
       return Dashboard
   }
