@@ -55,7 +55,7 @@
                     <option value="Misc">Misc</option>
                     <option value="Maintenance">Maintenance</option>
                     <option value="Equipment">Equipment</option>
-                    <option value="Food">Food</option>
+                    <option value="Ingredients">Ingredients</option>
                     <option value="Utilities">Utilities</option>
                     <option value="Other">Other</option>
                   </select>
@@ -115,6 +115,39 @@
               </div>
             </div>
 
+            <div class="form-grid">
+              <div class="form-section">
+                <label class="form-label">
+                  Paid By
+                  <span class="label-hint">Optional</span>
+                </label>
+                <div class="input-wrapper">
+                  <input 
+                    type="text" 
+                    v-model="localFormData.paid_by" 
+                    placeholder="e.g., John Doe"
+                    class="form-input"
+                  />
+                </div>
+              </div>
+
+              <div class="form-section">
+                <label class="form-label">
+                  Reimbursement Status
+                </label>
+                <div class="select-wrapper">
+                  <select v-model.number="localFormData.reimburse_status" class="form-select">
+                    <option :value="0">No reimbursement needed</option>
+                    <option :value="1">Needs reimbursement</option>
+                    <option :value="2">Reimbursed</option>
+                  </select>
+                  <svg class="select-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" @click="handleClose">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -147,6 +180,8 @@ interface ExpenseFormData {
   description: string
   amount: number
   supplier_id: string
+  paid_by: string
+  reimburse_status: number
 }
 
 interface Props {
@@ -171,14 +206,18 @@ const localFormData = ref<ExpenseFormData>({
   category: 'Supplies' as ExpenseCategory,
   description: '',
   amount: 0,
-  supplier_id: ''
+  supplier_id: '',
+  paid_by: '',
+  reimburse_status: 0
 })
 
 watch(() => props.initialData, (newData) => {
   if (newData) {
     localFormData.value = {
       ...newData,
-      supplier_id: newData.supplier_id || ''
+      supplier_id: newData.supplier_id || '',
+      paid_by: newData.paid_by || '',
+      reimburse_status: newData.reimburse_status || 0
     }
   }
 }, { immediate: true })
@@ -190,7 +229,9 @@ watch(() => props.isOpen, (isOpen) => {
       category: 'Supplies' as ExpenseCategory,
       description: '',
       amount: 0,
-      supplier_id: ''
+      supplier_id: '',
+      paid_by: '',
+      reimburse_status: 0
     }
   }
 })
@@ -384,6 +425,26 @@ const handleSubmit = () => {
   appearance: none;
   padding-right: 36px;
   cursor: pointer;
+}
+
+.checkbox-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.form-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #667eea;
+  cursor: pointer;
+}
+
+.checkbox-label {
+  font-size: 0.95rem;
+  color: #495057;
+  font-weight: 500;
 }
 
 .modal-footer {

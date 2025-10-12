@@ -8,6 +8,8 @@ interface AddExpenseParams {
   description: string;
   amount: number;
   supplier_id?: string;
+  paid_by?: string;
+  reimburse_status?: number;
 }
 
 interface UpdateExpenseParams {
@@ -17,19 +19,23 @@ interface UpdateExpenseParams {
   description: string;
   amount: number;
   supplier_id?: string;
+  paid_by?: string;
+  reimburse_status?: number;
 }
 
 export const expenseService = {
   // ============================
   // CREATE
   // ============================
-  async addExpense({ date, category, description, amount, supplier_id }: AddExpenseParams) {
+  async addExpense({ date, category, description, amount, supplier_id, paid_by, reimburse_status }: AddExpenseParams) {
     const { data, error } = await supabase.rpc('add_expense', {
       p_date: date,
       p_category: category,
       p_description: description,
       p_amount: amount,
-      p_supplier_id: supplier_id || null
+      p_supplier_id: supplier_id || null,
+      p_paid_by: paid_by || null,
+      p_reimburse_status: reimburse_status || 0
     })
 
     if (error) throw error
@@ -63,14 +69,16 @@ export const expenseService = {
   // ============================
   // UPDATE
   // ============================
-  async updateExpense({ id, date, category, description, amount, supplier_id }: UpdateExpenseParams) {
+  async updateExpense({ id, date, category, description, amount, supplier_id, paid_by, reimburse_status }: UpdateExpenseParams) {
     const { error } = await supabase.rpc('update_expense', {
       p_id: id,
       p_date: date,
       p_category: category,
       p_description: description,
       p_amount: amount,
-      p_supplier_id: supplier_id || null
+      p_supplier_id: supplier_id || null,
+      p_paid_by: paid_by || null,
+      p_reimburse_status: reimburse_status || 0
     })
 
     if (error) throw error

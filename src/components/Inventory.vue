@@ -220,7 +220,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { inventoryService } from '../services/inventoryService'
-import { supabase } from '../supabase'
 import type { Inventory, InventoryUnit } from '../models/Inventory'
 import InventoryModal from './InventoryModal.vue'
 
@@ -331,11 +330,6 @@ const getStatusText = (stock: number, reorderLevel: number): string => {
   if (stock === 0) return 'Out of Stock'
   if (stock <= reorderLevel) return 'Low Stock'
   return 'In Stock'
-}
-
-const getCurrentUserId = async (): Promise<string> => {
-  const { data: { user } } = await supabase.auth.getUser()
-  return user?.id || 'system-user'
 }
 
 // Modal handlers

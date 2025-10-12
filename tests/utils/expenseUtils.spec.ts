@@ -20,30 +20,38 @@ describe('Expense Utils - Calculations', () => {
     {
       id: '1',
       expense_date: '2025-10-01',
-      category: 'Food',
+      category: 'Ingredients',
       description: 'Ingredients',
-      amount: 500
+      amount: 500,
+      paid_by: 'John Doe',
+      reimburse_status: 1
     },
     {
       id: '2',
       expense_date: '2025-10-02',
       category: 'Gas',
       description: 'Fuel',
-      amount: 200
+      amount: 200,
+      paid_by: 'Jane Smith',
+      reimburse_status: 0
     },
     {
       id: '3',
       expense_date: '2025-10-03',
-      category: 'Food',
+      category: 'Ingredients',
       description: 'More ingredients',
-      amount: 300
+      amount: 300,
+      paid_by: 'Bob Wilson',
+      reimburse_status: 1
     },
     {
       id: '4',
       expense_date: '2025-10-05',
       category: 'Utilities',
       description: 'Electricity',
-      amount: 150
+      amount: 150,
+      paid_by: 'Alice Johnson',
+      reimburse_status: 0
     }
   ];
 
@@ -64,9 +72,11 @@ describe('Expense Utils - Calculations', () => {
       const singleExpense: Expense[] = [{
         id: '1',
         expense_date: '2025-10-01',
-        category: 'Food',
+        category: 'Ingredients',
         description: 'Test',
-        amount: 100
+        amount: 100,
+        paid_by: 'Test User',
+        reimburse_status: 0
       }];
       
       const result = calculateTotalExpenses(singleExpense);
@@ -81,14 +91,18 @@ describe('Expense Utils - Calculations', () => {
           expense_date: '2025-10-01',
           category: 'Supplies',
           description: 'Test',
-          amount: 10.50
+          amount: 10.50,
+          paid_by: 'Test User',
+          reimburse_status: 0
         },
         {
           id: '2',
           expense_date: '2025-10-02',
           category: 'Gas',
           description: 'Test',
-          amount: 20.75
+          amount: 20.75,
+          paid_by: 'Test User',
+          reimburse_status: 0
         }
       ];
       
@@ -103,7 +117,7 @@ describe('Expense Utils - Calculations', () => {
       const result = calculateExpensesByCategory(mockExpenses);
       
       expect(result).toEqual({
-        Food: 800,
+        Ingredients: 800,
         Gas: 200,
         Utilities: 150
       });
@@ -119,14 +133,16 @@ describe('Expense Utils - Calculations', () => {
       const singleCategory: Expense[] = [{
         id: '1',
         expense_date: '2025-10-01',
-        category: 'Food',
+        category: 'Ingredients',
         description: 'Test',
-        amount: 100
+        amount: 100,
+        paid_by: 'Test User',
+        reimburse_status: 0
       }];
       
       const result = calculateExpensesByCategory(singleCategory);
       
-      expect(result).toEqual({ Food: 100 });
+      expect(result).toEqual({ Ingredients: 100 });
     });
 
     it('should aggregate multiple expenses in same category', () => {
@@ -177,9 +193,11 @@ describe('Expense Utils - Calculations', () => {
       const singleExpense: Expense[] = [{
         id: '1',
         expense_date: '2025-10-01',
-        category: 'Food',
+        category: 'Ingredients',
         description: 'Test',
-        amount: 100
+        amount: 100,
+        paid_by: 'Test User',
+        reimburse_status: 0
       }];
       
       const result = calculateAverageExpense(singleExpense);
@@ -192,23 +210,29 @@ describe('Expense Utils - Calculations', () => {
         {
           id: '1',
           expense_date: '2025-10-01',
-          category: 'Food',
+          category: 'Ingredients',
           description: 'Test',
-          amount: 100
+          amount: 100,
+          paid_by: 'Test User',
+          reimburse_status: 0
         },
         {
           id: '2',
           expense_date: '2025-10-02',
           category: 'Gas',
           description: 'Test',
-          amount: 150
+          amount: 150,
+          paid_by: 'Test User',
+          reimburse_status: 0
         },
         {
           id: '3',
           expense_date: '2025-10-03',
           category: 'Supplies',
           description: 'Test',
-          amount: 175
+          amount: 175,
+          paid_by: 'Test User',
+          reimburse_status: 0
         }
       ];
       
@@ -220,7 +244,7 @@ describe('Expense Utils - Calculations', () => {
 
   describe('calculateCategoryPercentage', () => {
     it('should calculate percentage of total for a category', () => {
-      const result = calculateCategoryPercentage(mockExpenses, 'Food');
+      const result = calculateCategoryPercentage(mockExpenses, 'Ingredients');
       
       expect(result).toBeCloseTo(69.57, 2);
     });
@@ -232,7 +256,7 @@ describe('Expense Utils - Calculations', () => {
     });
 
     it('should return 0 for empty expenses array', () => {
-      const result = calculateCategoryPercentage([], 'Food');
+      const result = calculateCategoryPercentage([], 'Ingredients');
       
       expect(result).toBe(0);
     });
@@ -244,14 +268,18 @@ describe('Expense Utils - Calculations', () => {
           expense_date: '2025-10-01',
           category: 'Gas',
           description: 'Test 1',
-          amount: 100
+          amount: 100,
+          paid_by: 'Test User',
+          reimburse_status: 0
         },
         {
           id: '2',
           expense_date: '2025-10-02',
           category: 'Gas',
           description: 'Test 2',
-          amount: 50
+          amount: 50,
+          paid_by: 'Test User',
+          reimburse_status: 0
         }
       ];
       
@@ -287,9 +315,11 @@ describe('Expense Utils - Calculations', () => {
       const singleDayExpenses: Expense[] = [{
         id: '1',
         expense_date: '2025-10-01',
-        category: 'Food',
+        category: 'Ingredients',
         description: 'Test',
-        amount: 500
+        amount: 500,
+        paid_by: 'Test User',
+        reimburse_status: 0
       }];
       
       const result = calculateDailyExpenseRate(singleDayExpenses, '2025-10-01', '2025-10-01');
@@ -302,16 +332,20 @@ describe('Expense Utils - Calculations', () => {
         {
           id: '1',
           expense_date: '2025-10-01',
-          category: 'Food',
+          category: 'Ingredients',
           description: 'Test',
-          amount: 33.33
+          amount: 33.33,
+          paid_by: 'Test User',
+          reimburse_status: 0
         },
         {
           id: '2',
           expense_date: '2025-10-02',
           category: 'Gas',
           description: 'Test',
-          amount: 66.67
+          amount: 66.67,
+          paid_by: 'Test User',
+          reimburse_status: 0
         }
       ];
       
@@ -327,23 +361,29 @@ describe('Expense Utils - Calculations', () => {
         {
           id: '1',
           expense_date: '2025-01-15',
-          category: 'Food',
+          category: 'Ingredients',
           description: 'Test',
-          amount: 3000
+          amount: 3000,
+          paid_by: 'Test User',
+          reimburse_status: 0
         },
         {
           id: '2',
           expense_date: '2025-02-15',
           category: 'Gas',
           description: 'Test',
-          amount: 3000
+          amount: 3000,
+          paid_by: 'Test User',
+          reimburse_status: 0
         },
         {
           id: '3',
           expense_date: '2025-03-15',
           category: 'Supplies',
           description: 'Test',
-          amount: 3000
+          amount: 3000,
+          paid_by: 'Test User',
+          reimburse_status: 0
         }
       ];
       
@@ -362,9 +402,11 @@ describe('Expense Utils - Calculations', () => {
       const singleMonth: Expense[] = [{
         id: '1',
         expense_date: '2025-10-15',
-        category: 'Food',
+        category: 'Ingredients',
         description: 'Test',
-        amount: 5000
+        amount: 5000,
+        paid_by: 'Test User',
+        reimburse_status: 0
       }];
       
       const result = calculateMonthlyExpenseRate(singleMonth, '2025-10-01', '2025-10-31');
@@ -502,30 +544,38 @@ describe('Expense Utils - Calculations', () => {
         {
           id: '1',
           expense_date: '2025-01-15',
-          category: 'Food',
+          category: 'Ingredients',
           description: 'Test',
-          amount: 500
+          amount: 500,
+          paid_by: 'Test User',
+          reimburse_status: 0
         },
         {
           id: '2',
           expense_date: '2025-05-20',
           category: 'Gas',
           description: 'Test',
-          amount: 300
+          amount: 300,
+          paid_by: 'Test User',
+          reimburse_status: 0
         },
         {
           id: '3',
           expense_date: '2025-10-10',
           category: 'Supplies',
           description: 'Test',
-          amount: 200
+          amount: 200,
+          paid_by: 'Test User',
+          reimburse_status: 0
         },
         {
           id: '4',
           expense_date: '2024-12-31',
-          category: 'Food',
+          category: 'Ingredients',
           description: 'Previous year',
-          amount: 1000
+          amount: 1000,
+          paid_by: 'Test User',
+          reimburse_status: 0
         }
       ];
       const year = 2025;
@@ -545,9 +595,11 @@ describe('Expense Utils - Calculations', () => {
       const expenses: Expense[] = [{
         id: '1',
         expense_date: '2025-06-15',
-        category: 'Food',
+        category: 'Ingredients',
         description: 'Test',
-        amount: 750
+        amount: 750,
+        paid_by: 'Test User',
+        reimburse_status: 0
       }];
       
       const result = calculateYearToDateExpenses(expenses, 2025);
@@ -603,18 +655,22 @@ describe('Expense Utils - Calculations', () => {
         {
           id: '1',
           expense_date: '2025-10-01',
-          category: 'Food',
+          category: 'Ingredients',
           description: 'Test',
-          amount: 600
+          amount: 600,
+          paid_by: 'Test User',
+          reimburse_status: 0
         }
       ];
       const previousExpenses: Expense[] = [
         {
           id: '2',
           expense_date: '2025-09-01',
-          category: 'Food',
+          category: 'Ingredients',
           description: 'Test',
-          amount: 500
+          amount: 500,
+          paid_by: 'Test User',
+          reimburse_status: 0
         }
       ];
       
@@ -627,9 +683,11 @@ describe('Expense Utils - Calculations', () => {
       const currentExpenses: Expense[] = [{
         id: '1',
         expense_date: '2025-10-01',
-        category: 'Food',
+        category: 'Ingredients',
         description: 'Test',
-        amount: 500
+        amount: 500,
+        paid_by: 'Test User',
+        reimburse_status: 0
       }];
       
       const result = calculateExpenseGrowth(currentExpenses, []);
@@ -641,16 +699,20 @@ describe('Expense Utils - Calculations', () => {
       const currentExpenses: Expense[] = [{
         id: '1',
         expense_date: '2025-10-01',
-        category: 'Food',
+        category: 'Ingredients',
         description: 'Test',
-        amount: 400
+        amount: 400,
+        paid_by: 'Test User',
+        reimburse_status: 0
       }];
       const previousExpenses: Expense[] = [{
         id: '2',
         expense_date: '2025-09-01',
-        category: 'Food',
+        category: 'Ingredients',
         description: 'Test',
-        amount: 500
+        amount: 500,
+        paid_by: 'Test User',
+        reimburse_status: 0
       }];
       
       const result = calculateExpenseGrowth(currentExpenses, previousExpenses);
@@ -662,16 +724,20 @@ describe('Expense Utils - Calculations', () => {
       const currentExpenses: Expense[] = [{
         id: '1',
         expense_date: '2025-10-01',
-        category: 'Food',
+        category: 'Ingredients',
         description: 'Test',
-        amount: 500
+        amount: 500,
+        paid_by: 'Test User',
+        reimburse_status: 0
       }];
       const previousExpenses: Expense[] = [{
         id: '2',
         expense_date: '2025-09-01',
-        category: 'Food',
+        category: 'Ingredients',
         description: 'Test',
-        amount: 500
+        amount: 500,
+        paid_by: 'Test User',
+        reimburse_status: 0
       }];
       
       const result = calculateExpenseGrowth(currentExpenses, previousExpenses);

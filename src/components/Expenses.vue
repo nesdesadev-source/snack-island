@@ -39,7 +39,7 @@
           <option value="Misc">Misc</option>
           <option value="Maintenance">Maintenance</option>
           <option value="Equipment">Equipment</option>
-          <option value="Food">Food</option>
+          <option value="Ingredients">Ingredients</option>
           <option value="Utilities">Utilities</option>
           <option value="Other">Other</option>
         </select>
@@ -158,6 +158,8 @@
             <th>Description</th>
             <th>Amount</th>
             <th>Supplier</th>
+            <th>Paid By</th>
+            <th>Reimburse</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -189,6 +191,35 @@
             
             <td>
               <span class="supplier-text">{{ expense.supplier_id || 'N/A' }}</span>
+            </td>
+            
+            <td>
+              <span class="paid-by-text">{{ expense.paid_by || 'N/A' }}</span>
+            </td>
+            
+            <td>
+              <span v-if="expense.reimburse_status === 1" class="reimburse-badge needs-reimburse">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                Needs Reimbursement
+              </span>
+              <span v-else-if="expense.reimburse_status === 2" class="reimburse-badge reimbursed">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Reimbursed
+              </span>
+              <span v-else class="reimburse-badge no-reimburse">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                No Reimbursement
+              </span>
             </td>
             
             <td>
@@ -351,7 +382,9 @@ const openEditModal = (expense: Expense) => {
     category: expense.category,
     description: expense.description,
     amount: expense.amount,
-    supplier_id: expense.supplier_id || ''
+    supplier_id: expense.supplier_id || '',
+    paid_by: expense.paid_by || '',
+    reimburse_status: expense.reimburse_status || 0
   }
   isModalOpen.value = true
 }
@@ -371,7 +404,9 @@ const handleSubmit = async (formData: any) => {
         category: formData.category,
         description: formData.description,
         amount: formData.amount,
-        supplier_id: formData.supplier_id
+        supplier_id: formData.supplier_id,
+        paid_by: formData.paid_by,
+        reimburse_status: formData.reimburse_status
       })
     } else {
       await expenseService.addExpense({
@@ -379,7 +414,9 @@ const handleSubmit = async (formData: any) => {
         category: formData.category,
         description: formData.description,
         amount: formData.amount,
-        supplier_id: formData.supplier_id
+        supplier_id: formData.supplier_id,
+        paid_by: formData.paid_by,
+        reimburse_status: formData.reimburse_status
       })
     }
     
@@ -425,7 +462,7 @@ const getCategoryClass = (category: string): string => {
     'Misc': 'category-misc',
     'Maintenance': 'category-maintenance',
     'Equipment': 'category-equipment',
-    'Food': 'category-food',
+    'Ingredients': 'category-ingredients',
     'Utilities': 'category-utilities',
     'Other': 'category-other'
   }
@@ -785,7 +822,7 @@ onMounted(() => {
 .category-misc { background: #f3e5f5; color: #7b1fa2; }
 .category-maintenance { background: #e8f5e9; color: #388e3c; }
 .category-equipment { background: #fce4ec; color: #c2185b; }
-.category-food { background: #fff9c4; color: #f9a825; }
+.category-ingredients { background: #fff9c4; color: #f9a825; }
 .category-utilities { background: #e0f2f1; color: #00796b; }
 .category-other { background: #eceff1; color: #546e7a; }
 .category-default { background: #f5f5f5; color: #616161; }
@@ -806,6 +843,39 @@ onMounted(() => {
 .supplier-text {
   color: #6c757d;
   font-size: 0.9rem;
+}
+
+.paid-by-text {
+  color: #495057;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.reimburse-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.reimburse-badge.needs-reimburse {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.reimburse-badge.no-reimburse {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.reimburse-badge.reimbursed {
+  background: #e3f2fd;
+  color: #1976d2;
 }
 
 .action-buttons {
@@ -907,7 +977,7 @@ onMounted(() => {
 .category-progress-bar.category-misc { background: #7b1fa2; }
 .category-progress-bar.category-maintenance { background: #388e3c; }
 .category-progress-bar.category-equipment { background: #c2185b; }
-.category-progress-bar.category-food { background: #f9a825; }
+.category-progress-bar.category-ingredients { background: #f9a825; }
 .category-progress-bar.category-utilities { background: #00796b; }
 .category-progress-bar.category-other { background: #546e7a; }
 

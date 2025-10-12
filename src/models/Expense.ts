@@ -4,7 +4,7 @@ export type ExpenseCategory =
   | 'Misc' 
   | 'Maintenance' 
   | 'Equipment' 
-  | 'Food' 
+  | 'Ingredients' 
   | 'Utilities' 
   | 'Other';
 
@@ -16,6 +16,8 @@ export interface Expense {
   description: string;
   amount: number;
   supplier_id?: string;
+  paid_by?: string;
+  reimburse_status?: number;
   created_by?: string;
   created_at?: string;
   updated_at?: string;
@@ -27,6 +29,8 @@ export interface CreateExpenseInput {
   description: string;
   amount: number;
   supplier_id?: string;
+  paid_by?: string;
+  reimburse_status?: number;
 }
 
 export interface UpdateExpenseInput {
@@ -35,5 +39,7 @@ export interface UpdateExpenseInput {
   description?: string;
   amount?: number;
   supplier_id?: string;
+  paid_by?: string;
+  reimburse_status?: number;
 }
 
