@@ -868,37 +868,31 @@ const deleteItem = async (item: Inventory) => {
 }
 
 .action-btn {
-  width: 36px;
-  height: 36px;
+  padding: 8px;
+  background: none;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
 }
 
 .action-btn.edit {
-  background: #dbeafe;
-  color: #1e40af;
+  color: #667eea;
 }
 
 .action-btn.edit:hover {
-  background: #1e40af;
-  color: white;
-  transform: translateY(-2px);
+  background: #f0f3ff;
 }
 
 .action-btn.delete {
-  background: #fee2e2;
-  color: #991b1b;
+  color: #dc3545;
 }
 
 .action-btn.delete:hover {
-  background: #991b1b;
-  color: white;
-  transform: translateY(-2px);
+  background: #ffebee;
 }
 
 /* Responsive Design */
