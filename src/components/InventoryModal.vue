@@ -102,7 +102,7 @@
 
               <div class="form-section">
                 <label class="form-label">
-                  Supplier ID <span class="required">*</span>
+                  Supplier ID
                 </label>
                 <div class="input-wrapper">
                   <input 
@@ -110,7 +110,6 @@
                     v-model="localFormData.supplier_id" 
                     placeholder="e.g., SUP-001"
                     class="form-input"
-                    required
                   />
                 </div>
               </div>

@@ -50,14 +50,14 @@
           </router-link>
         </li>
         
-        <li class="nav-item">
+        <!-- <li class="nav-item">
           <router-link to="/sales" class="nav-link" @click="closeMobileSidebar">
             <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
             </svg>
             <span class="nav-text">Sales</span>
           </router-link>
-        </li>
+        </li> -->
         
         <li class="nav-item">
           <router-link to="/expenses" class="nav-link" @click="closeMobileSidebar">
@@ -69,7 +69,7 @@
           </router-link>
         </li>
         
-        <li class="nav-item">
+        <!-- <li class="nav-item">
           <router-link to="/users" class="nav-link" @click="closeMobileSidebar">
             <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -77,7 +77,7 @@
             </svg>
             <span class="nav-text">Users</span>
           </router-link>
-        </li>
+        </li> -->
       </ul>
     </nav>
 
