@@ -29,45 +29,55 @@
     <!-- Navigation Section -->
     <nav class="navigation">
       <ul class="nav-list">
-        <!-- <li class="nav-item" :class="{ active: activeItem === 'dashboard' }" @click="setActiveItem('dashboard')">
-          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="7" height="7"></rect>
-            <rect x="14" y="3" width="7" height="7"></rect>
-            <rect x="14" y="14" width="7" height="7"></rect>
-            <rect x="3" y="14" width="7" height="7"></rect>
-          </svg>
-          <span class="nav-text">Dashboard</span>
-        </li> -->
-        
-        <li class="nav-item" :class="{ active: activeItem === 'inventory' }" @click="setActiveItem('inventory')">
-          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-          </svg>
-          <span class="nav-text">Inventory</span>
+        <li class="nav-item">
+          <router-link to="/dashboard" class="nav-link" @click="closeMobileSidebar">
+            <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span class="nav-text">Dashboard</span>
+          </router-link>
         </li>
         
-        <!-- <li class="nav-item" :class="{ active: activeItem === 'sales' }" @click="setActiveItem('sales')">
-          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-          </svg>
-          <span class="nav-text">Sales</span>
-        </li> -->
-        
-        <li class="nav-item" :class="{ active: activeItem === 'expenses' }" @click="setActiveItem('expenses')">
-          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-          </svg>
-          <span class="nav-text">Expenses</span>
+        <li class="nav-item">
+          <router-link to="/inventory" class="nav-link" @click="closeMobileSidebar">
+            <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span class="nav-text">Inventory</span>
+          </router-link>
         </li>
         
-        <!-- <li class="nav-item" :class="{ active: activeItem === 'users' }" @click="setActiveItem('users')">
-          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
-          <span class="nav-text">Users</span>
-        </li> -->
+        <li class="nav-item">
+          <router-link to="/sales" class="nav-link" @click="closeMobileSidebar">
+            <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+            <span class="nav-text">Sales</span>
+          </router-link>
+        </li>
+        
+        <li class="nav-item">
+          <router-link to="/expenses" class="nav-link" @click="closeMobileSidebar">
+            <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+            </svg>
+            <span class="nav-text">Expenses</span>
+          </router-link>
+        </li>
+        
+        <li class="nav-item">
+          <router-link to="/users" class="nav-link" @click="closeMobileSidebar">
+            <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span class="nav-text">Users</span>
+          </router-link>
+        </li>
       </ul>
     </nav>
 
@@ -91,19 +101,17 @@
 import { ref } from 'vue'
 
 const emit = defineEmits<{
-  tabChange: [tab: string]
+  closeMobile: []
 }>()
 
-const activeItem = ref('dashboard')
 const isCollapsed = ref(false)
-
-const setActiveItem = (item: string) => {
-  activeItem.value = item
-  emit('tabChange', item)
-}
 
 const toggleSidebar = () => {
   isCollapsed.value = !isCollapsed.value
+}
+
+const closeMobileSidebar = () => {
+  emit('closeMobile')
 }
 </script>
 
@@ -233,6 +241,29 @@ const toggleSidebar = () => {
 }
 
 .nav-item.active {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s;
+}
+
+.nav-link:hover {
+  color: inherit;
+}
+
+.nav-link.router-link-active {
+  color: #fff;
+}
+
+.nav-item:has(.router-link-active) {
   background-color: rgba(255, 255, 255, 0.15);
   color: #fff;
 }

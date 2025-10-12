@@ -1,23 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import Sidebar from './components/Sidebar.vue'
-import Dashboard from './components/Dashboard.vue'
-import Inventory from './components/Inventory.vue'
-import Sales from './components/Sales.vue'
-import Expenses from './components/Expenses.vue'
-import Users from './components/Users.vue'
 
-const activeTab = ref('dashboard')
 const showMobileSidebar = ref(false)
 const isMobile = ref(false)
-
-const handleTabChange = (tab: string) => {
-  activeTab.value = tab
-  // Close mobile sidebar when tab changes
-  if (isMobile.value) {
-    showMobileSidebar.value = false
-  }
-}
 
 const toggleMobileSidebar = () => {
   showMobileSidebar.value = !showMobileSidebar.value
@@ -29,23 +15,6 @@ const checkMobile = () => {
   console.log('Screen width:', width, 'isMobile:', isMobile.value)
   if (!isMobile.value) {
     showMobileSidebar.value = false
-  }
-}
-
-const getCurrentComponent = () => {
-  switch (activeTab.value) {
-    case 'dashboard':
-      return Dashboard
-    case 'inventory':
-      return Inventory
-    case 'sales':
-      return Sales
-    case 'expenses':
-      return Expenses
-    case 'users':
-      return Users
-    default:
-      return Dashboard
   }
 }
 
@@ -79,7 +48,6 @@ onUnmounted(() => {
     </div>
     
     <Sidebar 
-      @tab-change="handleTabChange" 
       :class="{ 'mobile-open': showMobileSidebar }"
       @close-mobile="showMobileSidebar = false"
     />
@@ -92,7 +60,7 @@ onUnmounted(() => {
     ></div>
     
     <main class="main-content">
-      <component :is="getCurrentComponent()" />
+      <router-view />
     </main>
   </div>
 </template>
