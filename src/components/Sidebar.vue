@@ -53,6 +53,14 @@
           <span class="nav-text">Sales</span>
         </li>
         
+        <li class="nav-item" :class="{ active: activeItem === 'expenses' }" @click="setActiveItem('expenses')">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+          </svg>
+          <span class="nav-text">Expenses</span>
+        </li>
+        
         <li class="nav-item" :class="{ active: activeItem === 'users' }" @click="setActiveItem('users')">
           <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>

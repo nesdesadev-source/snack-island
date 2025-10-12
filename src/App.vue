@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar.vue'
 import Dashboard from './components/Dashboard.vue'
 import Inventory from './components/Inventory.vue'
 import Sales from './components/Sales.vue'
+import Expenses from './components/Expenses.vue'
 import Users from './components/Users.vue'
 
 const activeTab = ref('dashboard')
@@ -39,6 +40,8 @@ const getCurrentComponent = () => {
       return Inventory
     case 'sales':
       return Sales
+    case 'expenses':
+      return Expenses
     case 'users':
       return Users
     default:
