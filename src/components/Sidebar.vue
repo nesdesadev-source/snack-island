@@ -29,7 +29,7 @@
     <!-- Navigation Section -->
     <nav class="navigation">
       <ul class="nav-list">
-        <li class="nav-item" :class="{ active: activeItem === 'dashboard' }" @click="setActiveItem('dashboard')">
+        <!-- <li class="nav-item" :class="{ active: activeItem === 'dashboard' }" @click="setActiveItem('dashboard')">
           <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="7" height="7"></rect>
             <rect x="14" y="3" width="7" height="7"></rect>
@@ -37,7 +37,7 @@
             <rect x="3" y="14" width="7" height="7"></rect>
           </svg>
           <span class="nav-text">Dashboard</span>
-        </li>
+        </li> -->
         
         <li class="nav-item" :class="{ active: activeItem === 'inventory' }" @click="setActiveItem('inventory')">
           <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -46,12 +46,12 @@
           <span class="nav-text">Inventory</span>
         </li>
         
-        <li class="nav-item" :class="{ active: activeItem === 'sales' }" @click="setActiveItem('sales')">
+        <!-- <li class="nav-item" :class="{ active: activeItem === 'sales' }" @click="setActiveItem('sales')">
           <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
           </svg>
           <span class="nav-text">Sales</span>
-        </li>
+        </li> -->
         
         <li class="nav-item" :class="{ active: activeItem === 'expenses' }" @click="setActiveItem('expenses')">
           <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -61,13 +61,13 @@
           <span class="nav-text">Expenses</span>
         </li>
         
-        <li class="nav-item" :class="{ active: activeItem === 'users' }" @click="setActiveItem('users')">
+        <!-- <li class="nav-item" :class="{ active: activeItem === 'users' }" @click="setActiveItem('users')">
           <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
             <circle cx="12" cy="7" r="4"></circle>
           </svg>
           <span class="nav-text">Users</span>
-        </li>
+        </li> -->
       </ul>
     </nav>
 
