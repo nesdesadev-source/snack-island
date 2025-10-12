@@ -6,8 +6,7 @@ interface AddItemParams {
   unit: string; 
   quantity: number;
   reorder_level: number;
-  supplier_id: string;
-  user_id: string;
+  supplier_id: string | null;
 }
 
 interface UpdateItemParams {
@@ -16,22 +15,20 @@ interface UpdateItemParams {
   unit: string;
   quantity: number;
   reorder_level: number;
-  supplier_id: string;
-  user_id: string;
+  supplier_id: string | null;
 }
 
 export const inventoryService = {
   // ============================
   // CREATE
   // ============================
-  async addItem({ name, unit, quantity, reorder_level, supplier_id, user_id }: AddItemParams) {
+  async addItem({ name, unit, quantity, reorder_level, supplier_id }: AddItemParams) {
     const { data, error } = await supabase.rpc('add_inventory_item', {
       _name: name,
       _unit: unit,
       _quantity: quantity,
       _reorder_level: reorder_level,
-      _supplier_id: supplier_id,
-      _created_by: user_id
+      _supplier_id: supplier_id || null
     })
 
     if (error) throw error
@@ -73,15 +70,14 @@ export const inventoryService = {
   // ============================
   // UPDATE
   // ============================
-  async updateItem({ id, name, unit, quantity, reorder_level, supplier_id, user_id }: UpdateItemParams) {
+  async updateItem({ id, name, unit, quantity, reorder_level, supplier_id }: UpdateItemParams) {
     const { error } = await supabase.rpc('update_inventory_item', {
       _id: id,
       _name: name,
       _unit: unit,
       _quantity: quantity,
       _reorder_level: reorder_level,
-      _supplier_id: supplier_id,
-      _updated_by: user_id
+      _supplier_id: supplier_id || null,
     })
 
     if (error) throw error

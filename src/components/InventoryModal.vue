@@ -100,7 +100,7 @@
                 </div>
               </div>
 
-              <div class="form-section">
+              <!-- <div class="form-section">
                 <label class="form-label">
                   Supplier ID
                 </label>
@@ -112,7 +112,7 @@
                     class="form-input"
                   />
                 </div>
-              </div>
+              </div> -->
             </div>
 
             <div class="modal-footer">

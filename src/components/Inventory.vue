@@ -377,12 +377,10 @@ const closeModal = () => {
 
 const saveItem = async (data: typeof formData.value) => {
   try {
-    if (!data.name || !data.supplier_id) {
+    if (!data.name && !data.unit && !data.quantity && !data.reorder_level) {
       alert('Please fill in all required fields')
       return
     }
-
-    const userId = await getCurrentUserId()
 
     if (isEditMode.value && currentItemId.value) {
       await inventoryService.updateItem({
@@ -391,8 +389,7 @@ const saveItem = async (data: typeof formData.value) => {
         unit: data.unit,
         quantity: data.quantity,
         reorder_level: data.reorder_level,
-        supplier_id: data.supplier_id,
-        user_id: userId
+        supplier_id: data.supplier_id || null,
       })
     } else {
       await inventoryService.addItem({
@@ -400,8 +397,7 @@ const saveItem = async (data: typeof formData.value) => {
         unit: data.unit,
         quantity: data.quantity,
         reorder_level: data.reorder_level,
-        supplier_id: data.supplier_id,
-        user_id: userId
+        supplier_id: data.supplier_id || null,
       })
     }
 
