@@ -4,11 +4,17 @@ import Inventory from '../components/Inventory.vue'
 import Sales from '../components/Sales.vue'
 import Expenses from '../components/Expenses.vue'
 import Users from '../components/Users.vue'
+import Menu from '../components/Menu.vue'
 
 const routes = [
   {
     path: '/',
     redirect: '/dashboard'
+  },
+  {
+    path: '/menu',
+    name: 'Menu',
+    component: Menu
   },
   {
     path: '/dashboard',

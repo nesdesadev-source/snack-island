@@ -5,6 +5,8 @@ export interface MenuItem {
   name: string;
   price: number;
   category: MenuCategory;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface CreateMenuItemInput {

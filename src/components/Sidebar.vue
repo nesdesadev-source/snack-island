@@ -40,6 +40,15 @@
             <span class="nav-text">Dashboard</span>
           </router-link>
         </li>
+
+        <li class="nav-item">
+          <router-link to="/menu" class="nav-link" @click="closeMobileSidebar">
+            <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+            <span class="nav-text">Menu</span>
+          </router-link>
+        </li>
         
         <li class="nav-item">
           <router-link to="/inventory" class="nav-link" @click="closeMobileSidebar">
@@ -49,6 +58,8 @@
             <span class="nav-text">Inventory</span>
           </router-link>
         </li>
+        
+        
         
         <!-- <li class="nav-item">
           <router-link to="/sales" class="nav-link" @click="closeMobileSidebar">

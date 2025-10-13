@@ -6,6 +6,11 @@ export interface RecipeMap {
   ingredient_id: string;
   usage_per_order: number;
   usage_type: UsageType;
+  purchase_price: number;
+  purchase_quantity: number;
+  purchase_unit: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface CreateRecipeMapInput {
@@ -13,6 +18,9 @@ export interface CreateRecipeMapInput {
   ingredient_id: string;
   usage_per_order: number;
   usage_type: UsageType;
+  purchase_price: number;
+  purchase_quantity: number;
+  purchase_unit: string;
 }
 
 export interface UpdateRecipeMapInput {
@@ -20,5 +28,8 @@ export interface UpdateRecipeMapInput {
   ingredient_id?: string;
   usage_per_order?: number;
   usage_type?: UsageType;
+  purchase_price?: number;
+  purchase_quantity?: number;
+  purchase_unit?: string;
 }
 
