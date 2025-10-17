@@ -1,10 +1,13 @@
 <template>
-  <div class="sidebar">
+  <div class="sidebar" :class="{ collapsed: isCollapsed }">
     <!-- Header Section -->
     <div class="sidebar-header">
       <div class="brand">
-        <div class="brand-icon">S</div>
-        <span class="brand-name">Snack Bar Island</span>
+        <img class="brand-logo" :src="logoUrl" alt="Snack Island logo" />
+        <div class="brand-text">
+          <span class="brand-name">Snack Island</span>
+          <span class="brand-tagline">POS & Inventory</span>
+        </div>
       </div>
       <button class="menu-toggle" @click="toggleSidebar">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -38,6 +41,7 @@
               <rect x="3" y="14" width="7" height="7"></rect>
             </svg>
             <span class="nav-text">Dashboard</span>
+            <span class="nav-active-indicator"></span>
           </router-link>
         </li>
 
@@ -47,6 +51,7 @@
               <path d="M4 6h16M4 12h16M4 18h16"></path>
             </svg>
             <span class="nav-text">Menu</span>
+            <span class="nav-active-indicator"></span>
           </router-link>
         </li>
         
@@ -56,6 +61,7 @@
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
             </svg>
             <span class="nav-text">Inventory</span>
+            <span class="nav-active-indicator"></span>
           </router-link>
         </li>
         
@@ -77,6 +83,7 @@
               <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
             </svg>
             <span class="nav-text">Expenses</span>
+            <span class="nav-active-indicator"></span>
           </router-link>
         </li>
         
@@ -110,15 +117,18 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import logoUrl from '../assets/logo.png'
 
 const emit = defineEmits<{
   closeMobile: []
+  toggleCollapse: [boolean]
 }>()
 
 const isCollapsed = ref(false)
 
 const toggleSidebar = () => {
   isCollapsed.value = !isCollapsed.value
+  emit('toggleCollapse', isCollapsed.value)
 }
 
 const closeMobileSidebar = () => {
@@ -130,46 +140,62 @@ const closeMobileSidebar = () => {
 .sidebar {
   width: 280px;
   height: 100vh;
-  background-color: #1A1A2E;
+  background: radial-gradient(800px 400px at -80px -120px, rgba(255, 184, 0, 0.08), rgba(255, 184, 0, 0) 55%), linear-gradient(180deg, #0e3b2e 0%, #114e43 100%);
   display: flex;
   flex-direction: column;
   position: fixed;
   left: 0;
   top: 0;
   z-index: 1000;
+  border-right: 1px solid rgba(255, 184, 0, 0.12);
+  transition: width 0.25s ease;
+}
+
+.sidebar.collapsed {
+  width: 72px;
 }
 
 .sidebar-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 16px 20px;
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-.brand-icon {
-  width: 32px;
-  height: 32px;
-  background-color: #fff;
-  color: #1A1A2E;
+.brand-logo {
+  width: 34px;
+  height: 34px;
   border-radius: 8px;
+  object-fit: cover;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+}
+
+.brand-text {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 18px;
+  flex-direction: column;
+}
+
+.collapsed .brand-text {
+  display: none;
 }
 
 .brand-name {
   color: #fff;
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.brand-tagline {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
 }
 
 .menu-toggle {
@@ -178,16 +204,20 @@ const closeMobileSidebar = () => {
   color: #fff;
   cursor: pointer;
   padding: 8px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  border-radius: 8px;
+  transition: background-color 0.2s, transform 0.2s;
 }
 
 .menu-toggle:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .search-section {
   padding: 20px;
+}
+
+.collapsed .search-section {
+  display: none;
 }
 
 .search-container {
@@ -206,13 +236,13 @@ const closeMobileSidebar = () => {
 .search-input {
   width: 100%;
   padding: 12px 12px 12px 40px;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.08);
   border: none;
   border-radius: 8px;
   color: #fff;
   font-size: 14px;
   outline: none;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, box-shadow 0.2s;
 }
 
 .search-input::placeholder {
@@ -220,7 +250,8 @@ const closeMobileSidebar = () => {
 }
 
 .search-input:focus {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15) inset;
 }
 
 .navigation {
@@ -240,14 +271,18 @@ const closeMobileSidebar = () => {
   gap: 12px;
   padding: 12px 16px;
   margin-bottom: 4px;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s;
   color: rgba(255, 255, 255, 0.8);
 }
 
+.collapsed .nav-item {
+  justify-content: center;
+}
+
 .nav-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.08);
   color: #fff;
 }
 
@@ -264,6 +299,7 @@ const closeMobileSidebar = () => {
   text-decoration: none;
   color: inherit;
   transition: all 0.2s;
+  position: relative;
 }
 
 .nav-link:hover {
@@ -275,7 +311,7 @@ const closeMobileSidebar = () => {
 }
 
 .nav-item:has(.router-link-active) {
-  background-color: rgba(255, 255, 255, 0.15);
+  background-color: rgba(255, 255, 255, 0.12);
   color: #fff;
 }
 
@@ -288,12 +324,31 @@ const closeMobileSidebar = () => {
   font-weight: 500;
 }
 
+.collapsed .nav-text,
+.collapsed .nav-active-indicator {
+  display: none;
+}
+
+.nav-active-indicator {
+  position: absolute;
+  right: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: transparent;
+  transition: background 0.2s;
+}
+
+.router-link-active .nav-active-indicator {
+  background: #22d3ee; /* cyan-400 */
+}
+
 .user-profile {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .profile-picture {
@@ -311,6 +366,14 @@ const closeMobileSidebar = () => {
 .profile-info {
   flex: 1;
   min-width: 0;
+}
+
+.collapsed .user-profile {
+  justify-content: center;
+}
+
+.collapsed .profile-info {
+  display: none;
 }
 
 .profile-name {

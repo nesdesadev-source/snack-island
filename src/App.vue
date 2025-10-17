@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar.vue'
 
 const showMobileSidebar = ref(false)
 const isMobile = ref(false)
+const isCollapsed = ref(false)
 
 const toggleMobileSidebar = () => {
   showMobileSidebar.value = !showMobileSidebar.value
@@ -50,6 +51,7 @@ onUnmounted(() => {
     <Sidebar 
       :class="{ 'mobile-open': showMobileSidebar }"
       @close-mobile="showMobileSidebar = false"
+      @toggle-collapse="val => (isCollapsed = val)"
     />
     
     <!-- Mobile Overlay -->
@@ -59,7 +61,7 @@ onUnmounted(() => {
       @click="showMobileSidebar = false"
     ></div>
     
-    <main class="main-content">
+    <main class="main-content" :style="{ '--sidebar-width': isCollapsed ? '72px' : '280px' }">
       <router-view />
     </main>
   </div>
@@ -149,8 +151,8 @@ onUnmounted(() => {
   }
   
   .main-content {
-    margin-left: 280px !important;
-    width: calc(100% - 280px) !important;
+    margin-left: var(--sidebar-width, 280px) !important;
+    width: calc(100% - var(--sidebar-width, 280px)) !important;
     padding: 40px !important;
     margin-top: 0 !important;
     min-height: 100vh !important;

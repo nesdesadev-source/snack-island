@@ -25,7 +25,7 @@
         <input 
           type="text" 
           class="search-input" 
-          placeholder="Search by description or category..." 
+          placeholder="Search by description, category, or paid by..." 
           v-model="searchQuery" 
         />
       </div>
@@ -53,6 +53,16 @@
       <div class="filter-group">
         <label class="filter-label">End Date</label>
         <input type="date" v-model="endDate" class="filter-input" />
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label">Reimburse Status</label>
+        <select v-model="selectedReimburseStatus" class="filter-select" data-testid="reimburse-select">
+          <option value="">All</option>
+          <option value="1">Needs Reimbursement</option>
+          <option value="2">Reimbursed</option>
+          <option value="0">No Reimbursement</option>
+        </select>
       </div>
 
       <div class="filter-group">
@@ -311,6 +321,7 @@ const isLoading = ref(true)
 const error = ref('')
 const searchQuery = ref('')
 const selectedCategory = ref('')
+const selectedReimburseStatus = ref('')
 const startDate = ref('')
 const endDate = ref('')
 const isModalOpen = ref(false)
@@ -337,8 +348,9 @@ const filteredExpenses = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter(expense => 
-      expense.description.toLowerCase().includes(query) ||
-      expense.category.toLowerCase().includes(query)
+      (expense.description && expense.description.toLowerCase().includes(query)) ||
+      (expense.category && expense.category.toLowerCase().includes(query)) ||
+      (expense.paid_by && expense.paid_by.toLowerCase().includes(query))
     )
   }
 
@@ -348,6 +360,11 @@ const filteredExpenses = computed(() => {
 
   if (startDate.value && endDate.value) {
     filtered = filterExpensesByDateRange(filtered, startDate.value, endDate.value)
+  }
+
+  if (selectedReimburseStatus.value !== '') {
+    const status = Number(selectedReimburseStatus.value)
+    filtered = filtered.filter(expense => Number(expense.reimburse_status) === status)
   }
 
   return filtered.sort((a, b) => 
@@ -476,6 +493,7 @@ const calculatePercentage = (category: string): string => {
 const clearFilters = () => {
   searchQuery.value = ''
   selectedCategory.value = ''
+  selectedReimburseStatus.value = ''
   startDate.value = ''
   endDate.value = ''
 }
