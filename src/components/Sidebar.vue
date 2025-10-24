@@ -46,6 +46,16 @@
         </li>
 
         <li class="nav-item">
+          <router-link to="/order" class="nav-link" @click="closeMobileSidebar">
+            <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+            <span class="nav-text">Order</span>
+            <span class="nav-active-indicator"></span>
+          </router-link>
+        </li>
+
+        <li class="nav-item">
           <router-link to="/menu" class="nav-link" @click="closeMobileSidebar">
             <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M4 6h16M4 12h16M4 18h16"></path>
@@ -66,6 +76,7 @@
         </li>
         
         
+              
         
         <!-- <li class="nav-item">
           <router-link to="/sales" class="nav-link" @click="closeMobileSidebar">

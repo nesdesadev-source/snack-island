@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import OrderPage from '../components/OrderPage.vue'
 import Dashboard from '../components/Dashboard.vue'
 import Inventory from '../components/Inventory.vue'
 import Sales from '../components/Sales.vue'
@@ -15,6 +16,11 @@ const routes = [
     path: '/menu',
     name: 'Menu',
     component: Menu
+  },
+  {
+    path: '/order',
+    name: 'Order',
+    component: OrderPage
   },
   {
     path: '/dashboard',

@@ -1,4 +1,4 @@
-export type OrderStatus = 'Pending' | 'Completed' | 'Cancelled';
+export type OrderStatus = 'Pending' | 'Preparing' | 'Ready' | 'Completed' | 'Cancelled';
 
 export type PaymentMethod = 'Cash' | 'GCash' | 'Card' | 'Other';
 
