@@ -5,7 +5,7 @@
       <div class="row-header" @click="toggleRow('todo')">
         <div class="row-header-left">
           <h3 class="row-title">TO DO</h3>
-          <span class="row-count">{{ getOrdersByStatus('Pending').length }}</span>
+          <span class="row-count">{{ getOrdersByStatus('pending').length }}</span>
         </div>
         <button class="collapse-btn" :class="{ collapsed: collapsedRows.todo }">
           <svg class="collapse-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -15,13 +15,13 @@
       </div>
       <div v-show="!collapsedRows.todo" class="row-content">
         <div
-          v-for="order in getOrdersByStatus('Pending')"
+          v-for="order in getOrdersByStatus('pending')"
           :key="order.id"
           class="order-card todo-card"
         >
           <div class="card-header">
             <span class="order-id">#{{ order.id.slice(-6) }}</span>
-            <span class="order-time">{{ formatDateTime(order.datetime) }}</span>
+            <span class="order-time">{{ formatDateTime(order.created_at || '') }}</span>
           </div>
           
           <div class="card-items">
@@ -32,7 +32,7 @@
                 :key="item.id"
                 class="item-row"
               >
-                <span class="item-name">{{ getMenuItemName(item.item_id) }} ×{{ item.quantity }}</span>
+                <span class="item-name">{{ getMenuItemName(item.menu_id || '') }} ×{{ item.quantity }}</span>
                 <span class="item-price">₱{{ item.subtotal }}</span>
               </div>
             </div>
@@ -47,13 +47,13 @@
           
           <div class="card-actions">
             <button
-              @click="updateOrderStatus(order.id, 'Ready' as OrderStatus)"
+              @click="updateOrderStatus(order.id, 'ready' as OrderStatus)"
               class="action-btn action-primary"
             >
               Mark Ready
             </button>
             <button
-              @click="updateOrderStatus(order.id, 'Cancelled' as OrderStatus)"
+              @click="updateOrderStatus(order.id, 'cancelled' as OrderStatus)"
               class="action-btn action-secondary"
             >
               Cancel
@@ -68,7 +68,7 @@
       <div class="row-header" @click="toggleRow('ready')">
         <div class="row-header-left">
           <h3 class="row-title">READY</h3>
-          <span class="row-count">{{ getOrdersByStatus('Ready').length }}</span>
+          <span class="row-count">{{ getOrdersByStatus('ready').length }}</span>
         </div>
         <button class="collapse-btn" :class="{ collapsed: collapsedRows.ready }">
           <svg class="collapse-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -78,13 +78,13 @@
       </div>
       <div v-show="!collapsedRows.ready" class="row-content">
         <div
-          v-for="order in getOrdersByStatus('Ready')"
+          v-for="order in getOrdersByStatus('ready')"
           :key="order.id"
           class="order-card ready-card"
         >
           <div class="card-header">
             <span class="order-id">#{{ order.id.slice(-6) }}</span>
-            <span class="order-time">{{ formatDateTime(order.datetime) }}</span>
+            <span class="order-time">{{ formatDateTime(order.created_at || '') }}</span>
           </div>
           
           <div class="card-items">
@@ -95,7 +95,7 @@
                 :key="item.id"
                 class="item-row"
               >
-                <span class="item-name">{{ getMenuItemName(item.item_id) }} ×{{ item.quantity }}</span>
+                <span class="item-name">{{ getMenuItemName(item.menu_id || '') }} ×{{ item.quantity }}</span>
                 <span class="item-price">₱{{ item.subtotal }}</span>
               </div>
             </div>
@@ -110,13 +110,13 @@
           
           <div class="card-actions">
             <button
-              @click="updateOrderStatus(order.id, 'Completed' as OrderStatus)"
+              @click="updateOrderStatus(order.id, 'completed' as OrderStatus)"
               class="action-btn action-primary"
             >
               Complete Order
             </button>
             <button
-              @click="updateOrderStatus(order.id, 'Cancelled' as OrderStatus)"
+              @click="updateOrderStatus(order.id, 'cancelled' as OrderStatus)"
               class="action-btn action-secondary"
             >
               Cancel
@@ -131,7 +131,7 @@
       <div class="row-header" @click="toggleRow('done')">
         <div class="row-header-left">
           <h3 class="row-title">DONE</h3>
-          <span class="row-count">{{ getOrdersByStatus('Completed').length }}</span>
+          <span class="row-count">{{ getOrdersByStatus('completed').length }}</span>
         </div>
         <button class="collapse-btn" :class="{ collapsed: collapsedRows.done }">
           <svg class="collapse-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -141,13 +141,13 @@
       </div>
       <div v-show="!collapsedRows.done" class="row-content">
         <div
-          v-for="order in getOrdersByStatus('Completed')"
+          v-for="order in getOrdersByStatus('completed')"
           :key="order.id"
           class="order-card done-card"
         >
           <div class="card-header">
             <span class="order-id">#{{ order.id.slice(-6) }}</span>
-            <span class="order-time">{{ formatDateTime(order.datetime) }}</span>
+              <span class="order-time">{{ formatDateTime(order.created_at || '') }}</span>
           </div>
           
           <div class="card-items">
@@ -158,7 +158,7 @@
                 :key="item.id"
                 class="item-row"
               >
-                <span class="item-name">{{ getMenuItemName(item.item_id) }} ×{{ item.quantity }}</span>
+                <span class="item-name">{{ getMenuItemName(item.menu_id || '') }} ×{{ item.quantity }}</span>
                 <span class="item-price">₱{{ item.subtotal }}</span>
               </div>
             </div>
@@ -181,10 +181,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import type { Order, OrderItem, OrderStatus } from '../models'
 import { OrderService } from '../services/orderService'
-import { mockOrders, mockOrderItems, mockMenuItems } from '../mockData/orders'
+import { menuItemService } from '../services/menuItemService'
 
 // Props
 const emit = defineEmits<{
@@ -226,17 +226,23 @@ const getMenuItemName = (itemId: string): string => {
 }
 
 const getOrdersByStatus = (status: OrderStatus): Order[] => {
-  return orders.value.filter(order => order.status === status)
+  return orders.value.filter(order => order.status === status as OrderStatus)
 }
 
 const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
   try {
-    await OrderService.updateOrderStatus(orderId, newStatus)
+    await OrderService.updateOrderStatus(orderId, newStatus as OrderStatus)
     
     // Update local state
     const orderIndex = orders.value.findIndex(order => order.id === orderId)
     if (orderIndex >= 0 && orders.value[orderIndex]) {
-      orders.value[orderIndex].status = newStatus
+      orders.value[orderIndex].status = newStatus as OrderStatus
+    }
+    
+    // Update collapsed rows after status change
+    updateCollapsedRows()
+    if (newStatus === 'ready') {
+      collapsedRows.value.ready = false;
     }
     
     emit('orderUpdated')
@@ -249,12 +255,11 @@ const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
 const loadOrders = async () => {
   isLoading.value = true
   try {
-    // Use mock data for now
-    orders.value = mockOrders
-    // Uncomment below to use real API
-    // orders.value = await OrderService.getOrders()
+    orders.value = await OrderService.getOrders()
+    updateCollapsedRows()
   } catch (error) {
     console.error('Error loading orders:', error)
+    alert('Failed to load orders. Please refresh the page.')
   } finally {
     isLoading.value = false
   }
@@ -262,30 +267,49 @@ const loadOrders = async () => {
 
 const loadOrderItems = async () => {
   try {
-    // Use mock data for now
-    orderItems.value = mockOrderItems
-    // Uncomment below to use real API
-    // const allOrderItems: OrderItem[] = []
-    // for (const order of orders.value) {
-    //   const items = await OrderService.getOrderItems(order.id)
-    //   allOrderItems.push(...items)
-    // }
-    // orderItems.value = allOrderItems
+    const allOrderItems: OrderItem[] = []
+    for (const order of orders.value) {
+      const items = await OrderService.getOrderItems(order.id)
+      allOrderItems.push(...items)
+    }
+    orderItems.value = allOrderItems
   } catch (error) {
     console.error('Error loading order items:', error)
+    alert('Failed to load order items. Please refresh the page.')
   }
 }
 
 const loadMenuItems = async () => {
   try {
-    // Use mock data for now
-    menuItems.value = mockMenuItems
-    // Uncomment below to use real API
-    // menuItems.value = await menuItemService.getMenuItems()
+    menuItems.value = await menuItemService.getMenuItems()
   } catch (error) {
     console.error('Error loading menu items:', error)
+    alert('Failed to load menu items. Please refresh the page.')
   }
 }
+
+// Auto-collapse empty rows (but don't auto-expand if already collapsed)
+const updateCollapsedRows = () => {
+  const todoCount = getOrdersByStatus('pending').length
+  const readyCount = getOrdersByStatus('ready').length
+  const doneCount = getOrdersByStatus('completed').length
+
+  collapsedRows.value.todo = todoCount === 0;
+  
+  // Only collapse if empty, don't expand if already collapsed
+  
+  if (readyCount === 0) {
+    collapsedRows.value.ready = true
+  }
+  if (doneCount === 0) {
+    collapsedRows.value.done = true
+  }
+}
+
+// Watch for changes in orders and auto-collapse empty rows
+watch(orders, () => {
+  updateCollapsedRows()
+}, { deep: true })
 
 // Lifecycle
 onMounted(async () => {

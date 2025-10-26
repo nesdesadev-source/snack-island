@@ -35,8 +35,8 @@
           class="order-item"
         >
           <div class="item-info">
-            <div class="item-name">{{ getMenuItemName(item.item_id) }}</div>
-            <div class="item-unit-price">₱{{ getMenuItemPrice(item.item_id) }} each</div>
+            <div class="item-name">{{ getMenuItemName(item.menu_id || '') }}</div>
+            <div class="item-unit-price">₱{{ getMenuItemPrice(item.menu_id || '') }} each</div>
           </div>
           <div class="item-controls">
             <button
@@ -132,7 +132,7 @@ const selectedPaymentMethod = ref<PaymentMethod | null>(null)
 const isSubmitting = ref(false)
 const isLoadingMenuItems = ref(false)
 
-const paymentMethods: PaymentMethod[] = ['Cash', 'GCash', 'Card', 'Other']
+const paymentMethods: PaymentMethod[] = ['cash', 'gcash', 'card', 'other']
 
 // Computed
 const orderTotal = computed(() => calculateOrderTotal(orderItems.value))
@@ -149,7 +149,7 @@ const getMenuItemPrice = (itemId: string): number => {
 }
 
 const addItemToOrder = (menuItem: MenuItem) => {
-  const existingItemIndex = orderItems.value.findIndex(item => item.item_id === menuItem.id)
+  const existingItemIndex = orderItems.value.findIndex(item => item.menu_id === menuItem.id)
   
   if (existingItemIndex >= 0) {
     // Increase quantity of existing item
@@ -159,7 +159,8 @@ const addItemToOrder = (menuItem: MenuItem) => {
     const newOrderItem = createOrderItem(
       'temp-order-id', // Will be replaced when order is created
       menuItem,
-      1
+      1,
+      'system'
     )
     orderItems.value.push(newOrderItem)
   }
@@ -169,7 +170,7 @@ const increaseQuantity = (index: number) => {
   const item = orderItems.value[index]
   if (!item) return
   
-  const menuItem = menuItems.value.find(m => m.id === item.item_id)
+  const menuItem = menuItems.value.find(m => m.id === item.menu_id)
   
   if (menuItem) {
     item.quantity += 1
@@ -181,7 +182,7 @@ const decreaseQuantity = (index: number) => {
   const item = orderItems.value[index]
   if (!item) return
   
-  const menuItem = menuItems.value.find(m => m.id === item.item_id)
+  const menuItem = menuItems.value.find(m => m.id === item.menu_id)
   
   if (menuItem && item.quantity > 1) {
     item.quantity -= 1
@@ -210,23 +211,21 @@ const submitOrder = async () => {
   try {
     // Create the order
     const orderData = {
-      datetime: new Date().toISOString(),
       total_amount: orderTotal.value,
       payment_method: selectedPaymentMethod.value,
-      status: 'Pending' as const
+      status: 'pending' as const
     }
 
     const newOrder = await OrderService.createOrder(orderData)
 
-    // Create order items
+    // Create order items using batch operation for better performance
     const orderItemsData = orderItems.value.map(item => ({
-      order_id: newOrder.id,
-      item_id: item.item_id,
+      menu_id: item.menu_id || '',
       quantity: item.quantity,
       subtotal: item.subtotal
     }))
 
-    await OrderService.createOrderItems(orderItemsData)
+    await OrderService.createOrderItemsBatch(newOrder.id, orderItemsData)
 
     // Clear the form
     clearOrder()

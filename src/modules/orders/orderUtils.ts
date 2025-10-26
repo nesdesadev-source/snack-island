@@ -41,7 +41,7 @@ export function validateOrderItems(items: OrderItem[]): boolean {
   return items.every(item => 
     item.quantity > 0 && 
     item.subtotal >= 0 && 
-    item.item_id && 
+    item.menu_id && 
     item.order_id
   )
 }
@@ -56,7 +56,8 @@ export function validateOrderItems(items: OrderItem[]): boolean {
 export function createOrderItem(
   orderId: string, 
   menuItem: MenuItem, 
-  quantity: number
+  quantity: number,
+  created_by: string
 ): OrderItem {
   if (quantity <= 0) {
     throw new Error('Quantity must be greater than 0')
@@ -67,9 +68,11 @@ export function createOrderItem(
   return {
     id: crypto.randomUUID(),
     order_id: orderId,
-    item_id: menuItem.id,
+    menu_id: menuItem.id,
     quantity,
-    subtotal
+    subtotal,
+    created_at: new Date().toISOString(),
+    created_by: created_by
   }
 }
 

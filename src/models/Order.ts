@@ -1,26 +1,27 @@
-export type OrderStatus = 'Pending' | 'Preparing' | 'Ready' | 'Completed' | 'Cancelled';
+export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled';
 
-export type PaymentMethod = 'Cash' | 'GCash' | 'Card' | 'Other';
+export type PaymentMethod = 'cash' | 'gcash' | 'card' | 'other';
 
 export interface Order {
   id: string;
-  datetime: string;
   total_amount: number;
-  payment_method: PaymentMethod;
-  status: OrderStatus;
+  payment_method: PaymentMethod | null;
+  status: OrderStatus | null;
+  created_at: string | null;
+  updated_at: string | null;
+  created_by: string | null;
+  updated_by: string | null;
 }
 
 export interface CreateOrderInput {
-  datetime: string;
   total_amount: number;
-  payment_method: PaymentMethod;
-  status?: OrderStatus;
+  payment_method?: PaymentMethod | null;
+  status?: OrderStatus | null;
 }
 
 export interface UpdateOrderInput {
-  datetime?: string;
   total_amount?: number;
-  payment_method?: PaymentMethod;
-  status?: OrderStatus;
+  payment_method?: PaymentMethod | null;
+  status?: OrderStatus | null;
 }
 

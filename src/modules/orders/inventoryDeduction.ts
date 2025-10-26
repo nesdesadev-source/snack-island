@@ -22,7 +22,7 @@ export async function deductInventoryForOrder(orderItems: OrderItem[]): Promise<
     
     // Process each order item
     for (const orderItem of orderItems) {
-      const itemRecipeMappings = recipeMapByMenuItem.get(orderItem.item_id) || []
+      const itemRecipeMappings = recipeMapByMenuItem.get(orderItem.menu_id || '') || []
       
       for (const recipeMapping of itemRecipeMappings) {
         await deductIngredientForOrderItem(recipeMapping, orderItem.quantity)
@@ -98,12 +98,12 @@ export async function checkInventoryAvailability(orderItems: OrderItem[]): Promi
   
   try {
     // Get all recipe mappings for the menu items
-    const menuItemIds = orderItems.map(item => item.item_id)
+    const menuItemIds = orderItems.map(item => item.menu_id || '')
     const recipeMappings = await recipeMapService.getRecipeMappingsByMenuItems(menuItemIds)
     
     // Group recipe mappings by menu item ID
     const recipeMapByMenuItem = new Map<string, RecipeMap[]>()
-    recipeMappings.forEach(mapping => {
+    recipeMappings.forEach((mapping: RecipeMap) => {
       if (!recipeMapByMenuItem.has(mapping.menu_item_id)) {
         recipeMapByMenuItem.set(mapping.menu_item_id, [])
       }
@@ -112,7 +112,7 @@ export async function checkInventoryAvailability(orderItems: OrderItem[]): Promi
     
     // Check each order item
     for (const orderItem of orderItems) {
-      const itemRecipeMappings = recipeMapByMenuItem.get(orderItem.item_id) || []
+      const itemRecipeMappings = recipeMapByMenuItem.get(orderItem.menu_id || '') || []
       
       for (const recipeMapping of itemRecipeMappings) {
         if (recipeMapping.usage_type === 'per_order') {
@@ -180,7 +180,7 @@ export async function getInventoryImpactSummary(orderItems: OrderItem[]): Promis
   
   try {
     // Get recipe mappings
-    const menuItemIds = orderItems.map(item => item.item_id)
+    const menuItemIds = orderItems.map(item => item.menu_id || '')
     const recipeMappings = await recipeMapService.getRecipeMappingsByMenuItems(menuItemIds)
     
     // Group by ingredient and calculate totals
@@ -188,7 +188,7 @@ export async function getInventoryImpactSummary(orderItems: OrderItem[]): Promis
     const ingredientOrderCount = new Map<string, number>()
     
     for (const orderItem of orderItems) {
-      const itemRecipeMappings = recipeMappings.filter(m => m.menu_item_id === orderItem.item_id)
+      const itemRecipeMappings = recipeMappings.filter(m => m.menu_item_id === orderItem.menu_id || '')
       
       for (const mapping of itemRecipeMappings) {
         const key = mapping.ingredient_id
