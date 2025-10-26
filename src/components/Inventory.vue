@@ -17,7 +17,7 @@
 
     <!-- Stats Cards -->
     <div class="stats-grid">
-      <div class="stat-card">
+      <div class="stat-card" @click="setStatusFilter('all')" :class="{ active: statusFilter === 'all' }">
         <div class="stat-icon total">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
@@ -29,7 +29,7 @@
         </div>
       </div>
 
-      <div class="stat-card">
+      <div class="stat-card" @click="setStatusFilter('in-stock')" :class="{ active: statusFilter === 'in-stock' }">
         <div class="stat-icon success">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="20 6 9 17 4 12"></polyline>
@@ -41,7 +41,7 @@
         </div>
       </div>
 
-      <div class="stat-card">
+      <div class="stat-card" @click="setStatusFilter('low-stock')" :class="{ active: statusFilter === 'low-stock' }">
         <div class="stat-icon warning">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
@@ -55,7 +55,7 @@
         </div>
       </div>
 
-      <div class="stat-card">
+      <div class="stat-card" @click="setStatusFilter('out-of-stock')" :class="{ active: statusFilter === 'out-of-stock' }">
         <div class="stat-icon danger">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"></circle>
@@ -225,6 +225,7 @@ import InventoryModal from './InventoryModal.vue'
 
 const searchQuery = ref('')
 const selectedCategory = ref('')
+const statusFilter = ref('all')
 const inventoryItems = ref<Inventory[]>([])
 const isLoading = ref(false)
 const error = ref<string | null>(null)
@@ -281,6 +282,22 @@ const outOfStockCount = computed(() => {
 const filteredItems = computed(() => {
   let filtered = inventoryItems.value
   
+  // Apply status filter
+  if (statusFilter.value !== 'all') {
+    filtered = filtered.filter(item => {
+      switch (statusFilter.value) {
+        case 'in-stock':
+          return item.quantity > item.reorder_level
+        case 'low-stock':
+          return item.quantity > 0 && item.quantity <= item.reorder_level
+        case 'out-of-stock':
+          return item.quantity === 0
+        default:
+          return true
+      }
+    })
+  }
+  
   if (searchQuery.value) {
     filtered = filtered.filter(item => 
       item.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
@@ -294,6 +311,11 @@ const filteredItems = computed(() => {
   
   return filtered
 })
+
+// Status filter function
+const setStatusFilter = (status: string) => {
+  statusFilter.value = status
+}
 
 // Helper functions
 const getInitials = (name: string): string => {
@@ -485,11 +507,18 @@ const deleteItem = async (item: Inventory) => {
   gap: 1rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.2s;
+  cursor: pointer;
 }
 
 .stat-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
+}
+
+.stat-card.active {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+  border: 2px solid #667eea;
 }
 
 .stat-icon {

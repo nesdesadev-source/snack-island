@@ -10,10 +10,8 @@
         </div>
       </div>
       <button class="menu-toggle" @click="toggleSidebar">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'chevron-right': isCollapsed, 'chevron-left': !isCollapsed }">
+          <polyline points="9,18 15,12 9,6"></polyline>
         </svg>
       </button>
     </div>
@@ -163,7 +161,7 @@ const closeMobileSidebar = () => {
 }
 
 .sidebar.collapsed {
-  width: 72px;
+  width: 80px;
 }
 
 .sidebar-header {
@@ -173,6 +171,12 @@ const closeMobileSidebar = () => {
   padding: 16px 20px;
   backdrop-filter: blur(8px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.collapsed .sidebar-header {
+  padding: 16px 12px;
+  justify-content: center;
+  position: relative;
 }
 
 .brand {
@@ -219,8 +223,36 @@ const closeMobileSidebar = () => {
   transition: background-color 0.2s, transform 0.2s;
 }
 
+.collapsed .menu-toggle {
+  position: absolute;
+  right: -20px;
+  background-color: rgba(14, 59, 46, 0.8);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
 .menu-toggle:hover {
   background-color: rgba(255, 255, 255, 0.08);
+}
+
+.collapsed .menu-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.menu-toggle svg {
+  transition: transform 0.2s ease;
+}
+
+.menu-toggle svg.chevron-right {
+  transform: rotate(0deg);
+}
+
+.menu-toggle svg.chevron-left {
+  transform: rotate(180deg);
 }
 
 .search-section {
@@ -270,6 +302,10 @@ const closeMobileSidebar = () => {
   padding: 0 20px;
 }
 
+.collapsed .navigation {
+  padding: 0 12px;
+}
+
 .nav-list {
   list-style: none;
   padding: 0;
@@ -290,6 +326,8 @@ const closeMobileSidebar = () => {
 
 .collapsed .nav-item {
   justify-content: center;
+  padding: 12px;
+  margin-bottom: 8px;
 }
 
 .nav-item:hover {
@@ -324,6 +362,11 @@ const closeMobileSidebar = () => {
 .nav-item:has(.router-link-active) {
   background-color: rgba(255, 255, 255, 0.12);
   color: #fff;
+}
+
+.collapsed .nav-item:has(.router-link-active) {
+  background-color: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
 .nav-icon {
@@ -381,6 +424,7 @@ const closeMobileSidebar = () => {
 
 .collapsed .user-profile {
   justify-content: center;
+  padding: 16px 12px;
 }
 
 .collapsed .profile-info {
@@ -414,6 +458,10 @@ const closeMobileSidebar = () => {
     z-index: 1001;
     top: 60px;
     height: calc(100vh - 60px);
+  }
+  
+  .menu-toggle {
+    display: none;
   }
   
   .sidebar.mobile-open {

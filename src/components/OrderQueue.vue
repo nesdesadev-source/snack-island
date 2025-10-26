@@ -313,6 +313,7 @@ watch(orders, () => {
 
 // Lifecycle
 onMounted(async () => {
+  updateCollapsedRows()
   await loadMenuItems()
   await loadOrders()
   await loadOrderItems()
