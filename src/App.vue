@@ -13,7 +13,6 @@ const toggleMobileSidebar = () => {
 const checkMobile = () => {
   const width = window.innerWidth
   isMobile.value = width <= 480
-  console.log('Screen width:', width, 'isMobile:', isMobile.value)
   if (!isMobile.value) {
     showMobileSidebar.value = false
   }

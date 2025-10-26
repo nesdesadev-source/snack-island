@@ -119,6 +119,7 @@ import type { MenuItem, OrderItem, PaymentMethod } from '../models'
 import { createOrderItem, calculateOrderTotal } from '../modules/orders/orderUtils'
 import { OrderService } from '../services/orderService'
 import { menuItemService } from '../services/menuItemService'
+import { deductInventoryForOrder } from '../modules/orders/inventoryDeduction'
 
 // Props
 const emit = defineEmits<{
@@ -209,14 +210,24 @@ const submitOrder = async () => {
   isSubmitting.value = true
 
   try {
-    // Create the order
+    // Prepare order data
     const orderData = {
       total_amount: orderTotal.value,
       payment_method: selectedPaymentMethod.value,
       status: 'pending' as const
     }
 
-    const newOrder = await OrderService.createOrder(orderData)
+    // Check inventory availability and create order
+    const result = await OrderService.createOrderWithInventoryCheck(orderData, orderItems.value)
+    console.log(result)
+
+    if (!result.order) {
+      // Inventory not available - show error message
+      const insufficientItems = result.inventoryCheck.insufficientItems
+      const itemNames = insufficientItems.map(item => item.ingredientName).join(', ')
+      alert(`Cannot fulfill order due to insufficient inventory:\n\n${itemNames}\n\nPlease check inventory levels or reduce quantities.`)
+      return
+    }
 
     // Create order items using batch operation for better performance
     const orderItemsData = orderItems.value.map(item => ({
@@ -225,7 +236,12 @@ const submitOrder = async () => {
       subtotal: item.subtotal
     }))
 
-    await OrderService.createOrderItemsBatch(newOrder.id, orderItemsData)
+    await OrderService.createOrderItemsBatch(result.order.id, orderItemsData)
+
+    if (result.order.status === 'pending') {
+      // Deduct inventory when order moves to preparing
+      await deductInventoryForOrder(orderItems.value)
+    }
 
     // Clear the form
     clearOrder()

@@ -67,6 +67,12 @@ export const inventoryService = {
     return data
   },
 
+  async getInventoryItem(id: string) {
+    const { data, error } = await supabase.rpc('get_inventory_item', { _id: id })
+    if (error) throw error
+    return data
+  },
+
   // ============================
   // UPDATE
   // ============================

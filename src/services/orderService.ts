@@ -1,6 +1,6 @@
 import { supabase } from '../supabase'
 import type { Order, OrderItem, CreateOrderInput, CreateOrderItemInput, OrderStatus } from '../models'
-import { deductInventoryForOrder } from '../modules/orders/inventoryDeduction'
+import { deductInventoryForOrder, restoreInventoryForOrder, checkInventoryAvailability } from '../modules/orders/inventoryDeduction'
 
 export class OrderService {
   /**
@@ -49,6 +49,21 @@ export class OrderService {
   }
 
   /**
+   * Check inventory availability for order items
+   */
+  static async checkInventoryForOrderItems(orderItems: OrderItem[]): Promise<{
+    isAvailable: boolean
+    insufficientItems: Array<{
+      ingredientId: string
+      ingredientName: string
+      required: number
+      available: number
+    }>
+  }> {
+    return await checkInventoryAvailability(orderItems)
+  }
+
+  /**
    * Create a new order
    */
   static async createOrder(orderData: CreateOrderInput): Promise<Order> {
@@ -71,6 +86,42 @@ export class OrderService {
     }
     
     return order
+  }
+
+  /**
+   * Create a new order with inventory validation
+   */
+  static async createOrderWithInventoryCheck(
+    orderData: CreateOrderInput, 
+    orderItems: OrderItem[]
+  ): Promise<{
+    order?: Order
+    inventoryCheck: {
+      isAvailable: boolean
+      insufficientItems: Array<{
+        ingredientId: string
+        ingredientName: string
+        required: number
+        available: number
+      }>
+    }
+  }> {
+    // Check inventory availability first
+    const inventoryCheck = await this.checkInventoryForOrderItems(orderItems)
+    
+    if (!inventoryCheck.isAvailable) {
+      return {
+        inventoryCheck
+      }
+    }
+    
+    // If inventory is available, create the order
+    const order = await this.createOrder(orderData)
+    
+    return {
+      order,
+      inventoryCheck
+    }
   }
 
   /**
@@ -98,17 +149,21 @@ export class OrderService {
   static async updateOrderStatus(id: string, status: OrderStatus): Promise<Order> {
     const updatedOrder = await this.updateOrder(id, { status })
     
-    // If order is being completed, deduct inventory
-    if (status === 'completed') {
-      try {
-        const orderItems = await this.getOrderItems(id)
+    // Handle inventory based on status changes
+    try {
+      const orderItems = await this.getOrderItems(id)
+    
+      if (status === 'pending') {
+        // Deduct inventory when order moves to preparing
         await deductInventoryForOrder(orderItems)
-        console.log('Inventory deducted for completed order:', id)
-      } catch (error) {
-        console.error('Error deducting inventory for completed order:', error)
-        // Note: We don't throw here to avoid breaking the order status update
-        // The inventory deduction failure should be logged and handled separately
+      } else if (status === 'cancelled') {
+        // Restore inventory when order is cancelled
+        await restoreInventoryForOrder(orderItems)
       }
+    } catch (error) {
+      console.error(`Error handling inventory for order ${id} with status ${status}:`, error)
+      // Note: We don't throw here to avoid breaking the order status update
+      // The inventory operation failure should be logged and handled separately
     }
     
     return updatedOrder

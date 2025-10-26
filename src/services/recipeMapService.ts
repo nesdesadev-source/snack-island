@@ -43,6 +43,14 @@ export const recipeMapService = {
     const { error } = await supabase.rpc('delete_recipe_map', { _id: id })
     if (error) throw error
     return true
+  },
+
+  async getRecipeMappingsByMenuItems(menuItemIds: string[]): Promise<RecipeMap[]> {
+    const { data, error } = await supabase.rpc('get_recipe_mappings_by_menu_items', {
+      menu_item_ids: menuItemIds
+    })
+    if (error) throw error
+    return data as RecipeMap[]
   }
 }
 
