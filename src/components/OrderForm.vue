@@ -1,114 +1,141 @@
 <template>
   <div class="order-form">
-    <!-- Menu Items Selection -->
-    <div class="section">
-      <h3 class="section-title">MENU ITEMS</h3>
-      
-      <!-- Loading State -->
-      <div v-if="isLoadingMenuItems" class="loading-container">
-        <div class="spinner"></div>
-        <p class="loading-text">Loading menu items...</p>
-      </div>
-      
-      <!-- Menu Items Grid -->
-      <div v-else class="menu-grid">
-        <button
-          v-for="item in menuItems"
-          :key="item.id"
-          @click="addItemToOrder(item)"
-          class="menu-item"
-        >
-          <div class="item-name">{{ item.name }}</div>
-          <div class="item-price">₱{{ item.price }}</div>
-          <div class="item-category">{{ item.category }}</div>
-        </button>
-      </div>
-    </div>
-
-    <!-- Selected Items -->
-    <div class="section" v-if="orderItems.length > 0">
-      <h3 class="section-title">ORDER ITEMS</h3>
-      <div class="order-items-list">
-        <div
-          v-for="(item, index) in orderItems"
-          :key="index"
-          class="order-item"
-        >
-          <div class="item-info">
-            <div class="item-name">{{ getMenuItemName(item.menu_id || '') }}</div>
-            <div class="item-unit-price">₱{{ getMenuItemPrice(item.menu_id || '') }} each</div>
+    <div class="order-layout">
+      <div class="left-panel">
+        <!-- Menu Items Selection -->
+        <div class="section">
+          <h3 class="section-title">MENU ITEMS</h3>
+          <!-- Filters Row -->
+          <div class="filters-row">
+            <div class="search-container">
+              <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+              </svg>
+              <input
+                type="text"
+                class="search-input"
+                placeholder="Search menu items..."
+                v-model="searchQuery"
+              />
+            </div>
+            <div class="filter-group">
+              <select v-model="selectedCategory" class="filter-select" data-testid="category-select">
+                <option value="">All</option>
+                <option v-for="c in availableCategories" :key="c" :value="c">{{ c }}</option>
+              </select>
+            </div>
           </div>
-          <div class="item-controls">
+          
+          <!-- Loading State -->
+          <div v-if="isLoadingMenuItems" class="loading-container">
+            <div class="spinner"></div>
+            <p class="loading-text">Loading menu items...</p>
+          </div>
+          
+          <!-- Menu Items Grid -->
+          <div v-else class="menu-grid">
             <button
-              @click="decreaseQuantity(index)"
-              class="quantity-btn"
+              v-for="item in filteredMenuItems"
+              :key="item.id"
+              @click="addItemToOrder(item)"
+              class="menu-item"
             >
-              −
-            </button>
-            <span class="quantity-display">{{ item.quantity }}</span>
-            <button
-              @click="increaseQuantity(index)"
-              class="quantity-btn"
-            >
-              +
-            </button>
-            <div class="item-subtotal">₱{{ item.subtotal }}</div>
-            <button
-              @click="removeItem(index)"
-              class="remove-btn"
-            >
-              ×
+              <div class="item-name">{{ item.name }}</div>
+              <div class="item-price">₱{{ item.price }}</div>
+              <div class="item-category">{{ item.category }}</div>
             </button>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Order Summary -->
-    <div class="section" v-if="orderItems.length > 0">
-      <div class="order-summary">
-        <span class="summary-label">TOTAL</span>
-        <span class="summary-amount">₱{{ orderTotal }}</span>
+      <div class="right-panel">
+        <!-- Selected Items -->
+        <div class="section" v-if="orderItems.length > 0">
+          <h3 class="section-title">ORDER ITEMS</h3>
+          <div class="order-items-list">
+            <div
+              v-for="(item, index) in orderItems"
+              :key="index"
+              class="order-item"
+            >
+              <div class="item-info">
+                <div class="item-name">{{ getMenuItemName(item.menu_id || '') }}</div>
+                <div class="item-unit-price">₱{{ getMenuItemPrice(item.menu_id || '') }} each</div>
+              </div>
+              <div class="item-controls">
+                <button
+                  @click="decreaseQuantity(index)"
+                  class="quantity-btn"
+                >
+                  −
+                </button>
+                <span class="quantity-display">{{ item.quantity }}</span>
+                <button
+                  @click="increaseQuantity(index)"
+                  class="quantity-btn"
+                >
+                  +
+                </button>
+                <div class="item-subtotal">₱{{ item.subtotal }}</div>
+                <button
+                  @click="removeItem(index)"
+                  class="remove-btn"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="section" v-if="orderItems.length > 0">
+          <div class="order-summary">
+            <span class="summary-label">TOTAL</span>
+            <span class="summary-amount">₱{{ orderTotal }}</span>
+          </div>
+        </div>
+
+        <!-- Payment Method -->
+        <div class="section" v-if="orderItems.length > 0">
+          <h3 class="section-title">PAYMENT METHOD</h3>
+          <div class="payment-grid">
+            <button
+              v-for="method in paymentMethods"
+              :key="method"
+              @click="selectedPaymentMethod = method"
+              :class="['payment-btn', { 'payment-btn-active': selectedPaymentMethod === method }]"
+            >
+              {{ method }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons" v-if="orderItems.length > 0">
+          <button @click="clearOrder" class="btn btn-secondary">
+            Clear Order
+          </button>
+          <button
+            @click="submitOrder"
+            :disabled="!selectedPaymentMethod || isSubmitting"
+            class="btn btn-primary"
+          >
+            {{ isSubmitting ? 'Processing...' : 'Submit Order' }}
+          </button>
+        </div>
+
+        <!-- Empty State -->
+        <div v-if="orderItems.length === 0" class="empty-state">
+          <div class="empty-icon">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+          </div>
+          <p class="empty-text">Select items to start a new order</p>
+        </div>
       </div>
-    </div>
-
-    <!-- Payment Method -->
-    <div class="section" v-if="orderItems.length > 0">
-      <h3 class="section-title">PAYMENT METHOD</h3>
-      <div class="payment-grid">
-        <button
-          v-for="method in paymentMethods"
-          :key="method"
-          @click="selectedPaymentMethod = method"
-          :class="['payment-btn', { 'payment-btn-active': selectedPaymentMethod === method }]"
-        >
-          {{ method }}
-        </button>
-      </div>
-    </div>
-
-    <!-- Action Buttons -->
-    <div class="action-buttons" v-if="orderItems.length > 0">
-      <button @click="clearOrder" class="btn btn-secondary">
-        Clear Order
-      </button>
-      <button
-        @click="submitOrder"
-        :disabled="!selectedPaymentMethod || isSubmitting"
-        class="btn btn-primary"
-      >
-        {{ isSubmitting ? 'Processing...' : 'Submit Order' }}
-      </button>
-    </div>
-
-    <!-- Empty State -->
-    <div v-if="orderItems.length === 0" class="empty-state">
-      <div class="empty-icon">
-        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
-        </svg>
-      </div>
-      <p class="empty-text">Select items to start a new order</p>
     </div>
   </div>
 </template>
@@ -133,10 +160,25 @@ const selectedPaymentMethod = ref<PaymentMethod | null>(null)
 const isSubmitting = ref(false)
 const isLoadingMenuItems = ref(false)
 
-const paymentMethods: PaymentMethod[] = ['cash', 'gcash', 'card', 'other']
+const paymentMethods: PaymentMethod[] = ['cash', 'gcash', 'maya', 'gotyme', 'bpi', 'other']
 
 // Computed
 const orderTotal = computed(() => calculateOrderTotal(orderItems.value))
+const searchQuery = ref('')
+const selectedCategory = ref('')
+const availableCategories = computed(() => {
+  const set = new Set(menuItems.value.map(i => i.category).filter(Boolean))
+  return Array.from(set).sort()
+})
+const filteredMenuItems = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  const category = selectedCategory.value
+  return menuItems.value.filter(i => {
+    const matchesQuery = q ? i.name.toLowerCase().includes(q) : true
+    const matchesCategory = category ? i.category === category : true
+    return matchesQuery && matchesCategory
+  })
+})
 
 // Methods
 const getMenuItemName = (itemId: string): string => {
@@ -277,10 +319,26 @@ onMounted(async () => {
   background: #f8f9fa;
   padding: 1.5rem;
   border-radius: 8px;
+  max-width: 900px;
+  margin: 0 auto;
   min-height: 100%;
   max-height: calc(100vh - 8rem);
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+/* Two-column layout */
+.order-layout {
+  display: grid;
+  grid-template-columns: 450px 450px;
+  gap: 1rem;
+}
+
+.left-panel,
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
 }
 
 /* Custom scrollbar for order form */
@@ -313,6 +371,67 @@ onMounted(async () => {
   letter-spacing: 0.5px;
   margin: 0 0 1rem 0;
   text-transform: uppercase;
+}
+
+/* Search */
+.filters-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.search-container {
+  margin-bottom: 0.75rem;
+  flex: 0.75rem;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 75%;
+  padding: 0.625rem 0.75rem 0.625rem 2.5rem;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  outline: none;
+  background: #ffffff;
+}
+
+.search-input:focus {
+  border-color: #d2d2d7;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 180px;
+  flex-shrink: 0;
+}
+
+.filter-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  letter-spacing: 0.5px;
+}
+
+.filter-select {
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: #ffffff;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Loading State */
@@ -560,7 +679,7 @@ onMounted(async () => {
 /* Payment Methods */
 .payment-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
 }
 
@@ -662,6 +781,9 @@ onMounted(async () => {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .order-layout {
+    grid-template-columns: 1fr;
+  }
   .menu-grid {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }

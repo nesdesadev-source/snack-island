@@ -1,6 +1,6 @@
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled';
 
-export type PaymentMethod = 'cash' | 'gcash' | 'card' | 'other';
+export type PaymentMethod = 'cash' | 'gcash' | 'maya' | 'gotyme' | 'bpi' | 'other';
 
 export interface Order {
   id: string;
