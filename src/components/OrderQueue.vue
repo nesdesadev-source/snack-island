@@ -321,7 +321,7 @@ onMounted(async () => {
 
 // Expose methods for parent component
 defineExpose({
-  refreshOrders: loadOrders
+  refreshOrders: loadOrders, refreshOrderItems: loadOrderItems
 })
 </script>
 

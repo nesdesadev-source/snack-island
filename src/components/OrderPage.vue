@@ -130,6 +130,7 @@ const handleOrderSubmitted = () => {
   // Refresh the order queue
   if (orderQueueRef.value) {
     orderQueueRef.value.refreshOrders()
+    orderQueueRef.value.refreshOrderItems()
   }
   
   // Show success message

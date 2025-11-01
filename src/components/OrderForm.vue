@@ -137,6 +137,47 @@
         </div>
       </div>
     </div>
+
+    <!-- Insufficient Inventory Confirmation Modal -->
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div v-if="showInsufficientInventoryModal" class="modal-overlay" @click.self="cancelOrder">
+          <div class="modal-container" @click.stop>
+            <div class="modal-header">
+              <div class="header-content">
+                <div class="header-icon warning-mode">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                  </svg>
+                </div>
+                <div>
+                  <h2>Insufficient Inventory</h2>
+                  <p class="modal-subtitle">Some items are running low</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="modal-body">
+              <p class="confirmation-message">
+                There are insufficient items: <strong>{{ insufficientItemsText }}</strong>
+              </p>
+              <p class="confirmation-question">Do you want to continue regardless?</p>
+            </div>
+
+            <div class="modal-footer">
+              <button @click="cancelOrder" class="btn btn-secondary">
+                Cancel
+              </button>
+              <button @click="continueOrder" class="btn btn-primary" :disabled="isSubmitting">
+                {{ isSubmitting ? 'Processing...' : 'Continue' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -159,6 +200,19 @@ const orderItems = ref<OrderItem[]>([])
 const selectedPaymentMethod = ref<PaymentMethod | null>(null)
 const isSubmitting = ref(false)
 const isLoadingMenuItems = ref(false)
+const showInsufficientInventoryModal = ref(false)
+const insufficientItemsList = ref<Array<{
+  ingredientId: string
+  ingredientName: string
+  required: number
+  available: number
+}>>([])
+const pendingOrderData = ref<{
+  total_amount: number
+  payment_method: PaymentMethod
+  status: 'pending'
+} | null>(null)
+const pendingOrderItems = ref<OrderItem[]>([])
 
 const paymentMethods: PaymentMethod[] = ['cash', 'gcash', 'maya', 'gotyme', 'bpi', 'other']
 
@@ -178,6 +232,9 @@ const filteredMenuItems = computed(() => {
     const matchesCategory = category ? i.category === category : true
     return matchesQuery && matchesCategory
   })
+})
+const insufficientItemsText = computed(() => {
+  return insufficientItemsList.value.map(item => item.ingredientName).join(', ')
 })
 
 // Methods
@@ -264,10 +321,12 @@ const submitOrder = async () => {
     console.log(result)
 
     if (!result.order) {
-      // Inventory not available - show error message
-      const insufficientItems = result.inventoryCheck.insufficientItems
-      const itemNames = insufficientItems.map(item => item.ingredientName).join(', ')
-      alert(`Cannot fulfill order due to insufficient inventory:\n\n${itemNames}\n\nPlease check inventory levels or reduce quantities.`)
+      // Inventory not available - show confirmation modal
+      insufficientItemsList.value = result.inventoryCheck.insufficientItems
+      pendingOrderData.value = orderData
+      pendingOrderItems.value = [...orderItems.value]
+      showInsufficientInventoryModal.value = true
+      isSubmitting.value = false
       return
     }
 
@@ -297,6 +356,58 @@ const submitOrder = async () => {
   } finally {
     isSubmitting.value = false
   }
+}
+
+const continueOrder = async () => {
+  if (!pendingOrderData.value || pendingOrderItems.value.length === 0) {
+    cancelOrder()
+    return
+  }
+
+  isSubmitting.value = true
+
+  try {
+    // Create order directly without inventory check
+    const order = await OrderService.createOrder(pendingOrderData.value)
+
+    // Create order items using batch operation
+    const orderItemsData = pendingOrderItems.value.map(item => ({
+      menu_id: item.menu_id || '',
+      quantity: item.quantity,
+      subtotal: item.subtotal
+    }))
+
+    await OrderService.createOrderItemsBatch(order.id, orderItemsData)
+
+    if (order.status === 'pending') {
+      // Deduct inventory when order moves to preparing
+      await deductInventoryForOrder(pendingOrderItems.value)
+    }
+
+    // Close modal and clear the form
+    showInsufficientInventoryModal.value = false
+    clearOrder()
+    
+    // Emit event to parent
+    emit('orderSubmitted')
+
+  } catch (error) {
+    console.error('Error continuing order:', error)
+    alert('Failed to submit order. Please try again.')
+  } finally {
+    isSubmitting.value = false
+    pendingOrderData.value = null
+    pendingOrderItems.value = []
+    insufficientItemsList.value = []
+  }
+}
+
+const cancelOrder = () => {
+  showInsufficientInventoryModal.value = false
+  pendingOrderData.value = null
+  pendingOrderItems.value = []
+  insufficientItemsList.value = []
+  isSubmitting.value = false
 }
 
 // Load menu items on mount
@@ -794,6 +905,168 @@ onMounted(async () => {
   
   .action-buttons {
     flex-direction: column;
+  }
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.modal-container {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 500px;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 2rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.header-content {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.header-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.header-icon.warning-mode {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: white;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.3;
+}
+
+.modal-subtitle {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.modal-body {
+  padding: 2rem;
+}
+
+.confirmation-message {
+  font-size: 0.95rem;
+  color: #374151;
+  line-height: 1.6;
+  margin: 0 0 1rem 0;
+}
+
+.confirmation-message strong {
+  color: #111827;
+  font-weight: 600;
+}
+
+.confirmation-question {
+  font-size: 0.95rem;
+  color: #374151;
+  line-height: 1.6;
+  margin: 0;
+  font-weight: 500;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1.5rem 2rem 2rem 2rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.modal-footer .btn {
+  flex: 0 0 auto;
+  min-width: 100px;
+}
+
+/* Modal Transitions */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+@media (max-width: 768px) {
+  .modal-container {
+    margin: 0;
+    border-radius: 16px;
+  }
+
+  .modal-header {
+    padding: 1.5rem;
+  }
+
+  .modal-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .header-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+  }
+
+  .modal-footer {
+    flex-direction: column-reverse;
+    padding: 1.5rem;
+  }
+
+  .modal-footer .btn {
+    width: 100%;
   }
 }
 </style>
