@@ -302,10 +302,18 @@ function getExpensesForPeriod(date: Date, period: string) {
   const startDate = getPeriodStartDate(date, period)
   const endDate = getPeriodEndDate(date, period)
   
+  // Format dates in local timezone to avoid UTC conversion issues
+  const formatLocalDate = (d: Date): string => {
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  
   return filterExpensesByDateRange(
     expenses.value,
-    startDate.toISOString().split('T')[0]!,
-    endDate.toISOString().split('T')[0]!
+    formatLocalDate(startDate),
+    formatLocalDate(endDate)
   )
 }
 

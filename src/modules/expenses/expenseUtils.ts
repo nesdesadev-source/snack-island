@@ -126,17 +126,30 @@ export function calculateYearToDateExpenses(expenses: Expense[], year: number): 
 
 /**
  * Filters expenses within a specific date range (inclusive)
+ * Normalizes all dates to local timezone midnight to avoid timezone issues
  */
 export function filterExpensesByDateRange(
   expenses: Expense[],
   startDate: string,
   endDate: string
 ): Expense[] {
+  // Normalize start date to beginning of day (00:00:00) in local timezone
   const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+  
+  // Normalize end date to end of day (23:59:59.999) in local timezone
   const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999);
   
   return expenses.filter(expense => {
+    // Normalize expense date to beginning of day in local timezone
     const expenseDate = new Date(expense.expense_date);
+    expenseDate.setHours(0, 0, 0, 0);
+    console.log("start", start);
+    console.log("end", end);
+    console.log("expenseDate", expenseDate);
+    
+    // Check if expense date is within range (both inclusive)
     return expenseDate >= start && expenseDate <= end;
   });
 }
