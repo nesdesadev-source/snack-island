@@ -1,4 +1,4 @@
-import type { OrderItem, RecipeMap } from '../../models'
+import type { Inventory, OrderItem, RecipeMap } from '../../models'
 import { inventoryService } from '../../services/inventoryService'
 import { recipeMapService } from '../../services/recipeMapService'
 
@@ -20,57 +20,62 @@ export async function deductInventoryForOrder(orderItems: OrderItem[]): Promise<
       recipeMapByMenuItem.get(mapping.menu_item_id)!.push(mapping)
     })
     
-    // Process each order item
+    // Collect all unique ingredient IDs
+    const ingredientIds = new Set<string>()
     for (const orderItem of orderItems) {
       const itemRecipeMappings = recipeMapByMenuItem.get(orderItem.menu_id || '') || []
-      
       for (const recipeMapping of itemRecipeMappings) {
-        await deductIngredientForOrderItem(recipeMapping, orderItem.quantity)
+        ingredientIds.add(recipeMapping.ingredient_id)
       }
     }
+    
+    // Batch query all inventory items
+    const allInventory = await inventoryService.getAll()
+    const inventoryMap = new Map<string, Inventory>()
+    allInventory.forEach((item: Inventory) => {
+      if (ingredientIds.has(item.id)) {
+        inventoryMap.set(item.id, item)
+      }
+    })
+    
+    // Aggregate usage amounts by ingredient
+    const ingredientUsage = new Map<string, number>()
+    for (const orderItem of orderItems) {
+      const itemRecipeMappings = recipeMapByMenuItem.get(orderItem.menu_id || '') || []
+      for (const recipeMapping of itemRecipeMappings) {
+        const totalUsage = recipeMapping.usage_per_order * orderItem.quantity
+        const currentUsage = ingredientUsage.get(recipeMapping.ingredient_id) || 0
+        ingredientUsage.set(recipeMapping.ingredient_id, currentUsage + totalUsage)
+      }
+    }
+    
+    // Process all deductions concurrently
+    const updatePromises = Array.from(ingredientUsage.entries()).map(async ([ingredientId, totalUsage]) => {
+      const inventoryItem = inventoryMap.get(ingredientId)
+      if (!inventoryItem) {
+        console.warn(`Inventory item not found: ${ingredientId}`)
+        return
+      }
+      
+      const newQuantity = inventoryItem.quantity - totalUsage
+      
+      await inventoryService.updateItem({
+        id: ingredientId,
+        name: inventoryItem.name,
+        unit: inventoryItem.unit,
+        quantity: newQuantity,
+        reorder_level: inventoryItem.reorder_level,
+        supplier_id: inventoryItem.supplier_id ?? null
+      })
+      
+      console.log(`Deducted ${totalUsage} ${inventoryItem.unit} of ingredient ${inventoryItem.name}`)
+    })
+    
+    await Promise.all(updatePromises)
     
     console.log('Inventory deduction completed successfully')
   } catch (error) {
     console.error('Error deducting inventory for order:', error)
-    throw error
-  }
-}
-
-/**
- * Deduct a specific ingredient for an order item
- * @param recipeMapping - The recipe mapping containing usage information
- * @param orderQuantity - The quantity of the menu item ordered
- */
-async function deductIngredientForOrderItem(
-  recipeMapping: RecipeMap, 
-  orderQuantity: number
-): Promise<void> {
-  try {
-    const totalUsage = recipeMapping.usage_per_order * orderQuantity
-    
-    // Get current inventory item
-    const inventoryItem = await inventoryService.getById(recipeMapping.ingredient_id)
-    if (!inventoryItem) {
-      console.warn(`Inventory item not found: ${recipeMapping.ingredient_id}`)
-      return
-    }
-    
-    // Calculate new quantity
-    const newQuantity = inventoryItem.quantity - totalUsage
-    
-    // Update inventory with new quantity
-    await inventoryService.updateItem({
-      id: recipeMapping.ingredient_id,
-      name: inventoryItem.name,
-      unit: inventoryItem.unit,
-      quantity: newQuantity,
-      reorder_level: inventoryItem.reorder_level,
-      supplier_id: inventoryItem.supplier_id
-    })
-    
-    console.log(`Deducted ${totalUsage} ${inventoryItem.unit} of ingredient ${inventoryItem.name} for ${orderQuantity} orders`)
-  } catch (error) {
-    console.error('Error deducting ingredient:', error)
     throw error
   }
 }
@@ -255,14 +260,58 @@ export async function restoreInventoryForOrder(orderItems: OrderItem[]): Promise
       recipeMapByMenuItem.get(mapping.menu_item_id)!.push(mapping)
     })
     
-    // Process each order item
+    // Collect all unique ingredient IDs
+    const ingredientIds = new Set<string>()
     for (const orderItem of orderItems) {
       const itemRecipeMappings = recipeMapByMenuItem.get(orderItem.menu_id || '') || []
-      
       for (const recipeMapping of itemRecipeMappings) {
-        await restoreIngredientForOrderItem(recipeMapping, orderItem.quantity)
+        ingredientIds.add(recipeMapping.ingredient_id)
       }
     }
+    
+    // Batch query all inventory items
+    const allInventory = await inventoryService.getAll()
+    const inventoryMap = new Map<string, Inventory>()
+    allInventory.forEach((item: Inventory) => {
+      if (ingredientIds.has(item.id)) {
+        inventoryMap.set(item.id, item)
+      }
+    })
+    
+    // Aggregate restoration amounts by ingredient
+    const ingredientRestoration = new Map<string, number>()
+    for (const orderItem of orderItems) {
+      const itemRecipeMappings = recipeMapByMenuItem.get(orderItem.menu_id || '') || []
+      for (const recipeMapping of itemRecipeMappings) {
+        const totalUsage = recipeMapping.usage_per_order * orderItem.quantity
+        const currentRestoration = ingredientRestoration.get(recipeMapping.ingredient_id) || 0
+        ingredientRestoration.set(recipeMapping.ingredient_id, currentRestoration + totalUsage)
+      }
+    }
+    
+    // Process all restorations concurrently
+    const updatePromises = Array.from(ingredientRestoration.entries()).map(async ([ingredientId, totalUsage]) => {
+      const inventoryItem = inventoryMap.get(ingredientId)
+      if (!inventoryItem) {
+        console.warn(`Inventory item not found for restoration: ${ingredientId}`)
+        return
+      }
+      
+      const newQuantity = inventoryItem.quantity + totalUsage
+      
+      await inventoryService.updateItem({
+        id: ingredientId,
+        name: inventoryItem.name,
+        unit: inventoryItem.unit,
+        quantity: newQuantity,
+        reorder_level: inventoryItem.reorder_level,
+        supplier_id: inventoryItem.supplier_id ?? null
+      })
+      
+      console.log(`Restored ${totalUsage} ${inventoryItem.unit} of ingredient ${inventoryItem.name}`)
+    })
+    
+    await Promise.all(updatePromises)
     
     console.log('Inventory restored successfully')
   } catch (error) {
@@ -271,41 +320,3 @@ export async function restoreInventoryForOrder(orderItems: OrderItem[]): Promise
   }
 }
 
-/**
- * Restore a specific ingredient for a cancelled order item
- * @param recipeMapping - The recipe mapping containing usage information
- * @param orderQuantity - The quantity of the menu item that was cancelled
- */
-async function restoreIngredientForOrderItem(
-  recipeMapping: RecipeMap, 
-  orderQuantity: number
-): Promise<void> {
-  try {
-    const totalUsage = recipeMapping.usage_per_order * orderQuantity
-    
-    // Get current inventory item
-    const inventoryItem = await inventoryService.getById(recipeMapping.ingredient_id)
-    if (!inventoryItem) {
-      console.warn(`Inventory item not found for restoration: ${recipeMapping.ingredient_id}`)
-      return
-    }
-    
-    // Calculate new quantity (add back the usage)
-    const newQuantity = inventoryItem.quantity + totalUsage
-    
-    // Update inventory with restored quantity
-    await inventoryService.updateItem({
-      id: recipeMapping.ingredient_id,
-      name: inventoryItem.name,
-      unit: inventoryItem.unit,
-      quantity: newQuantity,
-      reorder_level: inventoryItem.reorder_level,
-      supplier_id: inventoryItem.supplier_id
-    })
-    
-    console.log(`Restored ${totalUsage} ${inventoryItem.unit} of ingredient ${inventoryItem.name} for ${orderQuantity} cancelled orders`)
-  } catch (error) {
-    console.error('Error restoring ingredient:', error)
-    throw error
-  }
-}

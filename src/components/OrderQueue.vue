@@ -225,8 +225,28 @@ const getMenuItemName = (itemId: string): string => {
   return item?.name || 'Unknown Item'
 }
 
+const isToday = (dateString: string | null): boolean => {
+  if (!dateString) return false
+  
+  const orderDate = new Date(dateString)
+  const today = new Date()
+  
+  return (
+    orderDate.getDate() === today.getDate() &&
+    orderDate.getMonth() === today.getMonth() &&
+    orderDate.getFullYear() === today.getFullYear()
+  )
+}
+
 const getOrdersByStatus = (status: OrderStatus): Order[] => {
-  return orders.value.filter(order => order.status === status as OrderStatus)
+  const filtered = orders.value.filter(order => order.status === status as OrderStatus)
+  
+  // For completed orders, only show today's orders
+  if (status === 'completed') {
+    return filtered.filter(order => isToday(order.created_at))
+  }
+  
+  return filtered
 }
 
 const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {

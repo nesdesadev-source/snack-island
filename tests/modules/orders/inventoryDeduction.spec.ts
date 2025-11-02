@@ -112,10 +112,11 @@ describe('Inventory Deduction Module', () => {
         supplier_id: 'supplier-3'
       }
 
-      mockInventoryService.getById
-        .mockResolvedValueOnce(flourInventory)
-        .mockResolvedValueOnce(eggsInventory)
-        .mockResolvedValueOnce(oilInventory)
+      mockInventoryService.getAll.mockResolvedValue([
+        flourInventory,
+        eggsInventory,
+        oilInventory
+      ])
       
       mockInventoryService.updateItem.mockResolvedValue(true)
 
@@ -124,12 +125,12 @@ describe('Inventory Deduction Module', () => {
 
       // Assert - Verify service calls
       expect(mockRecipeMapService.getRecipeMaps).toHaveBeenCalledTimes(1)
-      expect(mockInventoryService.getById).toHaveBeenCalledTimes(3)
+      expect(mockInventoryService.getAll).toHaveBeenCalledTimes(1)
       expect(mockInventoryService.updateItem).toHaveBeenCalledTimes(3)
 
       // Verify correct calculations for each ingredient
       // Flour: 10 - (2.5 * 2) = 5
-      expect(mockInventoryService.updateItem).toHaveBeenNthCalledWith(1, {
+      expect(mockInventoryService.updateItem).toHaveBeenCalledWith({
         id: 'ingredient-1',
         name: 'Flour',
         unit: 'kg',
@@ -139,7 +140,7 @@ describe('Inventory Deduction Module', () => {
       })
 
       // Eggs: 20 - (1.0 * 2) = 18
-      expect(mockInventoryService.updateItem).toHaveBeenNthCalledWith(2, {
+      expect(mockInventoryService.updateItem).toHaveBeenCalledWith({
         id: 'ingredient-2',
         name: 'Eggs',
         unit: 'piece',
@@ -149,7 +150,7 @@ describe('Inventory Deduction Module', () => {
       })
 
       // Oil: 15 - (3.0 * 1) = 12
-      expect(mockInventoryService.updateItem).toHaveBeenNthCalledWith(3, {
+      expect(mockInventoryService.updateItem).toHaveBeenCalledWith({
         id: 'ingredient-3',
         name: 'Oil',
         unit: 'liter',
@@ -162,29 +163,31 @@ describe('Inventory Deduction Module', () => {
     it('should handle missing inventory items without crashing', async () => {
       // Arrange
       mockRecipeMapService.getRecipeMaps.mockResolvedValue(mockRecipeMappings)
-      mockInventoryService.getById
-        .mockResolvedValueOnce({
+      mockInventoryService.getAll.mockResolvedValue([
+        {
           id: 'ingredient-1',
           name: 'Flour',
           unit: 'kg',
           quantity: 10,
           reorder_level: 2,
           supplier_id: 'supplier-1'
-        })
-        .mockResolvedValueOnce(null) // Missing ingredient
-        .mockResolvedValueOnce({
+        },
+        // ingredient-2 is missing from inventory
+        {
           id: 'ingredient-3',
           name: 'Oil',
           unit: 'liter',
           quantity: 15,
           reorder_level: 3,
           supplier_id: 'supplier-3'
-        })
+        }
+      ])
 
       // Act
       await deductInventoryForOrder(mockOrderItems)
 
       // Assert - Should only update existing items
+      expect(mockInventoryService.getAll).toHaveBeenCalledTimes(1)
       expect(mockInventoryService.updateItem).toHaveBeenCalledTimes(2)
       expect(mockInventoryService.updateItem).toHaveBeenCalledWith({
         id: 'ingredient-1',
@@ -213,7 +216,7 @@ describe('Inventory Deduction Module', () => {
 
       // Assert
       expect(mockRecipeMapService.getRecipeMaps).toHaveBeenCalledTimes(1)
-      expect(mockInventoryService.getById).not.toHaveBeenCalled()
+      expect(mockInventoryService.getAll).not.toHaveBeenCalled()
       expect(mockInventoryService.updateItem).not.toHaveBeenCalled()
     })
 
@@ -258,10 +261,11 @@ describe('Inventory Deduction Module', () => {
         supplier_id: 'supplier-3'
       }
 
-      mockInventoryService.getById
-        .mockResolvedValueOnce(flourInventory)
-        .mockResolvedValueOnce(eggsInventory)
-        .mockResolvedValueOnce(oilInventory)
+      mockInventoryService.getAll.mockResolvedValue([
+        flourInventory,
+        eggsInventory,
+        oilInventory
+      ])
       
       mockInventoryService.updateItem.mockResolvedValue(true)
 
@@ -270,12 +274,12 @@ describe('Inventory Deduction Module', () => {
 
       // Assert - Verify service calls
       expect(mockRecipeMapService.getRecipeMaps).toHaveBeenCalledTimes(1)
-      expect(mockInventoryService.getById).toHaveBeenCalledTimes(3)
+      expect(mockInventoryService.getAll).toHaveBeenCalledTimes(1)
       expect(mockInventoryService.updateItem).toHaveBeenCalledTimes(3)
 
       // Verify correct restoration calculations for each ingredient
       // Flour: 5 + (2.5 * 2) = 10
-      expect(mockInventoryService.updateItem).toHaveBeenNthCalledWith(1, {
+      expect(mockInventoryService.updateItem).toHaveBeenCalledWith({
         id: 'ingredient-1',
         name: 'Flour',
         unit: 'kg',
@@ -285,7 +289,7 @@ describe('Inventory Deduction Module', () => {
       })
 
       // Eggs: 18 + (1.0 * 2) = 20
-      expect(mockInventoryService.updateItem).toHaveBeenNthCalledWith(2, {
+      expect(mockInventoryService.updateItem).toHaveBeenCalledWith({
         id: 'ingredient-2',
         name: 'Eggs',
         unit: 'piece',
@@ -295,7 +299,7 @@ describe('Inventory Deduction Module', () => {
       })
 
       // Oil: 12 + (3.0 * 1) = 15
-      expect(mockInventoryService.updateItem).toHaveBeenNthCalledWith(3, {
+      expect(mockInventoryService.updateItem).toHaveBeenCalledWith({
         id: 'ingredient-3',
         name: 'Oil',
         unit: 'liter',
@@ -308,29 +312,31 @@ describe('Inventory Deduction Module', () => {
     it('should handle missing inventory items without crashing', async () => {
       // Arrange
       mockRecipeMapService.getRecipeMaps.mockResolvedValue(mockRecipeMappings)
-      mockInventoryService.getById
-        .mockResolvedValueOnce({
+      mockInventoryService.getAll.mockResolvedValue([
+        {
           id: 'ingredient-1',
           name: 'Flour',
           unit: 'kg',
           quantity: 5,
           reorder_level: 2,
           supplier_id: 'supplier-1'
-        })
-        .mockResolvedValueOnce(null) // Missing ingredient
-        .mockResolvedValueOnce({
+        },
+        // ingredient-2 is missing from inventory
+        {
           id: 'ingredient-3',
           name: 'Oil',
           unit: 'liter',
           quantity: 12,
           reorder_level: 3,
           supplier_id: 'supplier-3'
-        })
+        }
+      ])
 
       // Act
       await restoreInventoryForOrder(mockOrderItems)
 
       // Assert - Should only update existing items
+      expect(mockInventoryService.getAll).toHaveBeenCalledTimes(1)
       expect(mockInventoryService.updateItem).toHaveBeenCalledTimes(2)
       expect(mockInventoryService.updateItem).toHaveBeenCalledWith({
         id: 'ingredient-1',
@@ -359,7 +365,7 @@ describe('Inventory Deduction Module', () => {
 
       // Assert
       expect(mockRecipeMapService.getRecipeMaps).toHaveBeenCalledTimes(1)
-      expect(mockInventoryService.getById).not.toHaveBeenCalled()
+      expect(mockInventoryService.getAll).not.toHaveBeenCalled()
       expect(mockInventoryService.updateItem).not.toHaveBeenCalled()
     })
 
@@ -687,7 +693,7 @@ describe('Inventory Deduction Module', () => {
       await deductInventoryForOrder(orderItemsWithNullMenuId)
 
       // Assert
-      expect(mockInventoryService.getById).not.toHaveBeenCalled()
+      expect(mockInventoryService.getAll).not.toHaveBeenCalled()
       expect(mockInventoryService.updateItem).not.toHaveBeenCalled()
     })
 
@@ -706,20 +712,23 @@ describe('Inventory Deduction Module', () => {
       ]
 
       mockRecipeMapService.getRecipeMaps.mockResolvedValue(mockRecipeMappings)
-      mockInventoryService.getById.mockResolvedValue({
-        id: 'ingredient-1',
-        name: 'Flour',
-        unit: 'kg',
-        quantity: 10,
-        reorder_level: 2,
-        supplier_id: 'supplier-1'
-      })
+      mockInventoryService.getAll.mockResolvedValue([
+        {
+          id: 'ingredient-1',
+          name: 'Flour',
+          unit: 'kg',
+          quantity: 10,
+          reorder_level: 2,
+          supplier_id: 'supplier-1'
+        }
+      ])
       mockInventoryService.updateItem.mockResolvedValue(true)
 
       // Act
       await deductInventoryForOrder(zeroQuantityItems)
 
       // Assert
+      expect(mockInventoryService.getAll).toHaveBeenCalledTimes(1)
       expect(mockInventoryService.updateItem).toHaveBeenCalledWith({
         id: 'ingredient-1',
         name: 'Flour',
