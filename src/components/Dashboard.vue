@@ -124,9 +124,29 @@
           <div class="chart-header">
             <h3>Sales Trend</h3>
             <div class="chart-legend">
-              <span class="legend-item">
+              <span 
+                class="legend-item" 
+                :class="{ 'legend-item-disabled': !chartVisibility.sales }"
+                @click="toggleChartLine('sales')"
+              >
                 <span class="legend-color sales"></span>
                 Sales
+              </span>
+              <span 
+                class="legend-item"
+                :class="{ 'legend-item-disabled': !chartVisibility.expenses }"
+                @click="toggleChartLine('expenses')"
+              >
+                <span class="legend-color expenses"></span>
+                Expenses
+              </span>
+              <span 
+                class="legend-item"
+                :class="{ 'legend-item-disabled': !chartVisibility.profit }"
+                @click="toggleChartLine('profit')"
+              >
+                <span class="legend-color profit"></span>
+                Profit
               </span>
             </div>
           </div>
@@ -302,6 +322,13 @@ const selectedPeriod = ref('week')
 const periodType = ref<'toDate' | 'calendar'>('toDate')
 const showTopItemsModal = ref(false)
 
+// Chart visibility state
+const chartVisibility = ref({
+  sales: true,
+  expenses: true,
+  profit: true
+})
+
 // Data
 const orders = ref<Order[]>([])
 const orderItems = ref<OrderItem[]>([])
@@ -337,6 +364,8 @@ const dashboardData = computed(() => {
     lowStockItems: getLowStockItems(),
     recentActivity: getRecentActivity(),
     salesData: getSalesChartData(),
+    expensesData: getExpensesChartData(),
+    profitData: getProfitChartData(),
     expenseData: getExpenseChartData(),
     topItemsData: getTopItemsData()
   }
@@ -777,6 +806,212 @@ function getSalesChartData() {
   return { data, labels }
 }
 
+function getExpensesChartData() {
+  const now = new Date()
+  const period = selectedPeriod.value
+  const type = periodType.value
+  const startDate = getPeriodStartDate(now, period, type)
+  const endDate = getPeriodEndDate(now, period, type)
+  const periodExpenses = getExpensesForPeriod(now, period)
+  
+  const data: number[] = []
+  const labels: string[] = []
+  
+  const formatLocalDate = (d: Date): string => {
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  
+  if (period === 'today') {
+    // Show hourly data for today
+    for (let hour = 0; hour < 24; hour++) {
+      const hourStart = new Date(startDate)
+      hourStart.setHours(hour, 0, 0, 0)
+      const hourEnd = new Date(startDate)
+      hourEnd.setHours(hour, 59, 59, 999)
+      
+      const hourExpenses = periodExpenses.filter(expense => {
+        const expenseDate = new Date(expense.expense_date)
+        return expenseDate >= hourStart && expenseDate <= hourEnd
+      })
+      
+      const hourExpenseTotal = calculateTotalExpenses(hourExpenses)
+      data.push(hourExpenseTotal)
+      labels.push(`${hour}:00`)
+    }
+  } else if (period === 'week') {
+    if (type === 'calendar') {
+      // Show daily data for Monday-Sunday of current week
+      const weekStart = getStartOfWeek(now)
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(weekStart)
+        date.setDate(date.getDate() + i)
+        date.setHours(0, 0, 0, 0)
+        const dayEnd = new Date(date)
+        dayEnd.setHours(23, 59, 59, 999)
+        
+        const dayExpenses = filterExpensesByDateRange(
+          periodExpenses,
+          formatLocalDate(date),
+          formatLocalDate(dayEnd)
+        )
+        
+        const dayExpenseTotal = calculateTotalExpenses(dayExpenses)
+        data.push(dayExpenseTotal)
+        labels.push(date.toLocaleDateString('en-US', { weekday: 'short' }))
+      }
+    } else {
+      // Show daily data for last 7 days (toDate)
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(endDate)
+        date.setDate(date.getDate() - i)
+        date.setHours(0, 0, 0, 0)
+        const dayEnd = new Date(date)
+        dayEnd.setHours(23, 59, 59, 999)
+        
+        const dayExpenses = filterExpensesByDateRange(
+          periodExpenses,
+          formatLocalDate(date),
+          formatLocalDate(dayEnd)
+        )
+        
+        const dayExpenseTotal = calculateTotalExpenses(dayExpenses)
+        data.push(dayExpenseTotal)
+        labels.push(date.toLocaleDateString('en-US', { weekday: 'short' }))
+      }
+    }
+  } else if (period === 'month') {
+    if (type === 'calendar') {
+      // Show weekly data for the full month (4 weeks)
+      const monthStart = getStartOfMonth(now)
+      const monthEnd = getEndOfMonth(now)
+      
+      // Define 4 weeks
+      const weeks = [
+        { start: 1, end: 7, label: 'Week 1' },
+        { start: 8, end: 14, label: 'Week 2' },
+        { start: 15, end: 21, label: 'Week 3' },
+        { start: 22, end: monthEnd.getDate(), label: 'Week 4' }
+      ]
+      
+      weeks.forEach(week => {
+        const weekStart = new Date(monthStart)
+        weekStart.setDate(week.start)
+        weekStart.setHours(0, 0, 0, 0)
+        
+        const weekEnd = new Date(monthStart)
+        weekEnd.setDate(week.end)
+        weekEnd.setHours(23, 59, 59, 999)
+        
+        const weekExpenses = filterExpensesByDateRange(
+          periodExpenses,
+          formatLocalDate(weekStart),
+          formatLocalDate(weekEnd)
+        )
+        
+        const weekExpenseTotal = calculateTotalExpenses(weekExpenses)
+        data.push(weekExpenseTotal)
+        labels.push(week.label)
+      })
+    } else {
+      // Show daily data for last 30 days (rolling period)
+      for (let i = 29; i >= 0; i--) {
+        const date = new Date(endDate)
+        date.setDate(date.getDate() - i)
+        date.setHours(0, 0, 0, 0)
+        const dayEnd = new Date(date)
+        dayEnd.setHours(23, 59, 59, 999)
+        
+        const dayExpenses = filterExpensesByDateRange(
+          periodExpenses,
+          formatLocalDate(date),
+          formatLocalDate(dayEnd)
+        )
+        
+        const dayExpenseTotal = calculateTotalExpenses(dayExpenses)
+        data.push(dayExpenseTotal)
+        labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }))
+      }
+    }
+  } else if (period === 'year') {
+    if (type === 'calendar') {
+      // Show monthly data for all 12 months of current year
+      const yearStart = getStartOfYear(now)
+      for (let month = 0; month < 12; month++) {
+        const monthStart = new Date(yearStart)
+        monthStart.setMonth(month, 1)
+        monthStart.setHours(0, 0, 0, 0)
+        const monthEnd = new Date(yearStart)
+        monthEnd.setMonth(month + 1, 0)
+        monthEnd.setHours(23, 59, 59, 999)
+        
+        const monthExpenses = filterExpensesByDateRange(
+          periodExpenses,
+          formatLocalDate(monthStart),
+          formatLocalDate(monthEnd)
+        )
+        
+        const monthExpenseTotal = calculateTotalExpenses(monthExpenses)
+        data.push(monthExpenseTotal)
+        labels.push(monthStart.toLocaleDateString('en-US', { month: 'short' }))
+      }
+    } else {
+      // Show monthly data for last 12 months (rolling period)
+      for (let i = 11; i >= 0; i--) {
+        // Calculate month start (i months ago)
+        const monthStart = new Date(endDate)
+        monthStart.setMonth(monthStart.getMonth() - i, 1)
+        monthStart.setHours(0, 0, 0, 0)
+        
+        // Calculate month end
+        const monthEnd = new Date(monthStart)
+        if (i === 0) {
+          // Current month ends today
+          monthEnd.setTime(endDate.getTime())
+        } else {
+          // Previous months end on last day of that month
+          monthEnd.setMonth(monthEnd.getMonth() + 1, 0)
+        }
+        monthEnd.setHours(23, 59, 59, 999)
+        
+        const monthExpenses = filterExpensesByDateRange(
+          periodExpenses,
+          formatLocalDate(monthStart),
+          formatLocalDate(monthEnd)
+        )
+        
+        const monthExpenseTotal = calculateTotalExpenses(monthExpenses)
+        data.push(monthExpenseTotal)
+        labels.push(monthStart.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }))
+      }
+    }
+  }
+  
+  return { data, labels }
+}
+
+function getProfitChartData() {
+  const salesData = getSalesChartData()
+  const expensesData = getExpensesChartData()
+  
+  // Ensure both arrays have the same length
+  const maxLength = Math.max(salesData.data.length, expensesData.data.length)
+  const profitData: number[] = []
+  
+  for (let i = 0; i < maxLength; i++) {
+    const sales = salesData.data[i] || 0
+    const expenses = expensesData.data[i] || 0
+    profitData.push(sales - expenses)
+  }
+  
+  return {
+    data: profitData,
+    labels: salesData.labels
+  }
+}
+
 function getExpenseChartData() {
   const now = new Date()
   const periodExpenses = getExpensesForPeriod(now, selectedPeriod.value)
@@ -899,6 +1134,19 @@ function goToInventory() {
   router.push('/inventory')
 }
 
+// Chart line toggle function
+function toggleChartLine(line: 'sales' | 'expenses' | 'profit') {
+  chartVisibility.value[line] = !chartVisibility.value[line]
+  
+  // Update chart without recreating it
+  if (salesChartInstance) {
+    const datasetIndex = line === 'sales' ? 0 : line === 'expenses' ? 1 : 2
+    const meta = salesChartInstance.getDatasetMeta(datasetIndex)
+    meta.hidden = !chartVisibility.value[line]
+    salesChartInstance.update()
+  }
+}
+
 // Chart creation functions
 function createSalesChart() {
   if (!salesChart.value) return
@@ -912,21 +1160,46 @@ function createSalesChart() {
   const ctx = salesChart.value.getContext('2d')
   if (!ctx) return
   
-  const chartData = dashboardData.value.salesData
+  const salesData = dashboardData.value.salesData
+  const expensesData = dashboardData.value.expensesData
+  const profitData = dashboardData.value.profitData
   
   salesChartInstance = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: chartData.labels,
-      datasets: [{
-        label: 'Sales',
-        data: chartData.data,
-        borderColor: '#667eea',
-        backgroundColor: 'rgba(102, 126, 234, 0.1)',
-        borderWidth: 3,
-        fill: true,
-        tension: 0.4
-      }]
+      labels: salesData.labels,
+      datasets: [
+        {
+          label: 'Sales',
+          data: salesData.data,
+          borderColor: '#667eea',
+          backgroundColor: 'rgba(102, 126, 234, 0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          hidden: !chartVisibility.value.sales
+        },
+        {
+          label: 'Expenses',
+          data: expensesData.data,
+          borderColor: '#dc3545',
+          backgroundColor: 'rgba(220, 53, 69, 0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          hidden: !chartVisibility.value.expenses
+        },
+        {
+          label: 'Profit',
+          data: profitData.data,
+          borderColor: '#28a745',
+          backgroundColor: 'rgba(40, 167, 69, 0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4,
+          hidden: !chartVisibility.value.profit
+        }
+      ]
     },
     options: {
       responsive: true,
@@ -1377,6 +1650,24 @@ onMounted(async () => {
   gap: 0.5rem;
   font-size: 0.85rem;
   color: #6c757d;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.legend-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.legend-item-disabled {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+.legend-item-disabled .legend-color {
+  opacity: 0.4;
 }
 
 .legend-color {
@@ -1387,6 +1678,14 @@ onMounted(async () => {
 
 .legend-color.sales {
   background: #667eea;
+}
+
+.legend-color.expenses {
+  background: #dc3545;
+}
+
+.legend-color.profit {
+  background: #28a745;
 }
 
 .chart-container {
