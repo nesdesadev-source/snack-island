@@ -3,15 +3,31 @@
     <div class="dashboard-header">
       <h1>Dashboard</h1>
       <p>Welcome to Snack Island Management System</p>
-      <div class="period-selector">
-        <button 
-          v-for="period in periods" 
-          :key="period.value"
-          @click="selectedPeriod = period.value"
-          :class="['period-btn', { active: selectedPeriod === period.value }]"
-        >
-          {{ period.label }}
-        </button>
+      <div class="period-controls">
+        <div class="period-selector">
+          <button 
+            v-for="period in periods" 
+            :key="period.value"
+            @click="selectedPeriod = period.value"
+            :class="['period-btn', { active: selectedPeriod === period.value }]"
+          >
+            {{ period.label }}
+          </button>
+        </div>
+        <div v-if="selectedPeriod !== 'today'" class="period-type-selector">
+          <button
+            @click="periodType = 'toDate'"
+            :class="['period-type-btn', { active: periodType === 'toDate' }]"
+          >
+            To Date
+          </button>
+          <button
+            @click="periodType = 'calendar'"
+            :class="['period-type-btn', { active: periodType === 'calendar' }]"
+          >
+            Calendar
+          </button>
+        </div>
       </div>
     </div>
     
@@ -248,7 +264,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick } from 'vue'
+import { ref, onMounted, computed, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Chart, registerables } from 'chart.js'
 import { OrderService } from '../services/orderService'
@@ -274,10 +290,16 @@ const salesChart = ref<HTMLCanvasElement | null>(null)
 const expenseChart = ref<HTMLCanvasElement | null>(null)
 const topItemsChart = ref<HTMLCanvasElement | null>(null)
 
+// Chart instances for cleanup
+let salesChartInstance: Chart | null = null
+let expenseChartInstance: Chart | null = null
+let topItemsChartInstance: Chart | null = null
+
 // State
 const loading = ref(true)
 const error = ref<string | null>(null)
 const selectedPeriod = ref('week')
+const periodType = ref<'toDate' | 'calendar'>('toDate')
 const showTopItemsModal = ref(false)
 
 // Data
@@ -335,7 +357,7 @@ function getCurrentPeriodData() {
 
 function getPreviousPeriodData() {
   const now = new Date()
-  const previousPeriod = getPreviousPeriod(now, selectedPeriod.value)
+  const previousPeriod = getPreviousPeriod(now, selectedPeriod.value, periodType.value)
   const previousPeriodOrders = getOrdersForPeriod(previousPeriod, selectedPeriod.value)
   const previousPeriodExpenses = getExpensesForPeriod(previousPeriod, selectedPeriod.value)
   
@@ -347,8 +369,8 @@ function getPreviousPeriodData() {
 }
 
 function getOrdersForPeriod(date: Date, period: string) {
-  const startDate = getPeriodStartDate(date, period)
-  const endDate = getPeriodEndDate(date, period)
+  const startDate = getPeriodStartDate(date, period, periodType.value)
+  const endDate = getPeriodEndDate(date, period, periodType.value)
   
   return orders.value.filter(order => {
     if (!order.created_at) return false
@@ -359,8 +381,8 @@ function getOrdersForPeriod(date: Date, period: string) {
 }
 
 function getExpensesForPeriod(date: Date, period: string) {
-  const startDate = getPeriodStartDate(date, period)
-  const endDate = getPeriodEndDate(date, period)
+  const startDate = getPeriodStartDate(date, period, periodType.value)
+  const endDate = getPeriodEndDate(date, period, periodType.value)
   
   // Format dates in local timezone to avoid UTC conversion issues
   const formatLocalDate = (d: Date): string => {
@@ -377,7 +399,48 @@ function getExpensesForPeriod(date: Date, period: string) {
   )
 }
 
-function getPeriodStartDate(date: Date, period: string): Date {
+// Helper functions for calendar periods
+function getStartOfWeek(date: Date): Date {
+  const start = new Date(date)
+  const day = start.getDay()
+  const diff = start.getDate() - day + (day === 0 ? -6 : 1) // Adjust to Monday
+  start.setDate(diff)
+  start.setHours(0, 0, 0, 0)
+  return start
+}
+
+function getEndOfWeek(date: Date): Date {
+  const end = getStartOfWeek(date)
+  end.setDate(end.getDate() + 6)
+  end.setHours(23, 59, 59, 999)
+  return end
+}
+
+function getStartOfMonth(date: Date): Date {
+  const start = new Date(date.getFullYear(), date.getMonth(), 1)
+  start.setHours(0, 0, 0, 0)
+  return start
+}
+
+function getEndOfMonth(date: Date): Date {
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0)
+  end.setHours(23, 59, 59, 999)
+  return end
+}
+
+function getStartOfYear(date: Date): Date {
+  const start = new Date(date.getFullYear(), 0, 1)
+  start.setHours(0, 0, 0, 0)
+  return start
+}
+
+function getEndOfYear(date: Date): Date {
+  const end = new Date(date.getFullYear(), 11, 31)
+  end.setHours(23, 59, 59, 999)
+  return end
+}
+
+function getPeriodStartDate(date: Date, period: string, type: 'toDate' | 'calendar' = 'toDate'): Date {
   const start = new Date(date)
   
   switch (period) {
@@ -385,43 +448,94 @@ function getPeriodStartDate(date: Date, period: string): Date {
       start.setHours(0, 0, 0, 0)
       break
     case 'week':
-      start.setDate(start.getDate() - 7)
-      start.setHours(0, 0, 0, 0)
+      if (type === 'calendar') {
+        return getStartOfWeek(date)
+      } else {
+        start.setDate(start.getDate() - 7)
+        start.setHours(0, 0, 0, 0)
+      }
       break
     case 'month':
-      start.setMonth(start.getMonth() - 1)
-      start.setHours(0, 0, 0, 0)
+      if (type === 'calendar') {
+        return getStartOfMonth(date)
+      } else {
+        // Last 30 days (rolling period)
+        start.setDate(start.getDate() - 30)
+        start.setHours(0, 0, 0, 0)
+      }
       break
     case 'year':
-      start.setFullYear(start.getFullYear() - 1)
-      start.setHours(0, 0, 0, 0)
+      if (type === 'calendar') {
+        return getStartOfYear(date)
+      } else {
+        // Last 365 days (rolling period)
+        start.setDate(start.getDate() - 365)
+        start.setHours(0, 0, 0, 0)
+      }
       break
   }
   
   return start
 }
 
-function getPeriodEndDate(date: Date, _period: string): Date {
+function getPeriodEndDate(date: Date, period: string, type: 'toDate' | 'calendar' = 'toDate'): Date {
+  if (type === 'calendar') {
+    switch (period) {
+      case 'week':
+        return getEndOfWeek(date)
+      case 'month':
+        return getEndOfMonth(date)
+      case 'year':
+        return getEndOfYear(date)
+      default:
+        const end = new Date(date)
+        end.setHours(23, 59, 59, 999)
+        return end
+    }
+  }
+  
+  // For 'toDate' or 'today', return end of today
   const end = new Date(date)
   end.setHours(23, 59, 59, 999)
   return end
 }
 
-function getPreviousPeriod(date: Date, _period: string): Date {
+function getPreviousPeriod(date: Date, period: string, type: 'toDate' | 'calendar' = 'toDate'): Date {
   const previous = new Date(date)
   
-  switch (_period) {
+  if (type === 'calendar') {
+    switch (period) {
+      case 'week':
+        previous.setDate(previous.getDate() - 7)
+        return previous
+      case 'month':
+        previous.setMonth(previous.getMonth() - 1)
+        return previous
+      case 'year':
+        previous.setFullYear(previous.getFullYear() - 1)
+        return previous
+      default:
+        previous.setDate(previous.getDate() - 1)
+        return previous
+    }
+  }
+  
+  // For 'toDate' periods (rolling periods)
+  switch (period) {
     case 'today':
       previous.setDate(previous.getDate() - 1)
       break
     case 'week':
+      // Previous 7-day period (14 days ago to 7 days ago)
       previous.setDate(previous.getDate() - 14)
       break
     case 'month':
-      previous.setMonth(previous.getMonth() - 2)
+      // Previous 30-day period (60 days ago to 30 days ago)
+      previous.setDate(previous.getDate() - 60)
       break
     case 'year':
-      previous.setFullYear(previous.getFullYear() - 2)
+      // Previous 365-day period (730 days ago to 365 days ago)
+      previous.setDate(previous.getDate() - 730)
       break
   }
   
@@ -484,32 +598,189 @@ function getRecentActivity() {
 }
 
 function getSalesChartData() {
-  const days = 7
-  const data = []
-  const labels = []
+  const now = new Date()
+  const period = selectedPeriod.value
+  const type = periodType.value
+  const startDate = getPeriodStartDate(now, period, type)
+  const endDate = getPeriodEndDate(now, period, type)
+  const periodOrders = getOrdersForPeriod(now, period)
   
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date()
-    date.setDate(date.getDate() - i)
-    
-    const dayOrders = orders.value.filter(order => {
-      if (!order.created_at) return false
-      if (order.status !== 'completed') return false
-      const orderDate = new Date(order.created_at)
-      return orderDate.toDateString() === date.toDateString()
-    })
-    
-    const daySales = dayOrders.reduce((sum, order) => sum + order.total_amount, 0)
-    
-    data.push(daySales)
-    labels.push(date.toLocaleDateString('en-US', { weekday: 'short' }))
+  const data: number[] = []
+  const labels: string[] = []
+  
+  if (period === 'today') {
+    // Show hourly data for today
+    for (let hour = 0; hour < 24; hour++) {
+      const hourStart = new Date(startDate)
+      hourStart.setHours(hour, 0, 0, 0)
+      const hourEnd = new Date(startDate)
+      hourEnd.setHours(hour, 59, 59, 999)
+      
+      const hourOrders = periodOrders.filter(order => {
+        if (!order.created_at) return false
+        const orderDate = new Date(order.created_at)
+        return orderDate >= hourStart && orderDate <= hourEnd
+      })
+      
+      const hourSales = hourOrders.reduce((sum, order) => sum + order.total_amount, 0)
+      data.push(hourSales)
+      labels.push(`${hour}:00`)
+    }
+  } else if (period === 'week') {
+    if (type === 'calendar') {
+      // Show daily data for Monday-Sunday of current week
+      const weekStart = getStartOfWeek(now)
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(weekStart)
+        date.setDate(date.getDate() + i)
+        date.setHours(0, 0, 0, 0)
+        const dayEnd = new Date(date)
+        dayEnd.setHours(23, 59, 59, 999)
+        
+        const dayOrders = periodOrders.filter(order => {
+          if (!order.created_at) return false
+          const orderDate = new Date(order.created_at)
+          return orderDate >= date && orderDate <= dayEnd
+        })
+        
+        const daySales = dayOrders.reduce((sum, order) => sum + order.total_amount, 0)
+        data.push(daySales)
+        labels.push(date.toLocaleDateString('en-US', { weekday: 'short' }))
+      }
+    } else {
+      // Show daily data for last 7 days (toDate)
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(endDate)
+        date.setDate(date.getDate() - i)
+        date.setHours(0, 0, 0, 0)
+        const dayEnd = new Date(date)
+        dayEnd.setHours(23, 59, 59, 999)
+        
+        const dayOrders = periodOrders.filter(order => {
+          if (!order.created_at) return false
+          const orderDate = new Date(order.created_at)
+          return orderDate >= date && orderDate <= dayEnd
+        })
+        
+        const daySales = dayOrders.reduce((sum, order) => sum + order.total_amount, 0)
+        data.push(daySales)
+        labels.push(date.toLocaleDateString('en-US', { weekday: 'short' }))
+      }
+    }
+  } else if (period === 'month') {
+    if (type === 'calendar') {
+      // Show weekly data for the full month (4 weeks)
+      const monthStart = getStartOfMonth(now)
+      const monthEnd = getEndOfMonth(now)
+      
+      // Define 4 weeks
+      const weeks = [
+        { start: 1, end: 7, label: 'Week 1' },
+        { start: 8, end: 14, label: 'Week 2' },
+        { start: 15, end: 21, label: 'Week 3' },
+        { start: 22, end: monthEnd.getDate(), label: 'Week 4' }
+      ]
+      
+      weeks.forEach(week => {
+        const weekStart = new Date(monthStart)
+        weekStart.setDate(week.start)
+        weekStart.setHours(0, 0, 0, 0)
+        
+        const weekEnd = new Date(monthStart)
+        weekEnd.setDate(week.end)
+        weekEnd.setHours(23, 59, 59, 999)
+        
+        const weekOrders = periodOrders.filter(order => {
+          if (!order.created_at) return false
+          const orderDate = new Date(order.created_at)
+          return orderDate >= weekStart && orderDate <= weekEnd
+        })
+        
+        const weekSales = weekOrders.reduce((sum, order) => sum + order.total_amount, 0)
+        data.push(weekSales)
+        labels.push(week.label)
+      })
+    } else {
+      // Show daily data for last 30 days (rolling period)
+      for (let i = 29; i >= 0; i--) {
+        const date = new Date(endDate)
+        date.setDate(date.getDate() - i)
+        date.setHours(0, 0, 0, 0)
+        const dayEnd = new Date(date)
+        dayEnd.setHours(23, 59, 59, 999)
+        
+        const dayOrders = periodOrders.filter(order => {
+          if (!order.created_at) return false
+          const orderDate = new Date(order.created_at)
+          return orderDate >= date && orderDate <= dayEnd
+        })
+        
+        const daySales = dayOrders.reduce((sum, order) => sum + order.total_amount, 0)
+        data.push(daySales)
+        labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }))
+      }
+    }
+  } else if (period === 'year') {
+    if (type === 'calendar') {
+      // Show monthly data for all 12 months of current year
+      const yearStart = getStartOfYear(now)
+      for (let month = 0; month < 12; month++) {
+        const monthStart = new Date(yearStart)
+        monthStart.setMonth(month, 1)
+        monthStart.setHours(0, 0, 0, 0)
+        const monthEnd = new Date(yearStart)
+        monthEnd.setMonth(month + 1, 0)
+        monthEnd.setHours(23, 59, 59, 999)
+        
+        const monthOrders = periodOrders.filter(order => {
+          if (!order.created_at) return false
+          const orderDate = new Date(order.created_at)
+          return orderDate >= monthStart && orderDate <= monthEnd
+        })
+        
+        const monthSales = monthOrders.reduce((sum, order) => sum + order.total_amount, 0)
+        data.push(monthSales)
+        labels.push(monthStart.toLocaleDateString('en-US', { month: 'short' }))
+      }
+    } else {
+      // Show monthly data for last 12 months (rolling period)
+      for (let i = 11; i >= 0; i--) {
+        // Calculate month start (i months ago)
+        const monthStart = new Date(endDate)
+        monthStart.setMonth(monthStart.getMonth() - i, 1)
+        monthStart.setHours(0, 0, 0, 0)
+        
+        // Calculate month end
+        const monthEnd = new Date(monthStart)
+        if (i === 0) {
+          // Current month ends today
+          monthEnd.setTime(endDate.getTime())
+        } else {
+          // Previous months end on last day of that month
+          monthEnd.setMonth(monthEnd.getMonth() + 1, 0)
+        }
+        monthEnd.setHours(23, 59, 59, 999)
+        
+        const monthOrders = periodOrders.filter(order => {
+          if (!order.created_at) return false
+          const orderDate = new Date(order.created_at)
+          return orderDate >= monthStart && orderDate <= monthEnd
+        })
+        
+        const monthSales = monthOrders.reduce((sum, order) => sum + order.total_amount, 0)
+        data.push(monthSales)
+        labels.push(monthStart.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }))
+      }
+    }
   }
   
   return { data, labels }
 }
 
 function getExpenseChartData() {
-  const expenseByCategory = calculateExpensesByCategory(expenses.value)
+  const now = new Date()
+  const periodExpenses = getExpensesForPeriod(now, selectedPeriod.value)
+  const expenseByCategory = calculateExpensesByCategory(periodExpenses)
   
   return {
     labels: Object.keys(expenseByCategory),
@@ -518,17 +789,20 @@ function getExpenseChartData() {
 }
 
 function getTopItemsData() {
-  // Calculate top selling items from order items data
-  const itemCounts: Record<string, number> = {}
+  const now = new Date()
+  const periodOrders = getOrdersForPeriod(now, selectedPeriod.value)
   
-  // Get completed order IDs
+  // Get completed order IDs for the selected period
   const completedOrderIds = new Set(
-    orders.value
+    periodOrders
       .filter(order => order.status === 'completed')
       .map(order => order.id)
   )
   
-  // Count quantities for each menu item from completed orders only
+  // Calculate top selling items from order items data
+  const itemCounts: Record<string, number> = {}
+  
+  // Count quantities for each menu item from completed orders in the selected period only
   orderItems.value.forEach(orderItem => {
     const menuItemId = orderItem.menu_id
     if (menuItemId && orderItem.order_id && completedOrderIds.has(orderItem.order_id)) {
@@ -566,16 +840,19 @@ function getTopItemsData() {
 
 // Get all items with sales data (not just top 5)
 const allItemsSales = computed(() => {
-  const itemCounts: Record<string, number> = {}
+  const now = new Date()
+  const periodOrders = getOrdersForPeriod(now, selectedPeriod.value)
   
-  // Get completed order IDs
+  // Get completed order IDs for the selected period
   const completedOrderIds = new Set(
-    orders.value
+    periodOrders
       .filter(order => order.status === 'completed')
       .map(order => order.id)
   )
   
-  // Count quantities for each menu item from completed orders only
+  const itemCounts: Record<string, number> = {}
+  
+  // Count quantities for each menu item from completed orders in the selected period only
   orderItems.value.forEach(orderItem => {
     const menuItemId = orderItem.menu_id
     if (menuItemId && orderItem.order_id && completedOrderIds.has(orderItem.order_id)) {
@@ -626,12 +903,18 @@ function goToInventory() {
 function createSalesChart() {
   if (!salesChart.value) return
   
+  // Destroy existing chart instance if it exists
+  if (salesChartInstance) {
+    salesChartInstance.destroy()
+    salesChartInstance = null
+  }
+  
   const ctx = salesChart.value.getContext('2d')
   if (!ctx) return
   
   const chartData = dashboardData.value.salesData
   
-  new Chart(ctx, {
+  salesChartInstance = new Chart(ctx, {
     type: 'line',
     data: {
       labels: chartData.labels,
@@ -670,12 +953,18 @@ function createSalesChart() {
 function createExpenseChart() {
   if (!expenseChart.value) return
   
+  // Destroy existing chart instance if it exists
+  if (expenseChartInstance) {
+    expenseChartInstance.destroy()
+    expenseChartInstance = null
+  }
+  
   const ctx = expenseChart.value.getContext('2d')
   if (!ctx) return
   
   const chartData = dashboardData.value.expenseData
   
-  new Chart(ctx, {
+  expenseChartInstance = new Chart(ctx, {
     type: 'doughnut',
     data: {
       labels: chartData.labels,
@@ -706,12 +995,18 @@ function createExpenseChart() {
 function createTopItemsChart() {
   if (!topItemsChart.value) return
   
+  // Destroy existing chart instance if it exists
+  if (topItemsChartInstance) {
+    topItemsChartInstance.destroy()
+    topItemsChartInstance = null
+  }
+  
   const ctx = topItemsChart.value.getContext('2d')
   if (!ctx) return
   
   const chartData = dashboardData.value.topItemsData
   
-  new Chart(ctx, {
+  topItemsChartInstance = new Chart(ctx, {
     type: 'bar',
     data: {
       labels: chartData.labels,
@@ -771,15 +1066,30 @@ async function loadDashboardData() {
   }
 }
 
+// Function to recreate all charts
+async function recreateCharts() {
+  await nextTick()
+  createSalesChart()
+  createExpenseChart()
+  createTopItemsChart()
+}
+
+// Watch for period changes and recreate charts
+watch(selectedPeriod, async () => {
+  await recreateCharts()
+})
+
+// Watch for period type changes and recreate charts
+watch(periodType, async () => {
+  await recreateCharts()
+})
+
 // Lifecycle
 onMounted(async () => {
   await loadDashboardData()
   
   // Create charts after data is loaded and DOM is updated
-  await nextTick()
-  createSalesChart()
-  createExpenseChart()
-  createTopItemsChart()
+  await recreateCharts()
 })
 </script>
 
@@ -809,6 +1119,13 @@ onMounted(async () => {
   margin: 0.5rem 0 0 0;
 }
 
+.period-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
 .period-selector {
   display: flex;
   gap: 0.5rem;
@@ -833,6 +1150,36 @@ onMounted(async () => {
 }
 
 .period-btn.active {
+  background: white;
+  color: #667eea;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.period-type-selector {
+  display: flex;
+  gap: 0.5rem;
+  background: #f8f9fa;
+  padding: 0.25rem;
+  border-radius: 8px;
+}
+
+.period-type-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.period-type-btn:hover {
+  background: white;
+}
+
+.period-type-btn.active {
   background: white;
   color: #667eea;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -1160,6 +1507,17 @@ onMounted(async () => {
   .dashboard-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+  
+  .period-controls {
+    width: 100%;
+    align-items: stretch;
+  }
+  
+  .period-selector,
+  .period-type-selector {
+    width: 100%;
+    justify-content: center;
   }
   
   .charts-grid {
