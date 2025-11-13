@@ -13,7 +13,7 @@ export class OrderService {
   }): Promise<Order[]> {
     const { data, error } = await supabase.rpc('get_orders', {
       p_status: options?.status || null,
-      p_limit: options?.limit || 50,
+      p_limit: options?.limit || 5000,
       p_offset: options?.offset || 0
     })
     

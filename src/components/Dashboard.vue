@@ -181,6 +181,22 @@
           </div>
         </div>
         
+        <!-- Payment Methods Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Payment Methods</h3>
+            <button @click="showPaymentMethodsModal = true" class="inventory-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M7 17L17 7M17 7H7M17 7V17"></path>
+              </svg>
+              View Orders
+            </button>
+          </div>
+          <div class="chart-container">
+            <canvas ref="paymentMethodsChart" width="400" height="200"></canvas>
+          </div>
+        </div>
+        
         <!-- Inventory Status -->
         <div class="chart-card">
           <div class="chart-header">
@@ -281,6 +297,71 @@
       </div>
     </Transition>
   </Teleport>
+
+  <!-- Payment Methods Orders Modal -->
+  <Teleport to="body">
+    <Transition name="modal-fade">
+      <div v-if="showPaymentMethodsModal" class="modal-overlay" @click.self="showPaymentMethodsModal = false">
+        <div class="modal-container top-items-modal" @click.stop>
+          <div class="modal-header">
+            <div class="header-content">
+              <div class="header-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 9V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2m2 4h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm7-5a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"></path>
+                </svg>
+              </div>
+              <div>
+                <h2>Orders by Payment Method</h2>
+                <p class="modal-subtitle">Complete list of orders with payment methods</p>
+              </div>
+            </div>
+            <button class="close-btn" @click="showPaymentMethodsModal = false" aria-label="Close modal">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          
+          <div class="modal-body">
+            <div v-if="paymentMethodsOrders.length === 0" class="no-data">
+              <p>No orders data available</p>
+            </div>
+            <div v-else class="sales-table-container">
+              <table class="sales-table">
+                <thead>
+                  <tr>
+                    <th class="sortable-header" @click="togglePaymentMethodsSort">
+                      Date
+                      <span class="sort-icon">
+                        <svg v-if="paymentMethodsSortOrder === 'desc'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M6 9l6 6 6-6"></path>
+                        </svg>
+                        <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M18 15l-6-6-6 6"></path>
+                        </svg>
+                      </span>
+                    </th>
+                    <th>Order Items</th>
+                    <th>Payment Method</th>
+                    <th>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="order in paymentMethodsOrders" :key="order.id">
+                    <td class="date-cell">{{ order.date }}</td>
+                    <td class="name-cell">{{ order.itemsSummary }}</td>
+                    <td class="payment-method-cell">{{ formatPaymentMethod(order.paymentMethod) }}</td>
+                    <td class="quantity-cell">₱{{ formatNumber(order.amount) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -309,11 +390,13 @@ const router = useRouter()
 const salesChart = ref<HTMLCanvasElement | null>(null)
 const expenseChart = ref<HTMLCanvasElement | null>(null)
 const topItemsChart = ref<HTMLCanvasElement | null>(null)
+const paymentMethodsChart = ref<HTMLCanvasElement | null>(null)
 
 // Chart instances for cleanup
 let salesChartInstance: Chart | null = null
 let expenseChartInstance: Chart | null = null
 let topItemsChartInstance: Chart | null = null
+let paymentMethodsChartInstance: Chart | null = null
 
 // State
 const loading = ref(true)
@@ -321,6 +404,8 @@ const error = ref<string | null>(null)
 const selectedPeriod = ref('week')
 const periodType = ref<'toDate' | 'calendar'>('toDate')
 const showTopItemsModal = ref(false)
+const showPaymentMethodsModal = ref(false)
+const paymentMethodsSortOrder = ref<'asc' | 'desc'>('desc')
 
 // Chart visibility state
 const chartVisibility = ref({
@@ -367,7 +452,8 @@ const dashboardData = computed(() => {
     expensesData: getExpensesChartData(),
     profitData: getProfitChartData(),
     expenseData: getExpenseChartData(),
-    topItemsData: getTopItemsData()
+    topItemsData: getTopItemsData(),
+    paymentMethodsData: getPaymentMethodsData()
   }
 })
 
@@ -405,7 +491,28 @@ function getOrdersForPeriod(date: Date, period: string) {
     if (!order.created_at) return false
     if (order.status !== 'completed') return false
     const orderDate = new Date(order.created_at)
-    return orderDate >= startDate && orderDate <= endDate
+    
+    // Normalize dates to local date components for accurate day-level comparison
+    // This avoids timezone issues where UTC dates might fall on a different day
+    const orderYear = orderDate.getFullYear()
+    const orderMonth = orderDate.getMonth()
+    const orderDay = orderDate.getDate()
+    
+    const startYear = startDate.getFullYear()
+    const startMonth = startDate.getMonth()
+    const startDay = startDate.getDate()
+    
+    const endYear = endDate.getFullYear()
+    const endMonth = endDate.getMonth()
+    const endDay = endDate.getDate()
+    
+    // Create date objects at midnight local time for day-level comparison
+    const orderDateLocal = new Date(orderYear, orderMonth, orderDay)
+    const startDateLocal = new Date(startYear, startMonth, startDay)
+    const endDateLocal = new Date(endYear, endMonth, endDay)
+    
+    // Compare dates at day level
+    return orderDateLocal >= startDateLocal && orderDateLocal <= endDateLocal
   })
 }
 
@@ -1073,6 +1180,42 @@ function getTopItemsData() {
   return { labels, data }
 }
 
+function getPaymentMethodsData() {
+  const now = new Date()
+  const periodOrders = getOrdersForPeriod(now, selectedPeriod.value)
+  
+  // Filter only completed orders
+  const completedOrders = periodOrders.filter(order => order.status === 'completed')
+  
+  // Calculate total amount per payment method
+  const paymentMethodAmounts: Record<string, number> = {}
+  
+  completedOrders.forEach(order => {
+    if (order.payment_method) {
+      const method = order.payment_method
+      paymentMethodAmounts[method] = (paymentMethodAmounts[method] || 0) + order.total_amount
+    }
+  })
+  
+  // Format labels (capitalize first letter)
+  const formatLabel = (method: string): string => {
+    return method.charAt(0).toUpperCase() + method.slice(1)
+  }
+  
+  const labels = Object.keys(paymentMethodAmounts).map(formatLabel)
+  const data = Object.values(paymentMethodAmounts)
+  
+  // If no data, return empty arrays
+  if (labels.length === 0) {
+    return {
+      labels: ['No payment data'],
+      data: [0]
+    }
+  }
+  
+  return { labels, data }
+}
+
 // Get all items with sales data (not just top 5)
 const allItemsSales = computed(() => {
   const now = new Date()
@@ -1110,6 +1253,82 @@ const allItemsSales = computed(() => {
   
   return itemsWithSales
 })
+
+// Get orders with item summaries for payment methods modal
+const paymentMethodsOrders = computed(() => {
+  const now = new Date()
+  const periodOrders = getOrdersForPeriod(now, selectedPeriod.value)
+  
+  // Filter only completed orders
+  const completedOrders = periodOrders.filter(order => order.status === 'completed')
+  
+  // Map orders to include item summaries
+  const orders = completedOrders
+    .filter(order => order.payment_method)
+    .map(order => {
+      const items = orderItems.value.filter(item => item.order_id === order.id)
+      const itemsSummary = formatOrderItemsSummary(items)
+      const date = formatOrderDate(order.created_at)
+      const dateValue = order.created_at ? new Date(order.created_at).getTime() : 0
+      
+      return {
+        id: order.id,
+        date,
+        dateValue,
+        itemsSummary,
+        paymentMethod: order.payment_method!,
+        amount: order.total_amount
+      }
+    })
+  
+  // Sort by date
+  return orders.sort((a, b) => {
+    if (paymentMethodsSortOrder.value === 'desc') {
+      return b.dateValue - a.dateValue
+    } else {
+      return a.dateValue - b.dateValue
+    }
+  })
+})
+
+// Helper function to format order items summary
+function formatOrderItemsSummary(items: OrderItem[]): string {
+  if (items.length === 0) return 'No items'
+  
+  const summaryParts: string[] = []
+  
+  items.forEach(item => {
+    if (item.menu_id) {
+      const menuItem = menuItems.value.find(mi => mi.id === item.menu_id)
+      const itemName = menuItem?.name || 'Unknown Item'
+      summaryParts.push(`${itemName} ×${item.quantity}`)
+    }
+  })
+  
+  return summaryParts.join(', ')
+}
+
+// Helper function to format payment method name
+function formatPaymentMethod(method: string): string {
+  return method.charAt(0).toUpperCase() + method.slice(1)
+}
+
+// Helper function to format order date as mm/dd/yyyy
+function formatOrderDate(dateString: string | null): string {
+  if (!dateString) return 'N/A'
+  
+  const date = new Date(dateString)
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const year = date.getFullYear()
+  
+  return `${month}/${day}/${year}`
+}
+
+// Toggle sort order for payment methods orders
+function togglePaymentMethodsSort() {
+  paymentMethodsSortOrder.value = paymentMethodsSortOrder.value === 'desc' ? 'asc' : 'desc'
+}
 
 function formatTimeAgo(date: Date): string {
   const now = new Date()
@@ -1307,6 +1526,58 @@ function createTopItemsChart() {
   })
 }
 
+function createPaymentMethodsChart() {
+  if (!paymentMethodsChart.value) return
+  
+  // Destroy existing chart instance if it exists
+  if (paymentMethodsChartInstance) {
+    paymentMethodsChartInstance.destroy()
+    paymentMethodsChartInstance = null
+  }
+  
+  const ctx = paymentMethodsChart.value.getContext('2d')
+  if (!ctx) return
+  
+  const chartData = dashboardData.value.paymentMethodsData
+  
+  paymentMethodsChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: chartData.labels,
+      datasets: [{
+        data: chartData.data,
+        backgroundColor: [
+          '#667eea',
+          '#764ba2',
+          '#f093fb',
+          '#f5576c',
+          '#4facfe',
+          '#00f2fe',
+          '#43e97b'
+        ]
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom'
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const label = context.label || ''
+              const value = context.parsed || 0
+              return `${label}: ₱${value.toLocaleString()}`
+            }
+          }
+        }
+      }
+    }
+  })
+}
+
 // Data loading
 async function loadDashboardData() {
   try {
@@ -1345,6 +1616,7 @@ async function recreateCharts() {
   createSalesChart()
   createExpenseChart()
   createTopItemsChart()
+  createPaymentMethodsChart()
 }
 
 // Watch for period changes and recreate charts
@@ -2035,6 +2307,40 @@ onMounted(async () => {
   font-weight: 600;
   color: #059669;
   text-align: right;
+}
+
+.payment-method-cell {
+  font-weight: 500;
+  color: #667eea;
+  text-transform: capitalize;
+}
+
+.date-cell {
+  font-weight: 500;
+  color: #6c757d;
+  white-space: nowrap;
+}
+
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 1.5rem;
+  transition: background-color 0.2s;
+}
+
+.sortable-header:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.sort-icon {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  color: #667eea;
 }
 
 @media (max-width: 768px) {
