@@ -69,6 +69,7 @@
               :key="index"
               class="order-item"
             >
+            <div class="order-item-first-row">
               <div class="item-info">
                 <div class="item-name">{{ getMenuItemName(item.menu_id || '') }}</div>
                 <div class="item-unit-price">₱{{ getMenuItemPrice(item.menu_id || '') }} each</div>
@@ -87,6 +88,10 @@
                 >
                   +
                 </button>
+              </div>
+              
+            </div>
+            <div class="order-item-second-row">
                 <div class="item-subtotal">₱{{ item.subtotal }}</div>
                 <button
                   @click="removeItem(index)"
@@ -96,6 +101,7 @@
                 </button>
               </div>
             </div>
+            
           </div>
         </div>
 
@@ -722,7 +728,7 @@ onMounted(async () => {
 
 .item-controls {
   display: flex;
-  align-items: center;
+  align-items: end;
   gap: 0.75rem;
 }
 
@@ -758,10 +764,11 @@ onMounted(async () => {
 
 .item-subtotal {
   min-width: 4rem;
-  text-align: right;
+  text-align: center;
   font-size: 0.875rem;
   font-weight: 600;
   color: #1d1d1f;
+  ;
 }
 
 .remove-btn {
@@ -791,6 +798,23 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.order-item-first-row {
+  display: flex; 
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  gap: 0.5rem;
+  width: 70%
+}
+
+.order-item-second-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  width: 30%;
 }
 
 .summary-label {
@@ -912,16 +936,34 @@ onMounted(async () => {
 
 /* Responsive */
 @media (max-width: 768px) {
-  .filters-row {
-    max-width: 46vh;
-  }
-
   .order-form {
     padding: 0;
     border-radius: 0;
     max-height: none;
     overflow-y: visible;
+    overflow-x: hidden;
     background: #ffffff;
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  .left-panel,
+  .right-panel {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .item-subtotal {
+    background: white;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    padding: 0.5rem;
+  }
+
+  .section {
+    width: 100%;
+    max-width: 100%;
     box-sizing: border-box;
   }
 
@@ -972,10 +1014,9 @@ onMounted(async () => {
     grid-template-columns: 1fr;
     gap: 1rem;
     padding: 0.75rem;
-  }
-  
-  .section {
-    margin-bottom: 1rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
   
   /* Hide category filter on mobile */
@@ -986,24 +1027,25 @@ onMounted(async () => {
   .search-icon {
     display: none;
   }
-
-  .action-buttons {
-    max-width: 42vh;
-  }
-
-  .payment-grid {
-    max-width: 42vh;
-  }
   
   /* Make search input full width on mobile */
   .search-container {
     flex: 1;
     margin-bottom: 0.5rem;
-    max-width: 30vh;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
   
   .search-input {
     width: 100%;
+    box-sizing: border-box;
+  }
+
+  .filters-row {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
   
   /* Convert menu grid to list layout */
@@ -1012,6 +1054,8 @@ onMounted(async () => {
     flex-direction: column;
     gap: 0.5rem;
     max-height: 250px;
+    width: 100%;
+    box-sizing: border-box;
   }
   
   /* Style menu items as horizontal list items */
@@ -1020,6 +1064,8 @@ onMounted(async () => {
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem 1rem;
+    width: 100%;
+    box-sizing: border-box;
   }
   
   .menu-item .item-name {
@@ -1028,6 +1074,23 @@ onMounted(async () => {
     flex: 1;
   }
   
+  .order-item {
+    display: block !important;
+  }
+
+  .order-item-first-row {
+    width: 100% !important;
+  }
+
+  .order-item-second-row {
+    width: 100% !important;
+  }
+
+  .item-subtotal {
+    width: 90% !important;
+  }
+  
+
   .menu-item .item-price {
     font-size: 0.875rem;
     margin-bottom: 0;
@@ -1042,23 +1105,106 @@ onMounted(async () => {
   
   .order-items-list {
     max-height: 120px;
+    width: 100%;
+    box-sizing: border-box;
   }
   
   .payment-grid {
     grid-template-columns: repeat(2, 1fr);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
   
   .action-buttons {
     flex-direction: column;
     margin-top: 1rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .order-summary {
-    max-width: 38vh;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .order-item {
-    max-width: 38vh;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    flex-wrap: wrap;
+    align-items: center;
+    position: relative;
+    padding: 0.75rem 2.5rem 0.75rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .item-info {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-bottom: 0;
+  }
+
+  .order-item .item-name {
+    font-size: 0.8125rem;
+    margin-bottom: 0.125rem;
+  }
+
+  .item-unit-price {
+    font-size: 0.6875rem;
+  }
+
+  .item-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+  }
+
+  /* Quantity buttons stay in a row */
+  .item-controls .quantity-btn {
+    flex: 0 0 auto;
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .item-controls .quantity-display {
+    flex: 0 0 auto;
+    min-width: 2rem;
+    font-size: 0.8125rem;
+  }
+
+  /* Force subtotal to new line and span full width */
+  .item-controls .item-subtotal {
+    flex: 1 1 100%;
+    width: 100%;
+    text-align: center;
+    font-size: 1.125rem;
+    font-weight: 700;
+    padding: 0.5rem;
+    background: #ffffff;
+    border-radius: 4px;
+    margin-top: 0.25rem;
+  }
+
+  /* Remove button positioned absolutely in top-right */
+  .item-controls .remove-btn {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+  }
+
+  .btn {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .payment-btn {
+    width: 100%;
+    box-sizing: border-box;
   }
 }
 
