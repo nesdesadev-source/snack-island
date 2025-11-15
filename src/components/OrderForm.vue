@@ -988,18 +988,18 @@ onMounted(async () => {
   }
 
   .action-buttons {
-    max-width: 53vh;
+    max-width: 40vh;
   }
 
   .payment-grid {
-    max-width: 53vh;
+    max-width: 40vh;
   }
   
   /* Make search input full width on mobile */
   .search-container {
     flex: 1;
     margin-bottom: 0.5rem;
-    max-width: 48vh;
+    max-width: 30vh;
   }
   
   .search-input {
@@ -1054,11 +1054,11 @@ onMounted(async () => {
   }
 
   .order-summary {
-    max-width: 48vh;
+    max-width: 37vh;
   }
 
   .order-item {
-    max-width: 50vh;
+    max-width: 38vh;
   }
 }
 
