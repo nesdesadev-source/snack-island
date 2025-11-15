@@ -139,7 +139,6 @@ const isCollapsed = ref(false)
 
 const currentUser = computed(() => authService.getCurrentUser())
 const isAdmin = computed(() => currentUser.value?.roleId === 0)
-const isStaff = computed(() => currentUser.value?.roleId === 1)
 
 const userName = computed(() => currentUser.value?.username || 'Guest')
 const userRole = computed(() => {
