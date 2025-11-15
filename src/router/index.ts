@@ -6,52 +6,125 @@ import Sales from '../components/Sales.vue'
 import Expenses from '../components/Expenses.vue'
 import Users from '../components/Users.vue'
 import Menu from '../components/Menu.vue'
+import Login from '../components/Login.vue'
+import SignUp from '../components/SignUp.vue'
+import { authService } from '../services/authService'
 
 const routes = [
   {
+    path: '/login',
+    name: 'Login',
+    component: Login,
+    meta: { requiresAuth: false, hideForAuth: true }
+  },
+  {
+    path: '/signup',
+    name: 'SignUp',
+    component: SignUp,
+    meta: { requiresAuth: false, hideForAuth: true }
+  },
+  {
     path: '/',
-    redirect: '/dashboard'
+    redirect: () => {
+      const user = authService.getCurrentUser()
+      if (!user) {
+        return '/login'
+      }
+      // Redirect staff to order page, admin to dashboard
+      return user.roleId === 1 ? '/order' : '/dashboard'
+    }
   },
   {
     path: '/menu',
     name: 'Menu',
-    component: Menu
+    component: Menu,
+    meta: { requiresAuth: true, allowedRoles: [0] } // Admin only
   },
   {
     path: '/order',
     name: 'Order',
-    component: OrderPage
+    component: OrderPage,
+    meta: { requiresAuth: true, allowedRoles: [0, 1] } // Admin and Staff
   },
   {
     path: '/dashboard',
     name: 'Dashboard',
-    component: Dashboard
+    component: Dashboard,
+    meta: { requiresAuth: true, allowedRoles: [0] } // Admin only
   },
   {
     path: '/inventory',
     name: 'Inventory',
-    component: Inventory
+    component: Inventory,
+    meta: { requiresAuth: true, allowedRoles: [0] } // Admin only
   },
   {
     path: '/sales',
     name: 'Sales',
-    component: Sales
+    component: Sales,
+    meta: { requiresAuth: true, allowedRoles: [0] } // Admin only
   },
   {
     path: '/expenses',
     name: 'Expenses',
-    component: Expenses
+    component: Expenses,
+    meta: { requiresAuth: true, allowedRoles: [0] } // Admin only
   },
   {
     path: '/users',
     name: 'Users',
-    component: Users
+    component: Users,
+    meta: { requiresAuth: true, allowedRoles: [0] } // Admin only
   }
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+// Navigation guard for authentication and role-based access
+router.beforeEach((to, _from, next) => {
+  const user = authService.getCurrentUser()
+  const isAuthenticated = user !== null
+  const requiresAuth = to.meta.requiresAuth !== false
+  const hideForAuth = to.meta.hideForAuth === true
+  const allowedRoles = to.meta.allowedRoles as number[] | undefined
+
+  // If route is login/signup and user is already authenticated, redirect to appropriate page
+  if (hideForAuth && isAuthenticated) {
+    if (user.roleId === 1) {
+      // Staff - redirect to order page
+      next('/order')
+    } else {
+      // Admin - redirect to dashboard
+      next('/dashboard')
+    }
+    return
+  }
+
+  // If route requires auth and user is not authenticated, redirect to login
+  if (requiresAuth && !isAuthenticated) {
+    next('/login')
+    return
+  }
+
+  // Check role-based access
+  if (requiresAuth && isAuthenticated && allowedRoles && user) {
+    if (!allowedRoles.includes(user.roleId)) {
+      // User doesn't have permission, redirect to appropriate page
+      if (user.roleId === 1) {
+        // Staff can only access order page
+        next('/order')
+      } else {
+        // Admin should have access to everything, but just in case
+        next('/dashboard')
+      }
+      return
+    }
+  }
+
+  next()
 })
 
 export default router

@@ -1,10 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import Sidebar from './components/Sidebar.vue'
+
+const route = useRoute()
 
 const showMobileSidebar = ref(false)
 const isMobile = ref(false)
 const isCollapsed = ref(false)
+
+// Hide sidebar on auth routes (login/signup)
+const isAuthRoute = computed(() => {
+  return route.path === '/login' || route.path === '/signup'
+})
 
 const toggleMobileSidebar = () => {
   showMobileSidebar.value = !showMobileSidebar.value
@@ -31,9 +39,9 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="app-layout">
-    <!-- Mobile Header -->
-    <div class="mobile-header" v-if="isMobile">
+  <div class="app-layout" :class="{ 'auth-layout': isAuthRoute }">
+    <!-- Mobile Header (hide on auth routes) -->
+    <div class="mobile-header" v-if="isMobile && !isAuthRoute">
       <button class="mobile-menu-btn" @click="toggleMobileSidebar">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -47,7 +55,9 @@ onUnmounted(() => {
       </div>
     </div>
     
+    <!-- Sidebar (hide on auth routes) -->
     <Sidebar 
+      v-if="!isAuthRoute"
       :class="{ 'mobile-open': showMobileSidebar }"
       @close-mobile="showMobileSidebar = false"
       @toggle-collapse="val => (isCollapsed = val)"
@@ -56,11 +66,11 @@ onUnmounted(() => {
     <!-- Mobile Overlay -->
     <div 
       class="mobile-overlay" 
-      v-if="isMobile && showMobileSidebar"
+      v-if="isMobile && showMobileSidebar && !isAuthRoute"
       @click="showMobileSidebar = false"
     ></div>
     
-    <main class="main-content" :style="{ '--sidebar-width': isCollapsed ? '72px' : '280px' }">
+    <main class="main-content" :class="{ 'auth-content': isAuthRoute }" :style="!isAuthRoute ? { '--sidebar-width': isCollapsed ? '72px' : '280px' } : {}">
       <router-view />
     </main>
   </div>
@@ -72,10 +82,20 @@ onUnmounted(() => {
   min-height: 100vh;
 }
 
+.app-layout.auth-layout {
+  display: block;
+}
+
 .main-content {
   background-color: #f8f9fa;
   min-height: 100vh;
   box-sizing: border-box;
+}
+
+.main-content.auth-content {
+  margin-left: 0 !important;
+  width: 100% !important;
+  padding: 0 !important;
 }
 
 /* Mobile Header */

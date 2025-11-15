@@ -30,7 +30,8 @@
     <!-- Navigation Section -->
     <nav class="navigation">
       <ul class="nav-list">
-        <li class="nav-item">
+        <!-- Admin: All menu items, Staff: Only Order -->
+        <li v-if="isAdmin" class="nav-item">
           <router-link to="/dashboard" class="nav-link" @click="closeMobileSidebar">
             <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="3" width="7" height="7"></rect>
@@ -53,7 +54,7 @@
           </router-link>
         </li>
 
-        <li class="nav-item">
+        <li v-if="isAdmin" class="nav-item">
           <router-link to="/menu" class="nav-link" @click="closeMobileSidebar">
             <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M4 6h16M4 12h16M4 18h16"></path>
@@ -63,7 +64,7 @@
           </router-link>
         </li>
         
-        <li class="nav-item">
+        <li v-if="isAdmin" class="nav-item">
           <router-link to="/inventory" class="nav-link" @click="closeMobileSidebar">
             <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
@@ -73,19 +74,7 @@
           </router-link>
         </li>
         
-        
-              
-        
-        <!-- <li class="nav-item">
-          <router-link to="/sales" class="nav-link" @click="closeMobileSidebar">
-            <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-            </svg>
-            <span class="nav-text">Sales</span>
-          </router-link>
-        </li> -->
-        
-        <li class="nav-item">
+        <li v-if="isAdmin" class="nav-item">
           <router-link to="/expenses" class="nav-link" @click="closeMobileSidebar">
             <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
@@ -96,36 +85,48 @@
           </router-link>
         </li>
         
-        <!-- <li class="nav-item">
+        <li v-if="isAdmin" class="nav-item">
           <router-link to="/users" class="nav-link" @click="closeMobileSidebar">
             <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
             <span class="nav-text">Users</span>
+            <span class="nav-active-indicator"></span>
           </router-link>
-        </li> -->
+        </li>
       </ul>
     </nav>
 
     <!-- User Profile Section -->
     <div class="user-profile">
-      <div class="profile-picture">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-          <circle cx="12" cy="7" r="4"></circle>
+      <div class="profile-content">
+        <div class="profile-picture">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </div>
+        <div class="profile-info">
+          <div class="profile-name">{{ userName }}</div>
+          <div class="profile-role">{{ userRole }}</div>
+        </div>
+      </div>
+      <button class="logout-button" @click="handleLogout" title="Logout">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
         </svg>
-      </div>
-      <div class="profile-info">
-        <div class="profile-name">Fayzullo Saidakbarov</div>
-        <div class="profile-role">Frontend vue developer</div>
-      </div>
+      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { authService } from '../services/authService'
 import logoUrl from '../assets/logo.png'
 
 const emit = defineEmits<{
@@ -133,7 +134,19 @@ const emit = defineEmits<{
   toggleCollapse: [boolean]
 }>()
 
+const router = useRouter()
 const isCollapsed = ref(false)
+
+const currentUser = computed(() => authService.getCurrentUser())
+const isAdmin = computed(() => currentUser.value?.roleId === 0)
+const isStaff = computed(() => currentUser.value?.roleId === 1)
+
+const userName = computed(() => currentUser.value?.username || 'Guest')
+const userRole = computed(() => {
+  if (currentUser.value?.roleId === 0) return 'Administrator'
+  if (currentUser.value?.roleId === 1) return 'Staff'
+  return 'Unknown'
+})
 
 const toggleSidebar = () => {
   isCollapsed.value = !isCollapsed.value
@@ -142,6 +155,15 @@ const toggleSidebar = () => {
 
 const closeMobileSidebar = () => {
   emit('closeMobile')
+}
+
+const handleLogout = async () => {
+  const { error } = await authService.signOut()
+  if (!error) {
+    router.push('/login')
+  } else {
+    console.error('Logout error:', error)
+  }
 }
 </script>
 
@@ -400,9 +422,18 @@ const closeMobileSidebar = () => {
 .user-profile {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   padding: 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.profile-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 .profile-picture {
@@ -422,12 +453,36 @@ const closeMobileSidebar = () => {
   min-width: 0;
 }
 
+.logout-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.logout-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
 .collapsed .user-profile {
   justify-content: center;
   padding: 16px 12px;
 }
 
-.collapsed .profile-info {
+.collapsed .profile-content {
+  justify-content: center;
+}
+
+.collapsed .profile-info,
+.collapsed .logout-button {
   display: none;
 }
 

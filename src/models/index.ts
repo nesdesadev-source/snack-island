@@ -62,3 +62,9 @@ export type {
   UpdateSalesSummaryInput
 } from './SalesSummary';
 
+// User
+export type { 
+  User, 
+  UserProfile
+} from './User';
+
