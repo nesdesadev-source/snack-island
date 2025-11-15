@@ -120,11 +120,14 @@ const handleLogin = async () => {
 <style scoped>
 .login-container {
   min-height: 100vh;
+  height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #0e3b2e 0%, #114e43 100%);
   padding: 20px;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 .login-card {

@@ -80,10 +80,14 @@ onUnmounted(() => {
 .app-layout {
   display: flex;
   min-height: 100vh;
+  margin: 0;
+  padding: 0;
 }
 
 .app-layout.auth-layout {
   display: block;
+  margin: 0;
+  padding: 0;
 }
 
 .main-content {
@@ -93,9 +97,10 @@ onUnmounted(() => {
 }
 
 .main-content.auth-content {
-  margin-left: 0 !important;
-  width: 100% !important;
+  margin: 0 !important;
   padding: 0 !important;
+  width: 100% !important;
+  background-color: transparent !important;
 }
 
 /* Mobile Header */
@@ -169,7 +174,7 @@ onUnmounted(() => {
     flex-direction: row !important;
   }
   
-  .main-content {
+  .main-content:not(.auth-content) {
     margin-left: var(--sidebar-width, 280px) !important;
     width: calc(100% - var(--sidebar-width, 280px)) !important;
     padding: 40px !important;
