@@ -12,7 +12,8 @@
         </div>
         <div class="header-right">
           <div class="datetime-section">
-            <div class="date-display">{{ currentDate }}</div>
+            <div class="date-display date-display-desktop">{{ currentDate }}</div>
+            <div class="date-display date-display-mobile">{{ currentDateMobile }}</div>
             <div class="time-display">{{ currentTime }}</div>
           </div>
           <div class="status-badge">
@@ -53,7 +54,7 @@
             </button>
           </div>
           <div class="modal-body">
-            <OrderForm @order-submitted="handleOrderSubmitted" />
+            <OrderForm @order-submitted="handleOrderSubmitted" @close="closeModal" />
           </div>
         </div>
       </div>
@@ -94,6 +95,7 @@ const showSuccessMessage = ref(false)
 const showModal = ref(false)
 const currentTime = ref('')
 const currentDate = ref('')
+const currentDateMobile = ref('')
 
 // Computed properties for real-time updates
 let timeInterval: number | null = null
@@ -113,6 +115,13 @@ const updateDateTime = () => {
     month: 'long',
     day: 'numeric'
   })
+  
+  // Mobile format: Saturday, 11/15/25
+  const weekday = now.toLocaleDateString('en-US', { weekday: 'long' })
+  const month = (now.getMonth() + 1).toString().padStart(2, '0')
+  const day = now.getDate().toString().padStart(2, '0')
+  const year = now.getFullYear().toString().slice(-2)
+  currentDateMobile.value = `${weekday}, ${month}/${day}/${year}`
 }
 
 const openModal = () => {
@@ -127,7 +136,6 @@ const handleOrderSubmitted = async () => {
   // Close modal
   closeModal()
   
-  console.log('order queue ref', orderQueueRef.value )
   // Refresh the order queue
   if (orderQueueRef.value) {
     await orderQueueRef.value.refreshAll()
@@ -235,6 +243,10 @@ onUnmounted(() => {
   font-weight: 500;
   color: #1d1d1f;
   letter-spacing: 0.2px;
+}
+
+.date-display-mobile {
+  display: none;
 }
 
 .time-display {
@@ -591,46 +603,184 @@ onUnmounted(() => {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
   .header-content {
-    padding: 0 1rem;
+    padding: 0.75rem 1rem;
+    height: auto;
+    min-height: 3.5rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
   }
-  
+
+  .header-left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .brand-section {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
   .brand-title {
-    font-size: 1rem;
+    font-size: 0.9375rem;
+    letter-spacing: 0.3px;
   }
-  
+
+  .brand-divider {
+    display: none;
+  }
+
   .brand-subtitle {
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
+    display: none;
   }
-  
+
+  .header-right {
+    gap: 1rem;
+    flex-shrink: 0;
+  }
+
+  .datetime-section {
+    gap: 0.0625rem;
+  }
+
+  .date-display-desktop {
+    display: none;
+  }
+
+  .date-display-mobile {
+    display: block;
+    font-size: 0.6875rem;
+    white-space: nowrap;
+  }
+
+  .time-display {
+    font-size: 0.6875rem;
+  }
+
   .status-badge {
     display: none;
   }
-  
+
   .main-content {
-    padding: 1rem;
+    padding: 0;
+    max-height: calc(100vh - 3.5rem);
   }
-  
+
+  .card {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+
   .card-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.75rem;
+    gap: 0.5rem;
+    padding: 0.75rem;
   }
-  
+
+  .card-title {
+    font-size: 0.875rem;
+  }
+
+  .card-body {
+    padding: 0;
+  }
+
+  .order-queue-card {
+    max-height: calc(100vh - 4.5rem);
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
   .new-order-btn {
     width: 100%;
   }
-  
-  .modal-dialog {
-    max-width: 100%;
-    max-height: 95vh;
-    margin: 0.5rem;
+
+  .modal-backdrop {
+    padding: 0;
+    align-items: flex-start;
   }
-  
+
+  .modal-dialog {
+    max-width: 100vw;
+    max-height: 100vh;
+    height: 100vh;
+    margin: 0;
+    border-radius: 0;
+    width: 100vw;
+    box-sizing: border-box;
+  }
+
+  .modal-header {
+    padding: 0.875rem 1rem;
+    flex-shrink: 0;
+  }
+
+  .modal-title {
+    font-size: 1rem;
+  }
+
+  .modal-body {
+    padding: 0.5rem;
+    overflow-y: auto;
+  }
+
   .toast-notification {
     right: 1rem;
     left: 1rem;
     min-width: unset;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-content {
+    padding: 0.625rem 0.75rem;
+    min-height: 3rem;
+  }
+
+  .brand-title {
+    font-size: 0.875rem;
+  }
+
+  .datetime-section {
+    align-items: flex-end;
+  }
+
+  .date-display-mobile {
+    font-size: 0.625rem;
+    max-width: 120px;
+  }
+
+  .time-display {
+    font-size: 0.625rem;
+  }
+
+  .main-content {
+    padding: 0;
+    max-height: calc(100vh - 3rem);
+  }
+
+  .card-header {
+    padding: 0.625rem;
+    gap: 0.375rem;
+  }
+
+  .card-title {
+    font-size: 0.8125rem;
+  }
+
+  .order-queue-card {
+    max-height: calc(100vh - 4rem);
   }
 }
 </style>

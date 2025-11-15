@@ -366,7 +366,7 @@ defineExpose({
   flex-direction: column;
   gap: 1rem;
   background: #ffffff;
-  padding: 1rem;
+  margin: 0;
   overflow-y: visible;
   overflow-x: hidden;
 }
@@ -394,7 +394,6 @@ defineExpose({
   display: flex;
   flex-direction: column;
   background: #f8f9fa;
-  border: 1px solid #e9ecef;
   border-radius: 8px;
   overflow: hidden;
 }
@@ -710,27 +709,140 @@ defineExpose({
 
 @media (max-width: 768px) {
   .kanban-board {
-    padding: 0.5rem;
-    gap: 0.75rem;
+    padding: 0.375rem;
+    gap: 0.375rem;
+  }
+
+  .kanban-row {
+    margin-bottom: 0.375rem;
   }
   
+  .row-header {
+    padding: 0.625rem 0.75rem;
+  }
+
+  .row-title {
+    font-size: 0.875rem;
+  }
+
   .row-content {
     flex-direction: column;
     overflow-x: visible;
+    padding: 0.375rem;
+    gap: 0.375rem;
+    min-height: auto;
+    max-height: none;
   }
   
   .order-card {
     min-width: 100%;
     max-width: 100%;
+    padding: 0.75rem;
+  }
+
+  .card-header {
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.375rem;
+  }
+
+  .card-items {
+    margin-bottom: 0.5rem;
+  }
+
+  .card-payment {
+    margin-bottom: 0.5rem;
+  }
+
+  .card-total {
+    margin-bottom: 0.5rem;
   }
   
   .card-actions {
     flex-direction: row;
+    gap: 0.375rem;
   }
   
   .action-btn {
     flex: 1;
     text-align: center;
+    padding: 0.5rem 0.625rem;
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .kanban-board {
+    padding: 0.25rem;
+    gap: 0.25rem;
+  }
+
+  .kanban-row {
+    margin-bottom: 0.25rem;
+  }
+
+  .row-header {
+    padding: 0.5rem 0.625rem;
+  }
+
+  .row-title {
+    font-size: 0.8125rem;
+  }
+
+  .row-content {
+    padding: 0.25rem;
+    gap: 0.25rem;
+    min-height: auto;
+    max-height: none;
+  }
+
+  .order-card {
+    padding: 0.625rem;
+  }
+
+  .card-header {
+    margin-bottom: 0.375rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .order-id {
+    font-size: 0.75rem;
+  }
+
+  .order-time {
+    font-size: 0.6875rem;
+  }
+
+  .card-items {
+    margin-bottom: 0.375rem;
+  }
+
+  .items-label {
+    font-size: 0.6875rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .item-name {
+    font-size: 0.75rem;
+  }
+
+  .item-price {
+    font-size: 0.75rem;
+  }
+
+  .card-payment {
+    margin-bottom: 0.375rem;
+    font-size: 0.6875rem;
+  }
+
+  .card-total {
+    margin-bottom: 0.375rem;
+    padding: 0.375rem;
+    font-size: 0.9375rem;
+  }
+
+  .action-btn {
+    padding: 0.4375rem 0.5rem;
+    font-size: 0.6875rem;
   }
 }
 </style>

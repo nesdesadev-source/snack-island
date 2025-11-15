@@ -1,5 +1,15 @@
 <template>
   <div class="order-form">
+    <!-- Mobile Close Button Header -->
+    <div class="mobile-header">
+      <h3 class="mobile-title">New Order</h3>
+      <button @click="closeForm" class="mobile-close-btn">
+        <svg class="close-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
     <div class="order-layout">
       <div class="left-panel">
         <!-- Menu Items Selection -->
@@ -192,6 +202,7 @@ import { deductInventoryForOrder } from '../modules/orders/inventoryDeduction'
 // Props
 const emit = defineEmits<{
   orderSubmitted: []
+  close: []
 }>()
 
 // State
@@ -246,6 +257,11 @@ const getMenuItemName = (itemId: string): string => {
 const getMenuItemPrice = (itemId: string): number => {
   const item = menuItems.value.find(i => i.id === itemId)
   return item?.price || 0
+}
+
+// Close form handler for mobile
+const closeForm = () => {
+  emit('close')
 }
 
 const addItemToOrder = (menuItem: MenuItem) => {
@@ -481,6 +497,11 @@ onMounted(async () => {
   letter-spacing: 0.5px;
   margin: 0 0 1rem 0;
   text-transform: uppercase;
+}
+
+/* Mobile Header - Hidden on Desktop */
+.mobile-header {
+  display: none;
 }
 
 /* Search */
@@ -891,11 +912,136 @@ onMounted(async () => {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .filters-row {
+    max-width: 46vh;
+  }
+
+  .order-form {
+    padding: 0;
+    border-radius: 0;
+    max-height: none;
+    overflow-y: visible;
+    background: #ffffff;
+    box-sizing: border-box;
+  }
+
+  /* Mobile Header - Show on Mobile */
+  .mobile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: #fafafa;
+    border-bottom: 1px solid #e5e5e5;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .mobile-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1d1d1f;
+    margin: 0;
+    letter-spacing: 0.3px;
+  }
+
+  .mobile-close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    color: #86868b;
+    transition: color 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-close-btn:hover {
+    color: #1d1d1f;
+  }
+
+  .mobile-close-btn .close-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    stroke-width: 2;
+  }
+
   .order-layout {
     grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 0.75rem;
   }
+  
+  .section {
+    margin-bottom: 1rem;
+  }
+  
+  /* Hide category filter on mobile */
+  .filter-group {
+    display: none;
+  }
+
+  .search-icon {
+    display: none;
+  }
+
+  .action-buttons {
+    max-width: 53vh;
+  }
+
+  .payment-grid {
+    max-width: 53vh;
+  }
+  
+  /* Make search input full width on mobile */
+  .search-container {
+    flex: 1;
+    margin-bottom: 0.5rem;
+    max-width: 48vh;
+  }
+  
+  .search-input {
+    width: 100%;
+  }
+  
+  /* Convert menu grid to list layout */
   .menu-grid {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 250px;
+  }
+  
+  /* Style menu items as horizontal list items */
+  .menu-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+  }
+  
+  .menu-item .item-name {
+    font-size: 0.875rem;
+    margin-bottom: 0;
+    flex: 1;
+  }
+  
+  .menu-item .item-price {
+    font-size: 0.875rem;
+    margin-bottom: 0;
+    margin-left: 1rem;
+    font-weight: 600;
+  }
+  
+  /* Hide category on mobile for compact view */
+  .menu-item .item-category {
+    display: none;
+  }
+  
+  .order-items-list {
+    max-height: 120px;
   }
   
   .payment-grid {
@@ -904,6 +1050,15 @@ onMounted(async () => {
   
   .action-buttons {
     flex-direction: column;
+    margin-top: 1rem;
+  }
+
+  .order-summary {
+    max-width: 48vh;
+  }
+
+  .order-item {
+    max-width: 50vh;
   }
 }
 
