@@ -145,9 +145,6 @@ export function filterExpensesByDateRange(
     // Normalize expense date to beginning of day in local timezone
     const expenseDate = new Date(expense.expense_date);
     expenseDate.setHours(0, 0, 0, 0);
-    console.log("start", start);
-    console.log("end", end);
-    console.log("expenseDate", expenseDate);
     
     // Check if expense date is within range (both inclusive)
     return expenseDate >= start && expenseDate <= end;

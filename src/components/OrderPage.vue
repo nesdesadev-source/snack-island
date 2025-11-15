@@ -123,14 +123,14 @@ const closeModal = () => {
   showModal.value = false
 }
 
-const handleOrderSubmitted = () => {
+const handleOrderSubmitted = async () => {
   // Close modal
   closeModal()
   
+  console.log('order queue ref', orderQueueRef.value )
   // Refresh the order queue
   if (orderQueueRef.value) {
-    orderQueueRef.value.refreshOrders()
-    orderQueueRef.value.refreshOrderItems()
+    await orderQueueRef.value.refreshAll()
   }
   
   // Show success message

@@ -10,20 +10,29 @@ export class OrderService {
     status?: OrderStatus;
     limit?: number;
     offset?: number;
+    startDate?: Date;   // optional
+    endDate?: Date;     // optional
   }): Promise<Order[]> {
+  
+    const defaultStart = new Date('2025-01-01T00:00:00Z')
+    const defaultEnd = new Date() // today
+  
     const { data, error } = await supabase.rpc('get_orders', {
+      p_start_date: options?.startDate || defaultStart,
+      p_end_date: options?.endDate || defaultEnd,
       p_status: options?.status || null,
       p_limit: options?.limit || 5000,
       p_offset: options?.offset || 0
     })
-    
+  
     if (error) {
       console.error('Error fetching orders:', error)
       throw error
     }
-    
+  
     return data || []
   }
+  
 
   /**
    * Get orders by status

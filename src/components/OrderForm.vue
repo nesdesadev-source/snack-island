@@ -318,7 +318,6 @@ const submitOrder = async () => {
 
     // Check inventory availability and create order
     const result = await OrderService.createOrderWithInventoryCheck(orderData, orderItems.value)
-    console.log(result)
 
     if (!result.order) {
       // Inventory not available - show confirmation modal

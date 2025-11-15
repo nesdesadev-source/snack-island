@@ -275,7 +275,12 @@ const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
 const loadOrders = async () => {
   isLoading.value = true
   try {
-    orders.value = await OrderService.getOrders()
+    const today = new Date()
+    const startOfToday = new Date(today)
+    startOfToday.setHours(0, 0, 0, 0)
+    const endOfToday = new Date(today)
+    endOfToday.setHours(23, 59, 59, 999)
+    orders.value = await OrderService.getOrders({ startDate: startOfToday, endDate: endOfToday })
     updateCollapsedRows()
   } catch (error) {
     console.error('Error loading orders:', error)
@@ -339,9 +344,16 @@ onMounted(async () => {
   await loadOrderItems()
 })
 
+const refreshAll = async () => {
+  await loadOrders()
+  await loadOrderItems()
+}
+
 // Expose methods for parent component
 defineExpose({
-  refreshOrders: loadOrders, refreshOrderItems: loadOrderItems
+  refreshOrders: loadOrders,
+  refreshOrderItems: loadOrderItems,
+  refreshAll
 })
 </script>
 

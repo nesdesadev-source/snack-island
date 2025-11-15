@@ -68,7 +68,7 @@ export async function deductInventoryForOrder(orderItems: OrderItem[]): Promise<
         supplier_id: inventoryItem.supplier_id ?? null
       })
       
-      console.log(`Deducted ${totalUsage} ${inventoryItem.unit} of ingredient ${inventoryItem.name}`)
+      console.log(`[DEBUG] Deducted ${totalUsage} ${inventoryItem.unit} of ingredient ${inventoryItem.name}`)
     })
     
     await Promise.all(updatePromises)
@@ -308,7 +308,7 @@ export async function restoreInventoryForOrder(orderItems: OrderItem[]): Promise
         supplier_id: inventoryItem.supplier_id ?? null
       })
       
-      console.log(`Restored ${totalUsage} ${inventoryItem.unit} of ingredient ${inventoryItem.name}`)
+      console.log(`[DEBUG]Restored ${totalUsage} ${inventoryItem.unit} of ingredient ${inventoryItem.name}`)
     })
     
     await Promise.all(updatePromises)
