@@ -74,14 +74,17 @@
         </div>
         <div class="stat-content">
             <h3>Total Orders</h3>
-            <p class="stat-number">{{ dashboardData.totalOrders }}</p>
+            <div class="stat-number-container">
+              <p class="stat-number">{{ dashboardData.totalOrders }}</p>
+              <p class="stat-number-sub">(~{{ Math.floor(averageOrdersPerDay) }} per day)</p>
+            </div>
             <div class="stat-trend" :class="dashboardData.ordersTrend >= 0 ? 'positive' : 'negative'">
               <span>{{ dashboardData.ordersTrend >= 0 ? '↗' : '↘' }}</span>
               {{ Math.abs(dashboardData.ordersTrend).toFixed(1) }}%
-        </div>
+            </div>
+          </div>
       </div>
-    </div>
-    
+      
         <div class="stat-card">
           <div class="stat-icon expenses">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -455,6 +458,18 @@ const dashboardData = computed(() => {
     topItemsData: getTopItemsData(),
     paymentMethodsData: getPaymentMethodsData()
   }
+})
+
+// Computed average orders per day
+const averageOrdersPerDay = computed(() => {
+  const now = new Date()
+  const startDate = getPeriodStartDate(now, selectedPeriod.value, periodType.value)
+  const endDate = getPeriodEndDate(now, selectedPeriod.value, periodType.value)
+  
+  const timeDiff = endDate.getTime() - startDate.getTime()
+  const daysDiff = Math.max(1, Math.ceil(timeDiff / (1000 * 60 * 60 * 24)))
+  
+  return dashboardData.value.totalOrders / daysDiff
 })
 
 // Helper functions
@@ -1834,11 +1849,25 @@ onMounted(async () => {
   font-weight: 500;
 }
 
-.stat-number {
+.stat-number-container {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
   margin: 0 0 0.5rem 0;
+}
+
+.stat-number {
+  margin: 0;
   font-size: 1.8rem;
   font-weight: 700;
   color: #343a40;
+}
+
+.stat-number-sub {
+  margin: 0;
+  font-size: 1rem;
+  color: #6c757d;
+  font-weight: 400;
 }
 
 .stat-number.positive {
