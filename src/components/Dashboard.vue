@@ -184,6 +184,27 @@
           </div>
         </div>
         
+        <!-- Top Revenue Items Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <h3>Top Revenue Items</h3>
+              <p class="chart-subtitle" v-if="dashboardData.topRevenueData.labels.length > 0 && dashboardData.topRevenueData.labels[0] !== 'No revenue data'">
+                Total Profit: ₱{{ formatNumber(dashboardData.topRevenueData.profits.reduce((sum, p) => sum + p, 0)) }}
+              </p>
+            </div>
+            <button @click="showTopRevenueModal = true" class="inventory-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M7 17L17 7M17 7H7M17 7V17"></path>
+              </svg>
+              View All
+            </button>
+          </div>
+          <div class="chart-container">
+            <canvas ref="topRevenueChart" width="400" height="200"></canvas>
+          </div>
+        </div>
+        
         <!-- Payment Methods Chart -->
         <div class="chart-card">
           <div class="chart-header">
@@ -301,6 +322,65 @@
     </Transition>
   </Teleport>
 
+  <!-- Top Revenue Items Modal -->
+  <Teleport to="body">
+    <Transition name="modal-fade">
+      <div v-if="showTopRevenueModal" class="modal-overlay" @click.self="showTopRevenueModal = false">
+        <div class="modal-container top-items-modal" @click.stop>
+          <div class="modal-header">
+            <div class="header-content">
+              <div class="header-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+              </div>
+              <div>
+                <h2>All Revenue Items</h2>
+                <p class="modal-subtitle">Complete list of items by revenue and profit</p>
+              </div>
+            </div>
+            <button class="close-btn" @click="showTopRevenueModal = false" aria-label="Close modal">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          
+          <div class="modal-body">
+            <div v-if="allItemsRevenue.length === 0" class="no-data">
+              <p>No revenue data available</p>
+            </div>
+            <div v-else class="sales-table-container">
+              <table class="sales-table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Item Name</th>
+                    <th>Revenue</th>
+                    <th>Profit</th>
+                    <th>Quantity Sold</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(item, index) in allItemsRevenue" :key="item.menuItemId">
+                    <td class="rank-cell">{{ index + 1 }}</td>
+                    <td class="name-cell">{{ item.name }}</td>
+                    <td class="quantity-cell">₱{{ formatNumber(item.revenue) }}</td>
+                    <td class="quantity-cell" :class="item.profit >= 0 ? 'positive' : 'negative'">
+                      ₱{{ formatNumber(item.profit) }}
+                    </td>
+                    <td class="quantity-cell">{{ item.quantity }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+
   <!-- Payment Methods Orders Modal -->
   <Teleport to="body">
     <Transition name="modal-fade">
@@ -375,13 +455,15 @@ import { OrderService } from '../services/orderService'
 import { expenseService } from '../services/expenseService'
 import { inventoryService } from '../services/inventoryService'
 import { menuItemService } from '../services/menuItemService'
+import { recipeMapService } from '../services/recipeMapService'
 import { 
   calculateTotalExpenses, 
   calculateExpensesByCategory,
   filterExpensesByDateRange 
 } from '../modules/expenses/expenseUtils'
 import { isLowStock } from '../modules/inventory/inventoryUtils'
-import type { Order, OrderItem, Expense, Inventory, MenuItem } from '../models'
+import { computeCostPerOrderForMenuItem } from '../modules/menu/menuPageUtils'
+import type { Order, OrderItem, Expense, Inventory, MenuItem, RecipeMap } from '../models'
 
 // Register Chart.js components
 Chart.register(...registerables)
@@ -393,12 +475,14 @@ const router = useRouter()
 const salesChart = ref<HTMLCanvasElement | null>(null)
 const expenseChart = ref<HTMLCanvasElement | null>(null)
 const topItemsChart = ref<HTMLCanvasElement | null>(null)
+const topRevenueChart = ref<HTMLCanvasElement | null>(null)
 const paymentMethodsChart = ref<HTMLCanvasElement | null>(null)
 
 // Chart instances for cleanup
 let salesChartInstance: Chart | null = null
 let expenseChartInstance: Chart | null = null
 let topItemsChartInstance: Chart | null = null
+let topRevenueChartInstance: Chart | null = null
 let paymentMethodsChartInstance: Chart | null = null
 
 // State
@@ -407,6 +491,7 @@ const error = ref<string | null>(null)
 const selectedPeriod = ref('week')
 const periodType = ref<'toDate' | 'calendar'>('toDate')
 const showTopItemsModal = ref(false)
+const showTopRevenueModal = ref(false)
 const showPaymentMethodsModal = ref(false)
 const paymentMethodsSortOrder = ref<'asc' | 'desc'>('desc')
 
@@ -423,6 +508,7 @@ const orderItems = ref<OrderItem[]>([])
 const expenses = ref<Expense[]>([])
 const inventory = ref<Inventory[]>([])
 const menuItems = ref<MenuItem[]>([])
+const recipeMaps = ref<RecipeMap[]>([])
 
 // Period options
 const periods = [
@@ -456,6 +542,7 @@ const dashboardData = computed(() => {
     profitData: getProfitChartData(),
     expenseData: getExpenseChartData(),
     topItemsData: getTopItemsData(),
+    topRevenueData: getTopRevenueItemsData(),
     paymentMethodsData: getPaymentMethodsData()
   }
 })
@@ -1195,6 +1282,71 @@ function getTopItemsData() {
   return { labels, data }
 }
 
+function getTopRevenueItemsData() {
+  const now = new Date()
+  const periodOrders = getOrdersForPeriod(now, selectedPeriod.value)
+  
+  // Get completed order IDs for the selected period
+  const completedOrderIds = new Set(
+    periodOrders
+      .filter(order => order.status === 'completed')
+      .map(order => order.id)
+  )
+  
+  // Calculate revenue and profit per menu item
+  const itemRevenue: Record<string, number> = {}
+  const itemProfit: Record<string, number> = {}
+  const itemQuantity: Record<string, number> = {}
+  
+  // Calculate revenue and profit for each menu item from completed orders
+  orderItems.value.forEach(orderItem => {
+    const menuItemId = orderItem.menu_id
+    if (menuItemId && orderItem.order_id && completedOrderIds.has(orderItem.order_id)) {
+      // Revenue is the subtotal (price * quantity)
+      const revenue = orderItem.subtotal || 0
+      itemRevenue[menuItemId] = (itemRevenue[menuItemId] || 0) + revenue
+      itemQuantity[menuItemId] = (itemQuantity[menuItemId] || 0) + orderItem.quantity
+      
+      // Calculate cost per order for this menu item
+      const costPerOrder = computeCostPerOrderForMenuItem(recipeMaps.value, menuItemId)
+      const totalCost = costPerOrder * orderItem.quantity
+      const profit = revenue - totalCost
+      
+      itemProfit[menuItemId] = (itemProfit[menuItemId] || 0) + profit
+    }
+  })
+  
+  // Sort by revenue and get top 5
+  const sortedItems = Object.entries(itemRevenue)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5)
+  
+  // Get menu item names and create labels/data/profit arrays
+  const labels: string[] = []
+  const data: number[] = []
+  const profits: number[] = []
+  
+  sortedItems.forEach(([menuItemId, revenue]) => {
+    const menuItem = menuItems.value.find(item => item.id === menuItemId)
+    if (menuItem) {
+      labels.push(menuItem.name)
+      data.push(revenue)
+      profits.push(itemProfit[menuItemId] || 0)
+    }
+  })
+  
+  // If no data, return empty arrays
+  if (labels.length === 0) {
+    return {
+      labels: ['No revenue data'],
+      data: [0],
+      profits: [0]
+    }
+  }
+  
+  return { labels, data, profits }
+}
+
 function getPaymentMethodsData() {
   const now = new Date()
   const periodOrders = getOrdersForPeriod(now, selectedPeriod.value)
@@ -1267,6 +1419,59 @@ const allItemsSales = computed(() => {
     .sort((a, b) => b.quantity - a.quantity)
   
   return itemsWithSales
+})
+
+// Get all items with revenue data (not just top 5)
+const allItemsRevenue = computed(() => {
+  const now = new Date()
+  const periodOrders = getOrdersForPeriod(now, selectedPeriod.value)
+  
+  // Get completed order IDs for the selected period
+  const completedOrderIds = new Set(
+    periodOrders
+      .filter(order => order.status === 'completed')
+      .map(order => order.id)
+  )
+  
+  // Calculate revenue and profit per menu item
+  const itemRevenue: Record<string, number> = {}
+  const itemProfit: Record<string, number> = {}
+  const itemQuantity: Record<string, number> = {}
+  
+  // Calculate revenue and profit for each menu item from completed orders
+  orderItems.value.forEach(orderItem => {
+    const menuItemId = orderItem.menu_id
+    if (menuItemId && orderItem.order_id && completedOrderIds.has(orderItem.order_id)) {
+      // Revenue is the subtotal (price * quantity)
+      const revenue = orderItem.subtotal || 0
+      itemRevenue[menuItemId] = (itemRevenue[menuItemId] || 0) + revenue
+      itemQuantity[menuItemId] = (itemQuantity[menuItemId] || 0) + orderItem.quantity
+      
+      // Calculate cost per order for this menu item
+      const costPerOrder = computeCostPerOrderForMenuItem(recipeMaps.value, menuItemId)
+      const totalCost = costPerOrder * orderItem.quantity
+      const profit = revenue - totalCost
+      
+      itemProfit[menuItemId] = (itemProfit[menuItemId] || 0) + profit
+    }
+  })
+  
+  // Convert to array and sort by revenue
+  const itemsWithRevenue = Object.entries(itemRevenue)
+    .map(([menuItemId, revenue]) => {
+      const menuItem = menuItems.value.find(item => item.id === menuItemId)
+      return {
+        menuItemId,
+        name: menuItem?.name || 'Unknown Item',
+        revenue,
+        profit: itemProfit[menuItemId] || 0,
+        quantity: itemQuantity[menuItemId] || 0
+      }
+    })
+    .filter(item => item.name !== 'Unknown Item')
+    .sort((a, b) => b.revenue - a.revenue)
+  
+  return itemsWithRevenue
 })
 
 // Get orders with item summaries for payment methods modal
@@ -1541,6 +1746,79 @@ function createTopItemsChart() {
   })
 }
 
+function createTopRevenueChart() {
+  if (!topRevenueChart.value) return
+  
+  // Destroy existing chart instance if it exists
+  if (topRevenueChartInstance) {
+    topRevenueChartInstance.destroy()
+    topRevenueChartInstance = null
+  }
+  
+  const ctx = topRevenueChart.value.getContext('2d')
+  if (!ctx) return
+  
+  const chartData = dashboardData.value.topRevenueData
+  
+  topRevenueChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: chartData.labels,
+      datasets: [{
+        label: 'Revenue',
+        data: chartData.data,
+        backgroundColor: '#43e97b',
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const label = context.label || ''
+              const revenue = context.raw || 0
+              const index = context.dataIndex
+              const profit = chartData.profits[index] || 0
+              return [
+                `${label}: ₱${Number(revenue).toLocaleString()}`,
+                `Profit: ₱${profit.toLocaleString()}`
+              ]
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            maxRotation: 45,
+            minRotation: 45,
+            callback: function(_value, index) {
+              const label = chartData.labels[index]
+              if (!label) return ''
+              // Truncate to 20 characters and add ellipsis
+              return label.length > 20 ? label.substring(0, 20) + '...' : label
+            }
+          }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return '₱' + value.toLocaleString()
+            }
+          }
+        }
+      }
+    }
+  })
+}
+
 function createPaymentMethodsChart() {
   if (!paymentMethodsChart.value) return
   
@@ -1600,17 +1878,19 @@ async function loadDashboardData() {
     error.value = null
     
     // Load all data in parallel
-    const [ordersData, expensesData, inventoryData, menuItemsData] = await Promise.all([
+    const [ordersData, expensesData, inventoryData, menuItemsData, recipeMapsData] = await Promise.all([
       OrderService.getOrders(),
       expenseService.getAll(),
       inventoryService.getAll(),
-      menuItemService.getMenuItems()
+      menuItemService.getMenuItems(),
+      recipeMapService.getRecipeMaps()
     ])
     
     orders.value = ordersData
     expenses.value = expensesData
     inventory.value = inventoryData
     menuItems.value = menuItemsData
+    recipeMaps.value = recipeMapsData
     
     // Load order items for all orders
     const orderItemsPromises = orders.value.map(order => OrderService.getOrderItems(order.id))
@@ -1631,6 +1911,7 @@ async function recreateCharts() {
   createSalesChart()
   createExpenseChart()
   createTopItemsChart()
+  createTopRevenueChart()
   createPaymentMethodsChart()
 }
 
@@ -1919,6 +2200,13 @@ onMounted(async () => {
   margin: 0;
   color: #343a40;
   font-size: 1.1rem;
+}
+
+.chart-subtitle {
+  margin: 0.25rem 0 0 0;
+  color: #6c757d;
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
 .inventory-btn {
@@ -2336,6 +2624,14 @@ onMounted(async () => {
   font-weight: 600;
   color: #059669;
   text-align: right;
+}
+
+.quantity-cell.positive {
+  color: #28a745;
+}
+
+.quantity-cell.negative {
+  color: #dc3545;
 }
 
 .payment-method-cell {
