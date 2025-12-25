@@ -356,9 +356,39 @@
                   <tr>
                     <th>Rank</th>
                     <th>Item Name</th>
-                    <th>Revenue</th>
-                    <th>Profit</th>
-                    <th>Quantity Sold</th>
+                    <th class="sortable-header" @click="toggleRevenueItemsSort('revenue')">
+                      Revenue
+                      <span class="sort-icon" v-if="revenueItemsSortColumn === 'revenue'">
+                        <svg v-if="revenueItemsSortOrder === 'desc'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M6 9l6 6 6-6"></path>
+                        </svg>
+                        <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M18 15l-6-6-6 6"></path>
+                        </svg>
+                      </span>
+                    </th>
+                    <th class="sortable-header" @click="toggleRevenueItemsSort('profit')">
+                      Profit
+                      <span class="sort-icon" v-if="revenueItemsSortColumn === 'profit'">
+                        <svg v-if="revenueItemsSortOrder === 'desc'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M6 9l6 6 6-6"></path>
+                        </svg>
+                        <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M18 15l-6-6-6 6"></path>
+                        </svg>
+                      </span>
+                    </th>
+                    <th class="sortable-header" @click="toggleRevenueItemsSort('quantity')">
+                      Quantity Sold
+                      <span class="sort-icon" v-if="revenueItemsSortColumn === 'quantity'">
+                        <svg v-if="revenueItemsSortOrder === 'desc'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M6 9l6 6 6-6"></path>
+                        </svg>
+                        <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M18 15l-6-6-6 6"></path>
+                        </svg>
+                      </span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -493,6 +523,8 @@ const showTopItemsModal = ref(false)
 const showTopRevenueModal = ref(false)
 const showPaymentMethodsModal = ref(false)
 const paymentMethodsSortOrder = ref<'asc' | 'desc'>('desc')
+const revenueItemsSortColumn = ref<'revenue' | 'profit' | 'quantity'>('revenue')
+const revenueItemsSortOrder = ref<'asc' | 'desc'>('desc')
 
 // Chart visibility state
 const chartVisibility = ref({
@@ -1467,7 +1499,7 @@ const allItemsRevenue = computed(() => {
     }
   })
   
-  // Convert to array and sort by revenue
+  // Convert to array and sort by selected column
   const itemsWithRevenue = Object.entries(itemRevenue)
     .map(([menuItemId, revenue]) => {
       const menuItem = menuItems.value.find(item => item.id === menuItemId)
@@ -1480,7 +1512,17 @@ const allItemsRevenue = computed(() => {
       }
     })
     .filter(item => item.name !== 'Unknown Item')
-    .sort((a, b) => b.revenue - a.revenue)
+    .sort((a, b) => {
+      let comparison = 0
+      if (revenueItemsSortColumn.value === 'revenue') {
+        comparison = a.revenue - b.revenue
+      } else if (revenueItemsSortColumn.value === 'profit') {
+        comparison = a.profit - b.profit
+      } else if (revenueItemsSortColumn.value === 'quantity') {
+        comparison = a.quantity - b.quantity
+      }
+      return revenueItemsSortOrder.value === 'desc' ? -comparison : comparison
+    })
   
   return itemsWithRevenue
 })
@@ -1559,6 +1601,16 @@ function formatOrderDate(dateString: string | null): string {
 // Toggle sort order for payment methods orders
 function togglePaymentMethodsSort() {
   paymentMethodsSortOrder.value = paymentMethodsSortOrder.value === 'desc' ? 'asc' : 'desc'
+}
+
+// Toggle sort for revenue items
+function toggleRevenueItemsSort(column: 'revenue' | 'profit' | 'quantity') {
+  if (revenueItemsSortColumn.value === column) {
+    revenueItemsSortOrder.value = revenueItemsSortOrder.value === 'desc' ? 'asc' : 'desc'
+  } else {
+    revenueItemsSortColumn.value = column
+    revenueItemsSortOrder.value = 'desc'
+  }
 }
 
 function formatTimeAgo(date: Date): string {
