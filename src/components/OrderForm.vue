@@ -109,6 +109,29 @@
           </div>
         </div>
 
+        <!-- Payment Input -->
+        <div class="section" v-if="orderItems.length > 0">
+          <div class="payment-row">
+            <div class="payment-input-container">
+              <label class="payment-label">Customer Payment</label>
+              <input
+                type="number"
+                v-model.number="customerPayment"
+                class="payment-input"
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+              />
+            </div>
+            <div class="change-display" v-if="customerPayment > 0">
+              <span class="change-label">CHANGE</span>
+              <span class="change-amount" :class="{ 'negative': change < 0 }">
+                ₱{{ change.toFixed(2) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
         <!-- Payment Method -->
         <div class="section" v-if="orderItems.length > 0">
           <h3 class="section-title">PAYMENT METHOD</h3>
@@ -211,6 +234,7 @@ const emit = defineEmits<{
 const menuItems = ref<MenuItem[]>([])
 const orderItems = ref<OrderItem[]>([])
 const selectedPaymentMethod = ref<PaymentMethod | null>(null)
+const customerPayment = ref<number>(0)
 const isSubmitting = ref(false)
 const isLoadingMenuItems = ref(false)
 const showInsufficientInventoryModal = ref(false)
@@ -227,10 +251,14 @@ const pendingOrderData = ref<{
 } | null>(null)
 const pendingOrderItems = ref<OrderItem[]>([])
 
-const paymentMethods: PaymentMethod[] = ['cash', 'gcash', 'maya', 'gotyme', 'bpi', 'other']
+const paymentMethods: PaymentMethod[] = ['cash', 'gcash']
 
 // Computed
 const orderTotal = computed(() => calculateOrderTotal(orderItems.value))
+const change = computed(() => {
+  if (customerPayment.value <= 0) return 0
+  return customerPayment.value - orderTotal.value
+})
 const searchQuery = ref('')
 const selectedCategory = ref('')
 const availableCategories = computed(() => {
@@ -317,6 +345,7 @@ const removeItem = (index: number) => {
 const clearOrder = () => {
   orderItems.value = []
   selectedPaymentMethod.value = null
+  customerPayment.value = 0
 }
 
 const submitOrder = async () => {
@@ -827,6 +856,83 @@ onMounted(async () => {
   font-variant-numeric: tabular-nums;
 }
 
+/* Payment Input */
+.payment-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.payment-input-container {
+  flex: 1;
+}
+
+.payment-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #86868b;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.payment-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1d1d1f;
+  background: #ffffff;
+  outline: none;
+  box-sizing: border-box;
+  font-variant-numeric: tabular-nums;
+}
+
+.payment-input:focus {
+  border-color: #1d1d1f;
+}
+
+.payment-input::placeholder {
+  color: #86868b;
+  font-weight: 400;
+}
+
+/* Change Display */
+.change-display {
+  background: #f5f5f7;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  min-width: 150px;
+}
+
+.change-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #86868b;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+.change-amount {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #34c759;
+  font-variant-numeric: tabular-nums;
+}
+
+.change-amount.negative {
+  color: #ff3b30;
+}
+
 /* Payment Methods */
 .payment-grid {
   display: grid;
@@ -1124,6 +1230,34 @@ onMounted(async () => {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+  }
+
+  .payment-row {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+
+  .payment-input-container {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .payment-input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .change-display {
+    min-width: 120px;
+    flex-shrink: 0;
+    padding: 0.75rem 1rem;
+  }
+
+  .change-amount {
+    font-size: 1rem;
   }
 
   .order-item {
