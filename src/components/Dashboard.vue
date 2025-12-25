@@ -57,6 +57,7 @@
         <div class="stat-content">
             <h3>Total Sales</h3>
             <p class="stat-number">₱{{ formatNumber(dashboardData.totalSales) }}</p>
+            <p class="stat-number-sub">(~₱{{ formatNumber(Math.floor(averageSalesPerDay)) }} per day)</p>
             <div class="stat-trend" :class="dashboardData.salesTrend >= 0 ? 'positive' : 'negative'">
               <span>{{ dashboardData.salesTrend >= 0 ? '↗' : '↘' }}</span>
               {{ Math.abs(dashboardData.salesTrend).toFixed(1) }}%
@@ -74,10 +75,8 @@
         </div>
         <div class="stat-content">
             <h3>Total Orders</h3>
-            <div class="stat-number-container">
-              <p class="stat-number">{{ dashboardData.totalOrders }}</p>
-              <p class="stat-number-sub">(~{{ Math.floor(averageOrdersPerDay) }} per day)</p>
-            </div>
+            <p class="stat-number">{{ dashboardData.totalOrders }}</p>
+            <p class="stat-number-sub">(~{{ Math.floor(averageOrdersPerDay) }} per day)</p>
             <div class="stat-trend" :class="dashboardData.ordersTrend >= 0 ? 'positive' : 'negative'">
               <span>{{ dashboardData.ordersTrend >= 0 ? '↗' : '↘' }}</span>
               {{ Math.abs(dashboardData.ordersTrend).toFixed(1) }}%
@@ -557,6 +556,18 @@ const averageOrdersPerDay = computed(() => {
   const daysDiff = Math.max(1, Math.ceil(timeDiff / (1000 * 60 * 60 * 24)))
   
   return dashboardData.value.totalOrders / daysDiff
+})
+
+// Computed average sales per day
+const averageSalesPerDay = computed(() => {
+  const now = new Date()
+  const startDate = getPeriodStartDate(now, selectedPeriod.value, periodType.value)
+  const endDate = getPeriodEndDate(now, selectedPeriod.value, periodType.value)
+  
+  const timeDiff = endDate.getTime() - startDate.getTime()
+  const daysDiff = Math.max(1, Math.ceil(timeDiff / (1000 * 60 * 60 * 24)))
+  
+  return dashboardData.value.totalSales / daysDiff
 })
 
 // Helper functions
