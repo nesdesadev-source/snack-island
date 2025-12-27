@@ -237,7 +237,8 @@ const isEditMode = computed(() => !!props.menuItem.id)
 
 async function loadInventory() {
   try {
-    inventoryItems.value = await inventoryService.getAll()
+    var data = await inventoryService.getAll();
+    inventoryItems.value = data.filter((item: Inventory) => item.is_active) || []
   } catch (err) {
     console.error('Failed to load inventory:', err)
   }

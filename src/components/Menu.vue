@@ -299,7 +299,7 @@ async function loadData() {
       menuItemService.getMenuItems(),
       recipeMapService.getRecipeMaps()
     ])
-    menuItems.value = items
+    menuItems.value = items.filter(item => item.is_active)
     allRecipeMaps.value = maps
   } catch (err: any) {
     errorMessage.value = err?.message ?? 'Failed to load menu data'

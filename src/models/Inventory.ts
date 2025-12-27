@@ -9,6 +9,7 @@ export interface Inventory {
   unit: InventoryUnit;
   quantity: number;
   reorder_level: number;
+  is_active?: boolean;
   supplier_id?: string;
   created_at?: string;
   updated_at?: string;
@@ -21,6 +22,7 @@ export interface CreateInventoryInput {
   unit: InventoryUnit;
   quantity: number;
   reorder_level: number;
+  is_active?: boolean;
   supplier_id: string;
 }
 
@@ -29,6 +31,7 @@ export interface UpdateInventoryInput {
   unit?: InventoryUnit;
   quantity?: number;
   reorder_level?: number;
+  is_active?: boolean;
   supplier_id?: string;
 }
 

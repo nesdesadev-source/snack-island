@@ -250,7 +250,7 @@ const loadInventory = async () => {
     isLoading.value = true
     error.value = null
     const data = await inventoryService.getAll()
-    inventoryItems.value = data || []
+    inventoryItems.value = data.filter((item: Inventory) => item.is_active) || []
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Failed to load inventory'
     console.error('Error loading inventory:', err)
