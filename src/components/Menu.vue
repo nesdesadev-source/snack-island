@@ -124,7 +124,7 @@
         <div v-for="item in filteredItems" :key="item.id" class="menu-card" @click="openModal(item)">
           <div class="card-header">
             <div class="card-avatar">
-              {{ getInitials(item.name) }}
+              {{ item.item_code || 'N/A' }}
             </div>
             <span class="category-badge" :class="getCategoryClass(item.category)">
               {{ item.category }}
@@ -256,14 +256,6 @@ const categoryCount = computed(() => {
   return categories.size
 })
 
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map(word => word[0])
-    .join('')
-    .substring(0, 2)
-    .toUpperCase()
-}
 
 function getCategoryClass(category: string): string {
   const classes: Record<string, string> = {
@@ -286,7 +278,8 @@ function openAddModal() {
     id: '', // Empty ID indicates this is a new item
     name: '',
     price: 0,
-    category: 'Snack'
+    category: 'Snack',
+    item_code: ''
   }
   showModal.value = true
 }
@@ -354,7 +347,8 @@ async function duplicateMenuItem(item: MenuItem) {
     const newItemId = await menuItemService.createMenuItem({
       name: `${item.name} (2)`,
       price: item.price,
-      category: item.category
+      category: item.category,
+      item_code: item.item_code || ''
     })
     const maps = recipeMapsByItem.value[item.id] ?? []
     for (const rm of maps) {

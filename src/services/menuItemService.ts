@@ -8,7 +8,8 @@ export const menuItemService = {
     const { data, error } = await supabase.rpc('create_menu_item', {
       _name: input.name,
       _price: input.price,
-      _category: input.category
+      _category: input.category,
+      _item_code: input.item_code
     })
     if (error) throw error
     return data as string
@@ -25,7 +26,8 @@ export const menuItemService = {
       _id: params.id,
       _name: params.name,
       _price: params.price,
-      _category: params.category
+      _category: params.category,
+      _item_code: params.item_code
     })
     if (error) throw error
     return true

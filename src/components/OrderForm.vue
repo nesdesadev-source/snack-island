@@ -271,7 +271,7 @@ const filteredMenuItems = computed(() => {
   return menuItems.value.filter(i => {
     const matchesQuery = q ? i.name.toLowerCase().includes(q) : true
     const matchesCategory = category ? i.category === category : true
-    return matchesQuery && matchesCategory
+    return matchesQuery && matchesCategory && i.is_active
   })
 })
 const insufficientItemsText = computed(() => {

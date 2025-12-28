@@ -5,6 +5,7 @@ export interface MenuItem {
   name: string;
   price: number;
   category: MenuCategory;
+  item_code?: string;
   is_active?: boolean;
   created_at?: string;
   updated_at?: string;
@@ -14,6 +15,7 @@ export interface CreateMenuItemInput {
   name: string;
   price: number;
   category: MenuCategory;
+  item_code: string;
   is_active?: boolean;
 }
 
@@ -21,6 +23,7 @@ export interface UpdateMenuItemInput {
   name?: string;
   price?: number;
   category?: MenuCategory;
+  item_code?: string;
   is_active?: boolean;
 }
 

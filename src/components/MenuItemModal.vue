@@ -41,18 +41,35 @@
             <!-- Basic Info Section -->
             <div class="section-title">Basic Information</div>
             
-            <div class="form-section">
-              <label class="form-label">
-                Item Name <span class="required">*</span>
-              </label>
-              <div class="input-wrapper">
-                <input 
-                  type="text" 
-                  v-model="localItem.name" 
-                  placeholder="e.g., Cheese Fries, Iced Tea, etc."
-                  class="form-input"
-                  required
-                />
+            <div class="form-grid">
+              <div class="form-section">
+                <label class="form-label">
+                  Item Name <span class="required">*</span>
+                </label>
+                <div class="input-wrapper">
+                  <input 
+                    type="text" 
+                    v-model="localItem.name" 
+                    placeholder="e.g., Cheese Fries, Iced Tea, etc."
+                    class="form-input"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="form-section">
+                <label class="form-label">
+                  Item Code <span class="required">*</span>
+                </label>
+                <div class="input-wrapper">
+                  <input 
+                    type="text" 
+                    v-model="localItem.item_code" 
+                    placeholder="e.g., CF001, IT002, etc."
+                    class="form-input"
+                    required
+                  />
+                </div>
               </div>
             </div>
 
@@ -315,6 +332,11 @@ async function saveAll() {
     return
   }
   
+  if (!localItem.value.item_code || !localItem.value.item_code.trim()) {
+    errorMessage.value = 'Item code is required'
+    return
+  }
+  
   if (localItem.value.price <= 0) {
     errorMessage.value = 'Price must be greater than 0'
     return
@@ -329,7 +351,8 @@ async function saveAll() {
         id: localItem.value.id,
         name: localItem.value.name,
         price: localItem.value.price,
-        category: localItem.value.category
+        category: localItem.value.category,
+        item_code: localItem.value.item_code
       })
 
       // Update existing recipe maps
@@ -363,7 +386,8 @@ async function saveAll() {
       menuItemId = await menuItemService.createMenuItem({
         name: localItem.value.name,
         price: localItem.value.price,
-        category: localItem.value.category
+        category: localItem.value.category,
+        item_code: localItem.value.item_code
       })
 
       // Create recipe maps for new item
