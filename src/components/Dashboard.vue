@@ -14,7 +14,7 @@
             {{ period.label }}
           </button>
         </div>
-        <div v-if="selectedPeriod !== 'today'" class="period-type-selector">
+        <div v-if="selectedPeriod !== 'today' && selectedPeriod !== 'custom'" class="period-type-selector">
           <button
             @click="periodType = 'toDate'"
             :class="['period-type-btn', { active: periodType === 'toDate' }]"
@@ -27,6 +27,24 @@
           >
             Calendar
           </button>
+        </div>
+        <div v-if="selectedPeriod === 'custom'" class="custom-date-selector">
+          <div class="date-input-group">
+            <label class="date-label">Start Date</label>
+            <input 
+              type="date" 
+              v-model="customStartDate" 
+              class="date-input"
+            />
+          </div>
+          <div class="date-input-group">
+            <label class="date-label">End Date</label>
+            <input 
+              type="date" 
+              v-model="customEndDate" 
+              class="date-input"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -413,7 +431,7 @@
   <!-- Payment Methods Orders Modal -->
   <Teleport to="body">
     <Transition name="modal-fade">
-      <div v-if="showPaymentMethodsModal" class="modal-overlay" @click.self="showPaymentMethodsModal = false">
+      <div v-if="showPaymentMethodsModal" class="modal-overlay" @click.self="closePaymentMethodsModal">
         <div class="modal-container top-items-modal" @click.stop>
           <div class="modal-header">
             <div class="header-content">
@@ -427,7 +445,7 @@
                 <p class="modal-subtitle">Complete list of orders with payment methods</p>
               </div>
             </div>
-            <button class="close-btn" @click="showPaymentMethodsModal = false" aria-label="Close modal">
+            <button class="close-btn" @click="closePaymentMethodsModal" aria-label="Close modal">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -436,6 +454,15 @@
           </div>
           
           <div class="modal-body">
+            <div class="filter-section">
+              <label class="filter-label">Filter by Payment Method</label>
+              <select v-model="selectedPaymentMethodFilter" class="filter-select">
+                <option value="">All Payment Methods</option>
+                <option v-for="method in availablePaymentMethods" :key="method" :value="method">
+                  {{ formatPaymentMethod(method) }}
+                </option>
+              </select>
+            </div>
             <div v-if="paymentMethodsOrders.length === 0" class="no-data">
               <p>No orders data available</p>
             </div>
@@ -519,10 +546,13 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const selectedPeriod = ref('week')
 const periodType = ref<'toDate' | 'calendar'>('toDate')
+const customStartDate = ref<string>('')
+const customEndDate = ref<string>('')
 const showTopItemsModal = ref(false)
 const showTopRevenueModal = ref(false)
 const showPaymentMethodsModal = ref(false)
 const paymentMethodsSortOrder = ref<'asc' | 'desc'>('desc')
+const selectedPaymentMethodFilter = ref<string>('')
 const revenueItemsSortColumn = ref<'revenue' | 'profit' | 'quantity'>('revenue')
 const revenueItemsSortOrder = ref<'asc' | 'desc'>('desc')
 
@@ -546,7 +576,8 @@ const periods = [
   { label: 'Today', value: 'today' },
   { label: 'Week', value: 'week' },
   { label: 'Month', value: 'month' },
-  { label: 'Year', value: 'year' }
+  { label: 'Year', value: 'year' },
+  { label: 'Custom', value: 'custom' }
 ]
 
 // Computed dashboard data
@@ -637,7 +668,12 @@ function getOrdersForPeriod(date: Date, period: string) {
     if (order.status !== 'completed') return false
     const orderDate = new Date(order.created_at)
     
-    // Normalize dates to local date components for accurate day-level comparison
+    // For custom period, use full datetime comparison with exact times
+    if (period === 'custom') {
+      return orderDate >= startDate && orderDate <= endDate
+    }
+    
+    // For other periods, normalize dates to local date components for accurate day-level comparison
     // This avoids timezone issues where UTC dates might fall on a different day
     const orderYear = orderDate.getFullYear()
     const orderMonth = orderDate.getMonth()
@@ -671,6 +707,15 @@ function getExpensesForPeriod(date: Date, period: string) {
     const month = String(d.getMonth() + 1).padStart(2, '0')
     const day = String(d.getDate()).padStart(2, '0')
     return `${year}-${month}-${day}`
+  }
+  
+  // For custom period, use full date range including time
+  if (period === 'custom') {
+    return expenses.value.filter(expense => {
+      if (!expense.expense_date) return false
+      const expenseDate = new Date(expense.expense_date)
+      return expenseDate >= startDate && expenseDate <= endDate
+    })
   }
   
   return filterExpensesByDateRange(
@@ -722,6 +767,12 @@ function getEndOfYear(date: Date): Date {
 }
 
 function getPeriodStartDate(date: Date, period: string, type: 'toDate' | 'calendar' = 'toDate'): Date {
+  if (period === 'custom' && customStartDate.value) {
+    const customDate = new Date(customStartDate.value)
+    customDate.setHours(0, 0, 0, 0)
+    return customDate
+  }
+  
   const start = new Date(date)
   
   switch (period) {
@@ -760,6 +811,12 @@ function getPeriodStartDate(date: Date, period: string, type: 'toDate' | 'calend
 }
 
 function getPeriodEndDate(date: Date, period: string, type: 'toDate' | 'calendar' = 'toDate'): Date {
+  if (period === 'custom' && customEndDate.value) {
+    const customDate = new Date(customEndDate.value)
+    customDate.setHours(23, 59, 59, 999)
+    return customDate
+  }
+  
   if (type === 'calendar') {
     switch (period) {
       case 'week':
@@ -1527,6 +1584,22 @@ const allItemsRevenue = computed(() => {
   return itemsWithRevenue
 })
 
+// Get available payment methods
+const availablePaymentMethods = computed(() => {
+  const now = new Date()
+  const periodOrders = getOrdersForPeriod(now, selectedPeriod.value)
+  const completedOrders = periodOrders.filter(order => order.status === 'completed')
+  
+  const methods = new Set<string>()
+  completedOrders.forEach(order => {
+    if (order.payment_method) {
+      methods.add(order.payment_method)
+    }
+  })
+  
+  return Array.from(methods).sort()
+})
+
 // Get orders with item summaries for payment methods modal
 const paymentMethodsOrders = computed(() => {
   const now = new Date()
@@ -1536,7 +1609,7 @@ const paymentMethodsOrders = computed(() => {
   const completedOrders = periodOrders.filter(order => order.status === 'completed')
   
   // Map orders to include item summaries
-  const orders = completedOrders
+  let orders = completedOrders
     .filter(order => order.payment_method)
     .map(order => {
       const items = orderItems.value.filter(item => item.order_id === order.id)
@@ -1553,6 +1626,11 @@ const paymentMethodsOrders = computed(() => {
         amount: order.total_amount
       }
     })
+  
+  // Filter by selected payment method if one is selected
+  if (selectedPaymentMethodFilter.value) {
+    orders = orders.filter(order => order.paymentMethod === selectedPaymentMethodFilter.value)
+  }
   
   // Sort by date
   return orders.sort((a, b) => {
@@ -1601,6 +1679,11 @@ function formatOrderDate(dateString: string | null): string {
 // Toggle sort order for payment methods orders
 function togglePaymentMethodsSort() {
   paymentMethodsSortOrder.value = paymentMethodsSortOrder.value === 'desc' ? 'asc' : 'desc'
+}
+
+function closePaymentMethodsModal() {
+  showPaymentMethodsModal.value = false
+  selectedPaymentMethodFilter.value = ''
 }
 
 // Toggle sort for revenue items
@@ -1988,6 +2071,13 @@ watch(periodType, async () => {
   await recreateCharts()
 })
 
+// Watch for custom date changes and recreate charts
+watch([customStartDate, customEndDate], async () => {
+  if (selectedPeriod.value === 'custom') {
+    await recreateCharts()
+  }
+})
+
 // Lifecycle
 onMounted(async () => {
   await loadDashboardData()
@@ -2065,6 +2155,45 @@ onMounted(async () => {
   background: #f8f9fa;
   padding: 0.25rem;
   border-radius: 8px;
+}
+
+.custom-date-selector {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  background: #f8f9fa;
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+.date-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.date-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.date-input {
+  padding: 0.5rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: white;
+  color: #111827;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+  min-width: 150px;
+}
+
+.date-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .period-type-btn {
@@ -2466,9 +2595,19 @@ onMounted(async () => {
   }
   
   .period-selector,
-  .period-type-selector {
+  .period-type-selector,
+  .custom-date-selector {
     width: 100%;
     justify-content: center;
+  }
+  
+  .custom-date-selector {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .date-input {
+    width: 100%;
   }
   
   .charts-grid {
@@ -2628,6 +2767,41 @@ onMounted(async () => {
   padding: 2rem;
   max-height: 60vh;
   overflow-y: auto;
+}
+
+.filter-section {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.filter-select {
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  background: white;
+  color: #111827;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+}
+
+.filter-select:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .no-data {
