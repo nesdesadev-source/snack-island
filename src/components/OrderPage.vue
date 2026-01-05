@@ -24,6 +24,14 @@
       </div>
     </div>
 
+    <!-- Total Sales Display -->
+    <div class="sales-summary">
+      <div class="sales-summary-content">
+        <div class="sales-label">Total Completed Sales</div>
+        <div class="sales-amount">₱{{ formatNumber(totalCompletedSales) }}</div>
+      </div>
+    </div>
+
     <!-- Main Content -->
     <div class="main-content">
       <!-- Order Queue Card - Full Width -->
@@ -85,9 +93,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import OrderForm from './OrderForm.vue'
 import OrderQueue from './OrderQueue.vue'
+import { OrderService } from '../services/orderService'
+import type { Order } from '../models'
 
 // State
 const orderQueueRef = ref<InstanceType<typeof OrderQueue> | null>(null)
@@ -96,9 +106,27 @@ const showModal = ref(false)
 const currentTime = ref('')
 const currentDate = ref('')
 const currentDateMobile = ref('')
+const orders = ref<Order[]>([])
 
 // Computed properties for real-time updates
 let timeInterval: number | null = null
+
+// Computed total sales from completed orders (today only)
+const totalCompletedSales = computed(() => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  return orders.value
+    .filter(order => {
+      if (order.status !== 'completed' || !order.created_at) return false
+      
+      const orderDate = new Date(order.created_at)
+      orderDate.setHours(0, 0, 0, 0)
+      
+      return orderDate.getTime() === today.getTime()
+    })
+    .reduce((total, order) => total + (order.total_amount || 0), 0)
+})
 
 // Methods
 const updateDateTime = () => {
@@ -141,6 +169,9 @@ const handleOrderSubmitted = async () => {
     await orderQueueRef.value.refreshAll()
   }
   
+  // Refresh orders to update total sales
+  await loadOrders()
+  
   // Show success message
   showSuccessMessage.value = true
   setTimeout(() => {
@@ -148,15 +179,31 @@ const handleOrderSubmitted = async () => {
   }, 5000)
 }
 
-const handleOrderUpdated = () => {
-  // Handle any additional logic when orders are updated
-  console.log('Order updated')
+const handleOrderUpdated = async () => {
+  // Refresh orders when orders are updated
+  await loadOrders()
+}
+
+// Load orders
+const loadOrders = async () => {
+  try {
+    const ordersData = await OrderService.getOrders()
+    orders.value = ordersData
+  } catch (error) {
+    console.error('Error loading orders:', error)
+  }
+}
+
+// Format number with commas
+const formatNumber = (num: number): string => {
+  return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
   updateDateTime()
   timeInterval = setInterval(updateDateTime, 1000)
+  await loadOrders()
 })
 
 onUnmounted(() => {
@@ -278,6 +325,40 @@ onUnmounted(() => {
   font-weight: 600;
   color: #1d1d1f;
   letter-spacing: 0.5px;
+}
+
+/* Sales Summary */
+.sales-summary {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem 0;
+}
+
+.sales-summary-content {
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+}
+
+.sales-label {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #86868b;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.sales-amount {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1d1d1f;
+  letter-spacing: 0.3px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Main Content */
@@ -668,6 +749,25 @@ onUnmounted(() => {
     display: none;
   }
 
+  .sales-summary {
+    padding: 1rem 0.75rem 0;
+  }
+
+  .sales-summary-content {
+    padding: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .sales-label {
+    font-size: 0.8125rem;
+  }
+
+  .sales-amount {
+    font-size: 1.25rem;
+  }
+
   .main-content {
     padding: 0;
     max-height: calc(100vh - 3.5rem);
@@ -763,6 +863,22 @@ onUnmounted(() => {
 
   .time-display {
     font-size: 0.625rem;
+  }
+
+  .sales-summary {
+    padding: 0.75rem 0.625rem 0;
+  }
+
+  .sales-summary-content {
+    padding: 0.875rem;
+  }
+
+  .sales-label {
+    font-size: 0.75rem;
+  }
+
+  .sales-amount {
+    font-size: 1.125rem;
   }
 
   .main-content {
