@@ -783,7 +783,7 @@ function getPeriodStartDate(date: Date, period: string, type: 'toDate' | 'calend
       if (type === 'calendar') {
         return getStartOfWeek(date)
       } else {
-        start.setDate(start.getDate() - 7)
+        start.setDate(start.getDate() - 6)
         start.setHours(0, 0, 0, 0)
       }
       break
@@ -792,7 +792,7 @@ function getPeriodStartDate(date: Date, period: string, type: 'toDate' | 'calend
         return getStartOfMonth(date)
       } else {
         // Last 30 days (rolling period)
-        start.setDate(start.getDate() - 30)
+        start.setDate(start.getDate() - 29)
         start.setHours(0, 0, 0, 0)
       }
       break
@@ -801,7 +801,7 @@ function getPeriodStartDate(date: Date, period: string, type: 'toDate' | 'calend
         return getStartOfYear(date)
       } else {
         // Last 365 days (rolling period)
-        start.setDate(start.getDate() - 365)
+        start.setDate(start.getDate() - 364)
         start.setHours(0, 0, 0, 0)
       }
       break
