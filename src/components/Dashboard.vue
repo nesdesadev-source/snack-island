@@ -487,10 +487,59 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="order in paymentMethodsOrders" :key="order.id">
+                  <tr v-for="order in paymentMethodsOrders" :key="order.id" :class="{ 'editing-row': editingOrderId === order.id }">
                     <td class="date-cell">{{ order.date }}</td>
                     <td class="name-cell">{{ order.itemsSummary }}</td>
-                    <td class="payment-method-cell">{{ formatPaymentMethod(order.paymentMethod) }}</td>
+                    <td class="payment-method-cell">
+                      <div v-if="editingOrderId === order.id" class="payment-method-edit">
+                        <select 
+                          v-model="editingPaymentMethod" 
+                          class="payment-method-select"
+                          :disabled="savingOrderId === order.id"
+                        >
+                          <option v-for="method in allPaymentMethods" :key="method" :value="method">
+                            {{ formatPaymentMethod(method) }}
+                          </option>
+                        </select>
+                        <div class="edit-actions">
+                          <button 
+                            @click="savePaymentMethod(order.id)" 
+                            class="save-btn"
+                            :disabled="savingOrderId === order.id"
+                            :title="savingOrderId === order.id ? 'Saving...' : 'Save'"
+                          >
+                            <svg v-if="savingOrderId !== order.id" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <div v-else class="spinner-small"></div>
+                          </button>
+                          <button 
+                            @click="cancelEdit" 
+                            class="cancel-btn"
+                            :disabled="savingOrderId === order.id"
+                            title="Cancel"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <line x1="18" y1="6" x2="6" y2="18"></line>
+                              <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                      <div v-else class="payment-method-display">
+                        <span>{{ formatPaymentMethod(order.paymentMethod) }}</span>
+                        <button 
+                          @click="startEdit(order.id, order.paymentMethod)" 
+                          class="edit-icon-btn"
+                          title="Edit payment method"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
                     <td class="quantity-cell">₱{{ formatNumber(order.amount) }}</td>
                   </tr>
                 </tbody>
@@ -519,7 +568,7 @@ import {
 } from '../modules/expenses/expenseUtils'
 import { isLowStock } from '../modules/inventory/inventoryUtils'
 import { computeCostPerOrderForMenuItem } from '../modules/menu/menuPageUtils'
-import type { Order, OrderItem, Expense, Inventory, MenuItem, RecipeMap } from '../models'
+import type { Order, OrderItem, Expense, Inventory, MenuItem, RecipeMap, PaymentMethod } from '../models'
 
 // Register Chart.js components
 Chart.register(...registerables)
@@ -555,6 +604,11 @@ const paymentMethodsSortOrder = ref<'asc' | 'desc'>('desc')
 const selectedPaymentMethodFilter = ref<string>('')
 const revenueItemsSortColumn = ref<'revenue' | 'profit' | 'quantity'>('revenue')
 const revenueItemsSortOrder = ref<'asc' | 'desc'>('desc')
+
+// Edit state for payment methods
+const editingOrderId = ref<string | null>(null)
+const editingPaymentMethod = ref<PaymentMethod | null>(null)
+const savingOrderId = ref<string | null>(null)
 
 // Chart visibility state
 const chartVisibility = ref({
@@ -1584,6 +1638,9 @@ const allItemsRevenue = computed(() => {
   return itemsWithRevenue
 })
 
+// All available payment methods
+const allPaymentMethods: PaymentMethod[] = ['cash', 'gcash', 'maya', 'gotyme', 'bpi', 'other']
+
 // Get available payment methods
 const availablePaymentMethods = computed(() => {
   const now = new Date()
@@ -1684,6 +1741,43 @@ function togglePaymentMethodsSort() {
 function closePaymentMethodsModal() {
   showPaymentMethodsModal.value = false
   selectedPaymentMethodFilter.value = ''
+  cancelEdit()
+}
+
+// Payment method edit functions
+function startEdit(orderId: string, currentPaymentMethod: string) {
+  editingOrderId.value = orderId
+  editingPaymentMethod.value = currentPaymentMethod as PaymentMethod
+}
+
+function cancelEdit() {
+  editingOrderId.value = null
+  editingPaymentMethod.value = null
+  savingOrderId.value = null
+}
+
+async function savePaymentMethod(orderId: string) {
+  if (!editingPaymentMethod.value) {
+    return
+  }
+
+  savingOrderId.value = orderId
+  
+  try {
+    await OrderService.updateOrder(orderId, {
+      payment_method: editingPaymentMethod.value
+    })
+    
+    // Refresh dashboard data to reflect the change
+    await loadDashboardData()
+    
+    // Exit edit mode
+    cancelEdit()
+  } catch (error) {
+    console.error('Error updating payment method:', error)
+    alert('Failed to update payment method. Please try again.')
+    savingOrderId.value = null
+  }
 }
 
 // Toggle sort for revenue items
@@ -2875,6 +2969,118 @@ onMounted(async () => {
   font-weight: 500;
   color: #667eea;
   text-transform: capitalize;
+  position: relative;
+}
+
+.payment-method-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.edit-icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 0.25rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.payment-method-display:hover .edit-icon-btn {
+  opacity: 1;
+}
+
+.edit-icon-btn:hover {
+  background: #f3f4f6;
+  color: #667eea;
+}
+
+.payment-method-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.payment-method-select {
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #667eea;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  background: white;
+  color: #111827;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+  font-weight: 500;
+  min-width: 120px;
+}
+
+.payment-method-select:focus {
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.payment-method-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.save-btn,
+.cancel-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.375rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  color: #6c757d;
+}
+
+.save-btn:hover:not(:disabled) {
+  background: #d4edda;
+  color: #28a745;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background: #f8d7da;
+  color: #dc3545;
+}
+
+.save-btn:disabled,
+.cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spinner-small {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.editing-row {
+  background-color: #f0f9ff;
+  border-left: 3px solid #667eea;
+}
+
+.editing-row:hover {
+  background-color: #e0f2fe;
 }
 
 .date-cell {

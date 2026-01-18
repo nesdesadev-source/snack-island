@@ -28,7 +28,21 @@
     <div class="sales-summary">
       <div class="sales-summary-content">
         <div class="sales-label">Total Completed Sales</div>
-        <div class="sales-amount">₱{{ formatNumber(totalCompletedSales) }}</div>
+        <div class="sales-amount-wrapper">
+          <div class="sales-amount">
+            <span v-if="showSalesAmount">₱{{ formatNumber(totalCompletedSales) }}</span>
+            <span v-else>₱****</span>
+          </div>
+          <button @click="toggleSalesVisibility" class="eye-button" :class="{ 'active': showSalesAmount }">
+            <svg v-if="showSalesAmount" class="eye-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
+            </svg>
+            <svg v-else class="eye-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -107,6 +121,8 @@ const currentTime = ref('')
 const currentDate = ref('')
 const currentDateMobile = ref('')
 const orders = ref<Order[]>([])
+const showSalesAmount = ref(false)
+let salesVisibilityTimeout: number | null = null
 
 // Computed properties for real-time updates
 let timeInterval: number | null = null
@@ -199,6 +215,25 @@ const formatNumber = (num: number): string => {
   return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 }
 
+// Toggle sales visibility with auto-hide
+const toggleSalesVisibility = () => {
+  showSalesAmount.value = !showSalesAmount.value
+  
+  // Clear existing timeout if any
+  if (salesVisibilityTimeout) {
+    clearTimeout(salesVisibilityTimeout)
+    salesVisibilityTimeout = null
+  }
+  
+  // Auto-hide after 5 seconds if showing
+  if (showSalesAmount.value) {
+    salesVisibilityTimeout = setTimeout(() => {
+      showSalesAmount.value = false
+      salesVisibilityTimeout = null
+    }, 5000)
+  }
+}
+
 // Lifecycle
 onMounted(async () => {
   updateDateTime()
@@ -209,6 +244,9 @@ onMounted(async () => {
 onUnmounted(() => {
   if (timeInterval) {
     clearInterval(timeInterval)
+  }
+  if (salesVisibilityTimeout) {
+    clearTimeout(salesVisibilityTimeout)
   }
 })
 </script>
@@ -353,12 +391,46 @@ onUnmounted(() => {
   text-transform: uppercase;
 }
 
+.sales-amount-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .sales-amount {
   font-size: 1.5rem;
   font-weight: 600;
   color: #1d1d1f;
   letter-spacing: 0.3px;
   font-variant-numeric: tabular-nums;
+}
+
+.eye-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.375rem;
+  color: #86868b;
+  transition: color 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.eye-button:hover {
+  color: #1d1d1f;
+  background: #f5f5f7;
+}
+
+.eye-button.active {
+  color: #1d1d1f;
+}
+
+.eye-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  stroke-width: 2;
 }
 
 /* Main Content */
@@ -764,6 +836,11 @@ onUnmounted(() => {
     font-size: 0.8125rem;
   }
 
+  .sales-amount-wrapper {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .sales-amount {
     font-size: 1.25rem;
   }
@@ -879,6 +956,11 @@ onUnmounted(() => {
 
   .sales-amount {
     font-size: 1.125rem;
+  }
+
+  .eye-icon {
+    width: 1.125rem;
+    height: 1.125rem;
   }
 
   .main-content {
