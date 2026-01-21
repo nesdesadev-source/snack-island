@@ -1,5 +1,13 @@
 <template>
   <div class="order-page">
+    <!-- Loading Overlay -->
+    <Transition name="fade">
+      <div v-if="isLoading" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Loading...</p>
+      </div>
+    </Transition>
+
     <!-- Professional Header -->
     <div class="header">
       <div class="header-content">
@@ -28,20 +36,23 @@
     <div class="sales-summary">
       <div class="sales-summary-content">
         <div class="sales-label">Total Completed Sales</div>
-        <div class="sales-amount-wrapper">
-          <div class="sales-amount">
-            <span v-if="showSalesAmount">₱{{ formatNumber(totalCompletedSales) }}</span>
-            <span v-else>₱****</span>
+        <div class="sales-right">
+          <div class="sales-amount-wrapper">
+            <div class="sales-amount">
+              <span v-if="showSalesAmount">₱{{ formatNumber(totalCompletedSales) }}</span>
+              <span v-else>₱****</span>
+            </div>
+            <button @click="toggleSalesVisibility" class="eye-button" :class="{ 'active': showSalesAmount }">
+              <svg v-if="showSalesAmount" class="eye-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
+              </svg>
+              <svg v-else class="eye-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+              </svg>
+            </button>
           </div>
-          <button @click="toggleSalesVisibility" class="eye-button" :class="{ 'active': showSalesAmount }">
-            <svg v-if="showSalesAmount" class="eye-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
-            </svg>
-            <svg v-else class="eye-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-            </svg>
-          </button>
+          <ProfitProgressCircle :profit="todayProfit" />
         </div>
       </div>
     </div>
@@ -110,8 +121,11 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import OrderForm from './OrderForm.vue'
 import OrderQueue from './OrderQueue.vue'
+import ProfitProgressCircle from './ProfitProgressCircle.vue'
 import { OrderService } from '../services/orderService'
-import type { Order } from '../models'
+import { expenseService } from '../services/expenseService'
+import { calculateTotalExpenses } from '../modules/expenses/expenseUtils'
+import type { Order, Expense } from '../models'
 
 // State
 const orderQueueRef = ref<InstanceType<typeof OrderQueue> | null>(null)
@@ -121,7 +135,9 @@ const currentTime = ref('')
 const currentDate = ref('')
 const currentDateMobile = ref('')
 const orders = ref<Order[]>([])
+const expenses = ref<Expense[]>([])
 const showSalesAmount = ref(false)
+const isLoading = ref(true)
 let salesVisibilityTimeout: number | null = null
 
 // Computed properties for real-time updates
@@ -142,6 +158,28 @@ const totalCompletedSales = computed(() => {
       return orderDate.getTime() === today.getTime()
     })
     .reduce((total, order) => total + (order.total_amount || 0), 0)
+})
+
+// Computed total expenses for today
+const todayExpenses = computed(() => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  const todayExpensesList = expenses.value.filter(expense => {
+    if (!expense.expense_date) return false
+    
+    const expenseDate = new Date(expense.expense_date)
+    expenseDate.setHours(0, 0, 0, 0)
+    
+    return expenseDate.getTime() === today.getTime()
+  })
+  
+  return calculateTotalExpenses(todayExpensesList)
+})
+
+// Computed today's profit
+const todayProfit = computed(() => {
+  return totalCompletedSales.value - todayExpenses.value
 })
 
 // Methods
@@ -198,6 +236,8 @@ const handleOrderSubmitted = async () => {
 const handleOrderUpdated = async () => {
   // Refresh orders when orders are updated
   await loadOrders()
+  // Refresh expenses to update profit calculation
+  await loadExpenses()
 }
 
 // Load orders
@@ -207,6 +247,16 @@ const loadOrders = async () => {
     orders.value = ordersData
   } catch (error) {
     console.error('Error loading orders:', error)
+  }
+}
+
+// Load expenses
+const loadExpenses = async () => {
+  try {
+    const expensesData = await expenseService.getAll()
+    expenses.value = expensesData
+  } catch (error) {
+    console.error('Error loading expenses:', error)
   }
 }
 
@@ -238,7 +288,15 @@ const toggleSalesVisibility = () => {
 onMounted(async () => {
   updateDateTime()
   timeInterval = setInterval(updateDateTime, 1000)
-  await loadOrders()
+  try {
+    isLoading.value = true
+    await Promise.all([loadOrders(), loadExpenses()])
+  } catch (error) {
+    console.error('Error loading data:', error)
+    alert('Failed to load data. Please try again.')
+  } finally {
+    isLoading.value = false
+  }
 })
 
 onUnmounted(() => {
@@ -257,6 +315,57 @@ onUnmounted(() => {
   min-height: 100vh;
   background: #f5f5f7;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  position: relative;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  gap: 1rem;
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e5e5e5;
+  border-top: 4px solid #1d1d1f;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #86868b;
+  letter-spacing: 0.3px;
+  margin: 0;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Fade Transition */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 /* Professional Header */
@@ -380,7 +489,14 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1.5rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+}
+
+.sales-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 .sales-label {
@@ -827,9 +943,14 @@ onUnmounted(() => {
 
   .sales-summary-content {
     padding: 1rem;
+    gap: 1rem;
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.5rem;
+  }
+
+  .sales-right {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .sales-label {
@@ -948,6 +1069,7 @@ onUnmounted(() => {
 
   .sales-summary-content {
     padding: 0.875rem;
+    gap: 0.75rem;
   }
 
   .sales-label {
