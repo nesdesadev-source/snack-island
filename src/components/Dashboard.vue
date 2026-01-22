@@ -66,524 +66,140 @@
     <div v-else>
       <!-- Key Metrics Cards -->
       <div class="stats-grid">
-      <div class="stat-card">
-          <div class="stat-icon sales">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-          </svg>
-          </div>
-        <div class="stat-content">
-            <h3>Total Sales</h3>
-            <p class="stat-number">₱{{ formatNumber(dashboardData.totalSales) }}</p>
-            <p class="stat-number-sub">(~₱{{ formatNumber(Math.floor(averageSalesPerDay)) }} per day)</p>
-            <div class="stat-trend" :class="dashboardData.salesTrend >= 0 ? 'positive' : 'negative'">
-              <span>{{ dashboardData.salesTrend >= 0 ? '↗' : '↘' }}</span>
-              {{ Math.abs(dashboardData.salesTrend).toFixed(1) }}%
-        </div>
-        </div>
-      </div>
-      
-      <div class="stat-card">
-          <div class="stat-icon orders">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="9" cy="21" r="1"></circle>
-            <circle cx="20" cy="21" r="1"></circle>
-            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-          </svg>
-        </div>
-        <div class="stat-content">
-            <h3>Total Orders</h3>
-            <p class="stat-number">{{ dashboardData.totalOrders }}</p>
-            <p class="stat-number-sub">(~{{ Math.floor(averageOrdersPerDay) }} per day)</p>
-            <div class="stat-trend" :class="dashboardData.ordersTrend >= 0 ? 'positive' : 'negative'">
-              <span>{{ dashboardData.ordersTrend >= 0 ? '↗' : '↘' }}</span>
-              {{ Math.abs(dashboardData.ordersTrend).toFixed(1) }}%
-            </div>
-          </div>
-      </div>
-      
-        <div class="stat-card">
-          <div class="stat-icon expenses">
+        <StatCard
+          title="Total Sales"
+          :value="dashboardData.totalSales"
+          :trend="dashboardData.salesTrend"
+          icon-class="sales"
+          prefix="₱"
+          :subtitle="`(~₱${formatNumber(Math.floor(averageSalesPerDay))} per day)`"
+        >
+          <template #icon>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+          </template>
+        </StatCard>
+        
+        <StatCard
+          title="Total Orders"
+          :value="dashboardData.totalOrders"
+          :trend="dashboardData.ordersTrend"
+          icon-class="orders"
+          :subtitle="`(~${Math.floor(averageOrdersPerDay)} per day)`"
+        >
+          <template #icon>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="9" cy="21" r="1"></circle>
+              <circle cx="20" cy="21" r="1"></circle>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+            </svg>
+          </template>
+        </StatCard>
+        
+        <StatCard
+          title="Total Expenses"
+          :value="dashboardData.totalExpenses"
+          :trend="dashboardData.expensesTrend"
+          icon-class="expenses"
+          prefix="₱"
+          :invert-trend="true"
+        >
+          <template #icon>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M17 9V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2m2 4h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm7-5a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"></path>
             </svg>
-          </div>
-          <div class="stat-content">
-            <h3>Total Expenses</h3>
-            <p class="stat-number">₱{{ formatNumber(dashboardData.totalExpenses) }}</p>
-            <div class="stat-trend" :class="dashboardData.expensesTrend >= 0 ? 'negative' : 'positive'">
-              <span>{{ dashboardData.expensesTrend >= 0 ? '↗' : '↘' }}</span>
-              {{ Math.abs(dashboardData.expensesTrend).toFixed(1) }}%
-            </div>
-          </div>
-        </div>
+          </template>
+        </StatCard>
         
-        <div class="stat-card">
-          <div class="stat-icon profit">
+        <StatCard
+          title="Net Profit"
+          :value="dashboardData.netProfit"
+          :trend="dashboardData.profitTrend"
+          icon-class="profit"
+          prefix="₱"
+          :show-value-color="true"
+        >
+          <template #icon>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
             </svg>
-          </div>
-          <div class="stat-content">
-            <h3>Net Profit</h3>
-            <p class="stat-number" :class="dashboardData.netProfit >= 0 ? 'positive' : 'negative'">
-              ₱{{ formatNumber(dashboardData.netProfit) }}
-            </p>
-            <div class="stat-trend" :class="dashboardData.profitTrend >= 0 ? 'positive' : 'negative'">
-              <span>{{ dashboardData.profitTrend >= 0 ? '↗' : '↘' }}</span>
-              {{ Math.abs(dashboardData.profitTrend).toFixed(1) }}%
-            </div>
-          </div>
-        </div>
+          </template>
+        </StatCard>
       </div>
       
       <!-- Charts Section -->
       <div class="charts-grid">
-        <!-- Sales Trend Chart -->
-        <div class="chart-card">
-          <div class="chart-header">
-            <h3>Sales Trend</h3>
-            <div class="chart-legend">
-              <span 
-                class="legend-item" 
-                :class="{ 'legend-item-disabled': !chartVisibility.sales }"
-                @click="toggleChartLine('sales')"
-              >
-                <span class="legend-color sales"></span>
-                Sales
-              </span>
-              <span 
-                class="legend-item"
-                :class="{ 'legend-item-disabled': !chartVisibility.expenses }"
-                @click="toggleChartLine('expenses')"
-              >
-                <span class="legend-color expenses"></span>
-                Expenses
-              </span>
-              <span 
-                class="legend-item"
-                :class="{ 'legend-item-disabled': !chartVisibility.profit }"
-                @click="toggleChartLine('profit')"
-              >
-                <span class="legend-color profit"></span>
-                Profit
-              </span>
-            </div>
-          </div>
-          <div class="chart-container">
-            <canvas ref="salesChart" width="400" height="200"></canvas>
-          </div>
-        </div>
+        <SalesTrendChartCard
+          :sales-data="dashboardData.salesData"
+          :expenses-data="dashboardData.expensesData"
+          :profit-data="dashboardData.profitData"
+          :chart-visibility="chartVisibility"
+          @toggle-line="toggleChartLine"
+        />
         
-        <!-- Expense Breakdown Chart -->
-        <div class="chart-card">
-          <div class="chart-header">
-            <h3>Expense Breakdown</h3>
-          </div>
-          <div class="chart-container">
-            <canvas ref="expenseChart" width="400" height="200"></canvas>
-          </div>
-        </div>
+        <ExpenseBreakdownChartCard
+          :expense-data="dashboardData.expenseData"
+        />
         
-        <!-- Top Selling Items Chart -->
-        <div class="chart-card">
-          <div class="chart-header">
-            <h3>Top Selling Items</h3>
-            <button @click="showTopItemsModal = true" class="inventory-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M7 17L17 7M17 7H7M17 7V17"></path>
-              </svg>
-              View All
-            </button>
-          </div>
-          <div class="chart-container">
-            <canvas ref="topItemsChart" width="400" height="200"></canvas>
-          </div>
-        </div>
+        <TopSellingItemsChartCard
+          :top-items-data="dashboardData.topItemsData"
+          @view-all="showTopItemsModal = true"
+        />
         
-        <!-- Top Revenue Items Chart -->
-        <div class="chart-card">
-          <div class="chart-header">
-            <div>
-              <h3>Top Revenue Items</h3>
-              <p class="chart-subtitle" v-if="dashboardData.topRevenueData.labels.length > 0 && dashboardData.topRevenueData.labels[0] !== 'No revenue data'">
-                Total Profit: ₱{{ formatNumber(dashboardData.topRevenueData.profits.reduce((sum, p) => sum + p, 0)) }}
-              </p>
-            </div>
-            <button @click="showTopRevenueModal = true" class="inventory-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M7 17L17 7M17 7H7M17 7V17"></path>
-              </svg>
-              View All
-            </button>
-          </div>
-          <div class="chart-container">
-            <canvas ref="topRevenueChart" width="400" height="200"></canvas>
-          </div>
-        </div>
+        <TopRevenueItemsChartCard
+          :top-revenue-data="dashboardData.topRevenueData"
+          @view-all="showTopRevenueModal = true"
+        />
         
-        <!-- Payment Methods Chart -->
-        <div class="chart-card">
-          <div class="chart-header">
-            <h3>Payment Methods</h3>
-            <button @click="showPaymentMethodsModal = true" class="inventory-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M7 17L17 7M17 7H7M17 7V17"></path>
-              </svg>
-              View Orders
-            </button>
-          </div>
-          <div class="chart-container">
-            <canvas ref="paymentMethodsChart" width="400" height="200"></canvas>
-          </div>
-        </div>
+        <PaymentMethodsChartCard
+          :payment-methods-data="dashboardData.paymentMethodsData"
+          @view-orders="showPaymentMethodsModal = true"
+        />
         
-        <!-- Inventory Status -->
-        <div class="chart-card">
-          <div class="chart-header">
-            <h3>Inventory Status</h3>
-            <button @click="goToInventory" class="inventory-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M7 17L17 7M17 7H7M17 7V17"></path>
-              </svg>
-              View All
-            </button>
-          </div>
-          <div class="inventory-status">
-            <div class="inventory-summary">
-              <div class="inventory-count">
-                <span class="count-number">{{ dashboardData.lowStockItems.length }}</span>
-                <span class="count-label">Low Stock Items</span>
-              </div>
-              <div v-if="dashboardData.lowStockItems.length === 0" class="no-low-stock">
-                <span class="check-icon">✅</span>
-                All items are well stocked
-              </div>
-              <div v-else class="low-stock-warning">
-                <span class="warning-icon">⚠️</span>
-                {{ dashboardData.lowStockItems.length }} item{{ dashboardData.lowStockItems.length > 1 ? 's' : '' }} need{{ dashboardData.lowStockItems.length === 1 ? 's' : '' }} restocking
-              </div>
-            </div>
-          </div>
-        </div>
+        <InventoryStatusCard
+          :low-stock-items="dashboardData.lowStockItems"
+          @view-all="goToInventory"
+        />
         
-        <!-- Sales by Day of Week Chart -->
-        <div class="chart-card">
-          <div class="chart-header">
-            <h3>Sales by Day of Week</h3>
-            <div v-if="dashboardData.salesByDayOfWeekData.available" class="chart-view-toggle">
-              <button
-                @click="salesByDayOfWeekView = 'total'; updateSalesByDayOfWeekChart()"
-                :class="['toggle-btn', { active: salesByDayOfWeekView === 'total' }]"
-              >
-                Total
-              </button>
-              <button
-                @click="salesByDayOfWeekView = 'average'; updateSalesByDayOfWeekChart()"
-                :class="['toggle-btn', { active: salesByDayOfWeekView === 'average' }]"
-              >
-                Average
-              </button>
-            </div>
-          </div>
-          <div class="chart-container">
-            <div v-if="!dashboardData.salesByDayOfWeekData.available" class="no-data-message">
-              <p>Not Available</p>
-              <p class="no-data-subtitle">Please select a period of 7 days or more</p>
-            </div>
-            <canvas v-else ref="salesByDayOfWeekChart" width="400" height="200"></canvas>
-          </div>
-        </div>
+        <SalesByDayOfWeekChartCard
+          :sales-by-day-of-week-data="dashboardData.salesByDayOfWeekData"
+        />
       </div>
       
       <!-- Recent Activity -->
-      <div class="dashboard-content">
-        <div class="content-section">
-          <h2>Recent Activity</h2>
-          <div class="activity-list">
-            <div class="activity-item" v-for="activity in dashboardData.recentActivity" :key="activity.id">
-              <div class="activity-icon">{{ activity.icon }}</div>
-            <div class="activity-content">
-                <p><strong>{{ activity.title }}</strong> {{ activity.description }}</p>
-                <span class="activity-time">{{ activity.time }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <RecentActivityCard
+        :recent-activity="dashboardData.recentActivity"
+      />
     </div>
   </div>
 
-  <!-- Top Selling Items Modal -->
-  <Teleport to="body">
-    <Transition name="modal-fade">
-      <div v-if="showTopItemsModal" class="modal-overlay" @click.self="showTopItemsModal = false">
-        <div class="modal-container top-items-modal" @click.stop>
-          <div class="modal-header">
-            <div class="header-content">
-              <div class="header-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M3 3h18v18H3zM3 9h18M9 3v18"></path>
-                </svg>
-              </div>
-              <div>
-                <h2>All Selling Items</h2>
-                <p class="modal-subtitle">Complete list of items and quantities sold</p>
-              </div>
-            </div>
-            <button class="close-btn" @click="showTopItemsModal = false" aria-label="Close modal">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-          
-          <div class="modal-body">
-            <div v-if="allItemsSales.length === 0" class="no-data">
-              <p>No sales data available</p>
-            </div>
-            <div v-else class="sales-table-container">
-              <table class="sales-table">
-                <thead>
-                  <tr>
-                    <th>Rank</th>
-                    <th>Item Name</th>
-                    <th>Quantity Sold</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(item, index) in allItemsSales" :key="item.menuItemId">
-                    <td class="rank-cell">{{ index + 1 }}</td>
-                    <td class="name-cell">{{ item.name }}</td>
-                    <td class="quantity-cell">{{ item.quantity }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
+  <TopSellingItemsModal
+    :show="showTopItemsModal"
+    :items="allItemsSales"
+    @close="showTopItemsModal = false"
+  />
 
-  <!-- Top Revenue Items Modal -->
-  <Teleport to="body">
-    <Transition name="modal-fade">
-      <div v-if="showTopRevenueModal" class="modal-overlay" @click.self="showTopRevenueModal = false">
-        <div class="modal-container top-items-modal" @click.stop>
-          <div class="modal-header">
-            <div class="header-content">
-              <div class="header-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                </svg>
-              </div>
-              <div>
-                <h2>All Revenue Items</h2>
-                <p class="modal-subtitle">Complete list of items by revenue and profit</p>
-              </div>
-            </div>
-            <button class="close-btn" @click="showTopRevenueModal = false" aria-label="Close modal">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-          
-          <div class="modal-body">
-            <div v-if="allItemsRevenue.length === 0" class="no-data">
-              <p>No revenue data available</p>
-            </div>
-            <div v-else class="sales-table-container">
-              <table class="sales-table">
-                <thead>
-                  <tr>
-                    <th>Rank</th>
-                    <th>Item Name</th>
-                    <th class="sortable-header" @click="toggleRevenueItemsSort('revenue')">
-                      Revenue
-                      <span class="sort-icon" v-if="revenueItemsSortColumn === 'revenue'">
-                        <svg v-if="revenueItemsSortOrder === 'desc'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M6 9l6 6 6-6"></path>
-                        </svg>
-                        <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M18 15l-6-6-6 6"></path>
-                        </svg>
-                      </span>
-                    </th>
-                    <th class="sortable-header" @click="toggleRevenueItemsSort('profit')">
-                      Profit
-                      <span class="sort-icon" v-if="revenueItemsSortColumn === 'profit'">
-                        <svg v-if="revenueItemsSortOrder === 'desc'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M6 9l6 6 6-6"></path>
-                        </svg>
-                        <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M18 15l-6-6-6 6"></path>
-                        </svg>
-                      </span>
-                    </th>
-                    <th class="sortable-header" @click="toggleRevenueItemsSort('quantity')">
-                      Quantity Sold
-                      <span class="sort-icon" v-if="revenueItemsSortColumn === 'quantity'">
-                        <svg v-if="revenueItemsSortOrder === 'desc'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M6 9l6 6 6-6"></path>
-                        </svg>
-                        <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M18 15l-6-6-6 6"></path>
-                        </svg>
-                      </span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(item, index) in allItemsRevenue" :key="item.menuItemId">
-                    <td class="rank-cell">{{ index + 1 }}</td>
-                    <td class="name-cell">{{ item.name }}</td>
-                    <td class="quantity-cell">₱{{ formatNumber(item.revenue) }}</td>
-                    <td class="quantity-cell" :class="item.profit >= 0 ? 'positive' : 'negative'">
-                      ₱{{ formatNumber(item.profit) }}
-                    </td>
-                    <td class="quantity-cell">{{ item.quantity }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
+  <TopRevenueItemsModal
+    :show="showTopRevenueModal"
+    :items="allItemsRevenue"
+    @close="showTopRevenueModal = false"
+  />
 
-  <!-- Payment Methods Orders Modal -->
-  <Teleport to="body">
-    <Transition name="modal-fade">
-      <div v-if="showPaymentMethodsModal" class="modal-overlay" @click.self="closePaymentMethodsModal">
-        <div class="modal-container top-items-modal" @click.stop>
-          <div class="modal-header">
-            <div class="header-content">
-              <div class="header-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M17 9V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2m2 4h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm7-5a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"></path>
-                </svg>
-              </div>
-              <div>
-                <h2>Orders by Payment Method</h2>
-                <p class="modal-subtitle">Complete list of orders with payment methods</p>
-              </div>
-            </div>
-            <button class="close-btn" @click="closePaymentMethodsModal" aria-label="Close modal">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-          
-          <div class="modal-body">
-            <div class="filter-section">
-              <label class="filter-label">Filter by Payment Method</label>
-              <select v-model="selectedPaymentMethodFilter" class="filter-select">
-                <option value="">All Payment Methods</option>
-                <option v-for="method in availablePaymentMethods" :key="method" :value="method">
-                  {{ formatPaymentMethod(method) }}
-                </option>
-              </select>
-            </div>
-            <div v-if="paymentMethodsOrders.length === 0" class="no-data">
-              <p>No orders data available</p>
-            </div>
-            <div v-else class="sales-table-container">
-              <table class="sales-table">
-                <thead>
-                  <tr>
-                    <th class="sortable-header" @click="togglePaymentMethodsSort">
-                      Date
-                      <span class="sort-icon">
-                        <svg v-if="paymentMethodsSortOrder === 'desc'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M6 9l6 6 6-6"></path>
-                        </svg>
-                        <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M18 15l-6-6-6 6"></path>
-                        </svg>
-                      </span>
-                    </th>
-                    <th>Order Items</th>
-                    <th>Payment Method</th>
-                    <th>Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="order in paymentMethodsOrders" :key="order.id" :class="{ 'editing-row': editingOrderId === order.id }">
-                    <td class="date-cell">{{ order.date }}</td>
-                    <td class="name-cell">{{ order.itemsSummary }}</td>
-                    <td class="payment-method-cell">
-                      <div v-if="editingOrderId === order.id" class="payment-method-edit">
-                        <select 
-                          v-model="editingPaymentMethod" 
-                          class="payment-method-select"
-                          :disabled="savingOrderId === order.id"
-                        >
-                          <option v-for="method in allPaymentMethods" :key="method" :value="method">
-                            {{ formatPaymentMethod(method) }}
-                          </option>
-                        </select>
-                        <div class="edit-actions">
-                          <button 
-                            @click="savePaymentMethod(order.id)" 
-                            class="save-btn"
-                            :disabled="savingOrderId === order.id"
-                            :title="savingOrderId === order.id ? 'Saving...' : 'Save'"
-                          >
-                            <svg v-if="savingOrderId !== order.id" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                              <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                            <div v-else class="spinner-small"></div>
-                          </button>
-                          <button 
-                            @click="cancelEdit" 
-                            class="cancel-btn"
-                            :disabled="savingOrderId === order.id"
-                            title="Cancel"
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                              <line x1="18" y1="6" x2="6" y2="18"></line>
-                              <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                      <div v-else class="payment-method-display">
-                        <span>{{ formatPaymentMethod(order.paymentMethod) }}</span>
-                        <button 
-                          @click="startEdit(order.id, order.paymentMethod)" 
-                          class="edit-icon-btn"
-                          title="Edit payment method"
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                    <td class="quantity-cell">₱{{ formatNumber(order.amount) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
+  <PaymentMethodsModal
+    ref="paymentMethodsModalRef"
+    :show="showPaymentMethodsModal"
+    :orders="paymentMethodsOrdersForModal"
+    :available-payment-methods="availablePaymentMethods"
+    :all-payment-methods="allPaymentMethods"
+    @close="closePaymentMethodsModal"
+    @save="handleSavePaymentMethod"
+  />
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Chart, registerables } from 'chart.js'
 import { OrderService } from '../services/orderService'
 import { expenseService } from '../services/expenseService'
 import { inventoryService } from '../services/inventoryService'
@@ -598,27 +214,25 @@ import { isLowStock } from '../modules/inventory/inventoryUtils'
 import { computeCostPerOrderForMenuItem } from '../modules/menu/menuPageUtils'
 import type { Order, OrderItem, Expense, Inventory, MenuItem, RecipeMap, PaymentMethod } from '../models'
 
-// Register Chart.js components
-Chart.register(...registerables)
+// Dashboard components
+import StatCard from './dashboard/StatCard.vue'
+import SalesTrendChartCard from './dashboard/SalesTrendChartCard.vue'
+import ExpenseBreakdownChartCard from './dashboard/ExpenseBreakdownChartCard.vue'
+import TopSellingItemsChartCard from './dashboard/TopSellingItemsChartCard.vue'
+import TopRevenueItemsChartCard from './dashboard/TopRevenueItemsChartCard.vue'
+import PaymentMethodsChartCard from './dashboard/PaymentMethodsChartCard.vue'
+import InventoryStatusCard from './dashboard/InventoryStatusCard.vue'
+import SalesByDayOfWeekChartCard from './dashboard/SalesByDayOfWeekChartCard.vue'
+import RecentActivityCard from './dashboard/RecentActivityCard.vue'
+import TopSellingItemsModal from './dashboard/TopSellingItemsModal.vue'
+import TopRevenueItemsModal from './dashboard/TopRevenueItemsModal.vue'
+import PaymentMethodsModal from './dashboard/PaymentMethodsModal.vue'
 
 // Router
 const router = useRouter()
 
-// Refs
-const salesChart = ref<HTMLCanvasElement | null>(null)
-const expenseChart = ref<HTMLCanvasElement | null>(null)
-const topItemsChart = ref<HTMLCanvasElement | null>(null)
-const topRevenueChart = ref<HTMLCanvasElement | null>(null)
-const paymentMethodsChart = ref<HTMLCanvasElement | null>(null)
-const salesByDayOfWeekChart = ref<HTMLCanvasElement | null>(null)
-
-// Chart instances for cleanup
-let salesChartInstance: Chart | null = null
-let expenseChartInstance: Chart | null = null
-let topItemsChartInstance: Chart | null = null
-let topRevenueChartInstance: Chart | null = null
-let paymentMethodsChartInstance: Chart | null = null
-let salesByDayOfWeekChartInstance: Chart | null = null
+// Modal refs
+const paymentMethodsModalRef = ref<InstanceType<typeof PaymentMethodsModal> | null>(null)
 
 // State
 const loading = ref(true)
@@ -630,16 +244,6 @@ const customEndDate = ref<string>('')
 const showTopItemsModal = ref(false)
 const showTopRevenueModal = ref(false)
 const showPaymentMethodsModal = ref(false)
-const paymentMethodsSortOrder = ref<'asc' | 'desc'>('desc')
-const selectedPaymentMethodFilter = ref<string>('')
-const revenueItemsSortColumn = ref<'revenue' | 'profit' | 'quantity'>('revenue')
-const revenueItemsSortOrder = ref<'asc' | 'desc'>('desc')
-const salesByDayOfWeekView = ref<'total' | 'average'>('total')
-
-// Edit state for payment methods
-const editingOrderId = ref<string | null>(null)
-const editingPaymentMethod = ref<PaymentMethod | null>(null)
-const savingOrderId = ref<string | null>(null)
 
 // Chart visibility state
 const chartVisibility = ref({
@@ -1631,9 +1235,10 @@ function getSalesByDayOfWeek() {
     // Convert to Monday=0, Tuesday=1, ..., Sunday=6
     dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1
     
-    if (dayOfWeekData[dayOfWeek]) {
-      dayOfWeekData[dayOfWeek].total += order.total_amount
-      dayOfWeekData[dayOfWeek].count += 1
+    const dayData = dayOfWeekData[dayOfWeek]
+    if (dayData) {
+      dayData.total += order.total_amount
+      dayData.count += 1
     }
   })
   
@@ -1644,11 +1249,17 @@ function getSalesByDayOfWeek() {
   const averages: number[] = []
   
   for (let i = 0; i < 7; i++) {
-    labels.push(dayNames[i])
-    totals.push(dayOfWeekData[i].total)
-    // Calculate average: total sales / number of occurrences of that weekday
-    const occurrences = weekdayCounts[i] || 1
-    averages.push(occurrences > 0 ? dayOfWeekData[i].total / occurrences : 0)
+    labels.push(dayNames[i]!)
+    const dayData = dayOfWeekData[i]
+    if (dayData) {
+      totals.push(dayData.total)
+      // Calculate average: total sales / number of occurrences of that weekday
+      const occurrences = weekdayCounts[i] || 1
+      averages.push(occurrences > 0 ? dayData.total / occurrences : 0)
+    } else {
+      totals.push(0)
+      averages.push(0)
+    }
   }
   
   return {
@@ -1732,7 +1343,7 @@ const allItemsRevenue = computed(() => {
     }
   })
   
-  // Convert to array and sort by selected column
+  // Convert to array and sort by revenue (default)
   const itemsWithRevenue = Object.entries(itemRevenue)
     .map(([menuItemId, revenue]) => {
       const menuItem = menuItems.value.find(item => item.id === menuItemId)
@@ -1745,17 +1356,7 @@ const allItemsRevenue = computed(() => {
       }
     })
     .filter(item => item.name !== 'Unknown Item')
-    .sort((a, b) => {
-      let comparison = 0
-      if (revenueItemsSortColumn.value === 'revenue') {
-        comparison = a.revenue - b.revenue
-      } else if (revenueItemsSortColumn.value === 'profit') {
-        comparison = a.profit - b.profit
-      } else if (revenueItemsSortColumn.value === 'quantity') {
-        comparison = a.quantity - b.quantity
-      }
-      return revenueItemsSortOrder.value === 'desc' ? -comparison : comparison
-    })
+    .sort((a, b) => b.revenue - a.revenue) // Sort by revenue descending by default
   
   return itemsWithRevenue
 })
@@ -1780,7 +1381,7 @@ const availablePaymentMethods = computed(() => {
 })
 
 // Get orders with item summaries for payment methods modal
-const paymentMethodsOrders = computed(() => {
+const paymentMethodsOrdersForModal = computed(() => {
   const now = new Date()
   const periodOrders = getOrdersForPeriod(now, selectedPeriod.value)
   
@@ -1788,37 +1389,21 @@ const paymentMethodsOrders = computed(() => {
   const completedOrders = periodOrders.filter(order => order.status === 'completed')
   
   // Map orders to include item summaries
-  let orders = completedOrders
+  return completedOrders
     .filter(order => order.payment_method)
     .map(order => {
       const items = orderItems.value.filter(item => item.order_id === order.id)
       const itemsSummary = formatOrderItemsSummary(items)
       const date = formatOrderDate(order.created_at)
-      const dateValue = order.created_at ? new Date(order.created_at).getTime() : 0
       
       return {
         id: order.id,
         date,
-        dateValue,
         itemsSummary,
         paymentMethod: order.payment_method!,
         amount: order.total_amount
       }
     })
-  
-  // Filter by selected payment method if one is selected
-  if (selectedPaymentMethodFilter.value) {
-    orders = orders.filter(order => order.paymentMethod === selectedPaymentMethodFilter.value)
-  }
-  
-  // Sort by date
-  return orders.sort((a, b) => {
-    if (paymentMethodsSortOrder.value === 'desc') {
-      return b.dateValue - a.dateValue
-    } else {
-      return a.dateValue - b.dateValue
-    }
-  })
 })
 
 // Helper function to format order items summary
@@ -1838,10 +1423,6 @@ function formatOrderItemsSummary(items: OrderItem[]): string {
   return summaryParts.join(', ')
 }
 
-// Helper function to format payment method name
-function formatPaymentMethod(method: string): string {
-  return method.charAt(0).toUpperCase() + method.slice(1)
-}
 
 // Helper function to format order date as mm/dd/yyyy
 function formatOrderDate(dateString: string | null): string {
@@ -1855,60 +1436,33 @@ function formatOrderDate(dateString: string | null): string {
   return `${month}/${day}/${year}`
 }
 
-// Toggle sort order for payment methods orders
-function togglePaymentMethodsSort() {
-  paymentMethodsSortOrder.value = paymentMethodsSortOrder.value === 'desc' ? 'asc' : 'desc'
-}
-
 function closePaymentMethodsModal() {
   showPaymentMethodsModal.value = false
-  selectedPaymentMethodFilter.value = ''
-  cancelEdit()
-}
-
-// Payment method edit functions
-function startEdit(orderId: string, currentPaymentMethod: string) {
-  editingOrderId.value = orderId
-  editingPaymentMethod.value = currentPaymentMethod as PaymentMethod
-}
-
-function cancelEdit() {
-  editingOrderId.value = null
-  editingPaymentMethod.value = null
-  savingOrderId.value = null
-}
-
-async function savePaymentMethod(orderId: string) {
-  if (!editingPaymentMethod.value) {
-    return
+  if (paymentMethodsModalRef.value) {
+    paymentMethodsModalRef.value.cancelEdit()
   }
+}
 
-  savingOrderId.value = orderId
-  
+async function handleSavePaymentMethod(orderId: string, paymentMethod: PaymentMethod) {
   try {
     await OrderService.updateOrder(orderId, {
-      payment_method: editingPaymentMethod.value
+      payment_method: paymentMethod
     })
     
     // Refresh dashboard data to reflect the change
     await loadDashboardData()
     
-    // Exit edit mode
-    cancelEdit()
+    // Exit edit mode in modal
+    if (paymentMethodsModalRef.value) {
+      paymentMethodsModalRef.value.cancelEdit()
+      paymentMethodsModalRef.value.setSaving(null)
+    }
   } catch (error) {
     console.error('Error updating payment method:', error)
     alert('Failed to update payment method. Please try again.')
-    savingOrderId.value = null
-  }
-}
-
-// Toggle sort for revenue items
-function toggleRevenueItemsSort(column: 'revenue' | 'profit' | 'quantity') {
-  if (revenueItemsSortColumn.value === column) {
-    revenueItemsSortOrder.value = revenueItemsSortOrder.value === 'desc' ? 'asc' : 'desc'
-  } else {
-    revenueItemsSortColumn.value = column
-    revenueItemsSortOrder.value = 'desc'
+    if (paymentMethodsModalRef.value) {
+      paymentMethodsModalRef.value.setSaving(null)
+    }
   }
 }
 
@@ -1938,399 +1492,6 @@ function goToInventory() {
 // Chart line toggle function
 function toggleChartLine(line: 'sales' | 'expenses' | 'profit') {
   chartVisibility.value[line] = !chartVisibility.value[line]
-  
-  // Update chart without recreating it
-  if (salesChartInstance) {
-    const datasetIndex = line === 'sales' ? 0 : line === 'expenses' ? 1 : 2
-    const meta = salesChartInstance.getDatasetMeta(datasetIndex)
-    meta.hidden = !chartVisibility.value[line]
-    salesChartInstance.update()
-  }
-}
-
-// Chart creation functions
-function createSalesChart() {
-  if (!salesChart.value) return
-  
-  // Destroy existing chart instance if it exists
-  if (salesChartInstance) {
-    salesChartInstance.destroy()
-    salesChartInstance = null
-  }
-  
-  const ctx = salesChart.value.getContext('2d')
-  if (!ctx) return
-  
-  const salesData = dashboardData.value.salesData
-  const expensesData = dashboardData.value.expensesData
-  const profitData = dashboardData.value.profitData
-  
-  salesChartInstance = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: salesData.labels,
-      datasets: [
-        {
-          label: 'Sales',
-          data: salesData.data,
-          borderColor: '#667eea',
-          backgroundColor: 'rgba(102, 126, 234, 0.1)',
-          borderWidth: 3,
-          fill: true,
-          tension: 0.4,
-          hidden: !chartVisibility.value.sales
-        },
-        {
-          label: 'Expenses',
-          data: expensesData.data,
-          borderColor: '#dc3545',
-          backgroundColor: 'rgba(220, 53, 69, 0.1)',
-          borderWidth: 3,
-          fill: true,
-          tension: 0.4,
-          hidden: !chartVisibility.value.expenses
-        },
-        {
-          label: 'Profit',
-          data: profitData.data,
-          borderColor: '#28a745',
-          backgroundColor: 'rgba(40, 167, 69, 0.1)',
-          borderWidth: 3,
-          fill: true,
-          tension: 0.4,
-          hidden: !chartVisibility.value.profit
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: {
-            callback: function(value) {
-              return '₱' + value.toLocaleString()
-            }
-          }
-        }
-      }
-    }
-  })
-}
-
-function createExpenseChart() {
-  if (!expenseChart.value) return
-  
-  // Destroy existing chart instance if it exists
-  if (expenseChartInstance) {
-    expenseChartInstance.destroy()
-    expenseChartInstance = null
-  }
-  
-  const ctx = expenseChart.value.getContext('2d')
-  if (!ctx) return
-  
-  const chartData = dashboardData.value.expenseData
-  
-  expenseChartInstance = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: chartData.labels,
-      datasets: [{
-        data: chartData.data,
-        backgroundColor: [
-          '#667eea',
-          '#764ba2',
-          '#f093fb',
-          '#f5576c',
-          '#4facfe',
-          '#00f2fe'
-        ]
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom'
-        }
-      }
-    }
-  })
-}
-
-function createTopItemsChart() {
-  if (!topItemsChart.value) return
-  
-  // Destroy existing chart instance if it exists
-  if (topItemsChartInstance) {
-    topItemsChartInstance.destroy()
-    topItemsChartInstance = null
-  }
-  
-  const ctx = topItemsChart.value.getContext('2d')
-  if (!ctx) return
-  
-  const chartData = dashboardData.value.topItemsData
-  
-  topItemsChartInstance = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: chartData.labels,
-      datasets: [{
-        label: 'Sales Count',
-        data: chartData.data,
-        backgroundColor: '#667eea',
-        borderRadius: 4
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true
-        }
-      }
-    }
-  })
-}
-
-function createTopRevenueChart() {
-  if (!topRevenueChart.value) return
-  
-  // Destroy existing chart instance if it exists
-  if (topRevenueChartInstance) {
-    topRevenueChartInstance.destroy()
-    topRevenueChartInstance = null
-  }
-  
-  const ctx = topRevenueChart.value.getContext('2d')
-  if (!ctx) return
-  
-  const chartData = dashboardData.value.topRevenueData
-  
-  topRevenueChartInstance = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: chartData.labels,
-      datasets: [{
-        label: 'Revenue',
-        data: chartData.data,
-        backgroundColor: '#43e97b',
-        borderRadius: 4
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        },
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              const label = context.label || ''
-              const revenue = context.raw || 0
-              const index = context.dataIndex
-              const profit = chartData.profits[index] || 0
-              return [
-                `${label}: ₱${Number(revenue).toLocaleString()}`,
-                `Profit: ₱${profit.toLocaleString()}`
-              ]
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          ticks: {
-            maxRotation: 45,
-            minRotation: 45,
-            callback: function(_value, index) {
-              const label = chartData.labels[index]
-              if (!label) return ''
-              // Truncate to 20 characters and add ellipsis
-              return label.length > 20 ? label.substring(0, 20) + '...' : label
-            }
-          }
-        },
-        y: {
-          beginAtZero: true,
-          ticks: {
-            callback: function(value) {
-              return '₱' + value.toLocaleString()
-            }
-          }
-        }
-      }
-    }
-  })
-}
-
-function createPaymentMethodsChart() {
-  if (!paymentMethodsChart.value) return
-  
-  // Destroy existing chart instance if it exists
-  if (paymentMethodsChartInstance) {
-    paymentMethodsChartInstance.destroy()
-    paymentMethodsChartInstance = null
-  }
-  
-  const ctx = paymentMethodsChart.value.getContext('2d')
-  if (!ctx) return
-  
-  const chartData = dashboardData.value.paymentMethodsData
-  
-  paymentMethodsChartInstance = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: chartData.labels,
-      datasets: [{
-        data: chartData.data,
-        backgroundColor: [
-          '#667eea',
-          '#764ba2',
-          '#f093fb',
-          '#f5576c',
-          '#4facfe',
-          '#00f2fe',
-          '#43e97b'
-        ]
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom'
-        },
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              const label = context.label || ''
-              const value = context.parsed || 0
-              return `${label}: ₱${value.toLocaleString()}`
-            }
-          }
-        }
-      }
-    }
-  })
-}
-
-function createSalesByDayOfWeekChart() {
-  if (!salesByDayOfWeekChart.value) return
-  
-  const chartData = dashboardData.value.salesByDayOfWeekData
-  
-  // If data is not available, don't create chart
-  if (!chartData.available) {
-    return
-  }
-  
-  // Destroy existing chart instance if it exists
-  if (salesByDayOfWeekChartInstance) {
-    salesByDayOfWeekChartInstance.destroy()
-    salesByDayOfWeekChartInstance = null
-  }
-  
-  const ctx = salesByDayOfWeekChart.value.getContext('2d')
-  if (!ctx) return
-  
-  // Determine which dataset to show based on view
-  const isTotalView = salesByDayOfWeekView.value === 'total'
-  const dataset = {
-    label: isTotalView ? 'Total Sales' : 'Average Sales',
-    data: isTotalView ? chartData.totals : chartData.averages,
-    backgroundColor: isTotalView ? '#667eea' : '#43e97b',
-    borderRadius: 4
-  }
-  
-  salesByDayOfWeekChartInstance = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: chartData.labels,
-      datasets: [dataset]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        },
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              const label = isTotalView ? 'Total Sales' : 'Average Sales'
-              const value = context.parsed.y || 0
-              return `${label}: ₱${value.toLocaleString()}`
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          grid: {
-            display: false
-          }
-        },
-        y: {
-          beginAtZero: true,
-          ticks: {
-            callback: function(value) {
-              return '₱' + value.toLocaleString()
-            }
-          }
-        }
-      }
-    }
-  })
-}
-
-function updateSalesByDayOfWeekChart() {
-  if (!salesByDayOfWeekChartInstance || !salesByDayOfWeekChart.value) return
-  
-  const chartData = dashboardData.value.salesByDayOfWeekData
-  if (!chartData.available) return
-  
-  const isTotalView = salesByDayOfWeekView.value === 'total'
-  
-  // Update the dataset
-  const dataset = salesByDayOfWeekChartInstance.data.datasets[0]
-  if (dataset) {
-    dataset.label = isTotalView ? 'Total Sales' : 'Average Sales'
-    dataset.data = isTotalView ? chartData.totals : chartData.averages
-    dataset.backgroundColor = isTotalView ? '#667eea' : '#43e97b'
-  }
-  
-  // Update tooltip callback
-  const plugins = salesByDayOfWeekChartInstance.options.plugins
-  if (plugins && plugins.tooltip && plugins.tooltip.callbacks) {
-    plugins.tooltip.callbacks.label = function(context: any) {
-      const label = isTotalView ? 'Total Sales' : 'Average Sales'
-      const value = context.parsed.y || 0
-      return `${label}: ₱${value.toLocaleString()}`
-    }
-  }
-  
-  // Update the chart
-  salesByDayOfWeekChartInstance.update()
 }
 
 // Data loading
@@ -2367,40 +1528,9 @@ async function loadDashboardData() {
   }
 }
 
-// Function to recreate all charts
-async function recreateCharts() {
-  await nextTick()
-  createSalesChart()
-  createExpenseChart()
-  createTopItemsChart()
-  createTopRevenueChart()
-  createPaymentMethodsChart()
-  createSalesByDayOfWeekChart()
-}
-
-// Watch for period changes and recreate charts
-watch(selectedPeriod, async () => {
-  await recreateCharts()
-})
-
-// Watch for period type changes and recreate charts
-watch(periodType, async () => {
-  await recreateCharts()
-})
-
-// Watch for custom date changes and recreate charts
-watch([customStartDate, customEndDate], async () => {
-  if (selectedPeriod.value === 'custom') {
-    await recreateCharts()
-  }
-})
-
 // Lifecycle
 onMounted(async () => {
   await loadDashboardData()
-  
-  // Create charts after data is loaded and DOM is updated
-  await recreateCharts()
 })
 </script>
 

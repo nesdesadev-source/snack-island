@@ -1,0 +1,181 @@
+<template>
+  <div class="chart-card">
+    <div class="chart-header">
+      <div>
+        <h3>Top Revenue Items</h3>
+        <p class="chart-subtitle" v-if="topRevenueData.labels.length > 0 && topRevenueData.labels[0] !== 'No revenue data'">
+          Total Profit: ₱{{ formatNumber(topRevenueData.profits.reduce((sum, p) => sum + p, 0)) }}
+        </p>
+      </div>
+      <button @click="$emit('viewAll')" class="inventory-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M7 17L17 7M17 7H7M17 7V17"></path>
+        </svg>
+        View All
+      </button>
+    </div>
+    <div class="chart-container">
+      <canvas ref="chartCanvas" width="400" height="200"></canvas>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { Chart, registerables } from 'chart.js'
+
+Chart.register(...registerables)
+
+interface Props {
+  topRevenueData: { labels: string[]; data: number[]; profits: number[] }
+}
+
+const props = defineProps<Props>()
+defineEmits<{
+  viewAll: []
+}>()
+
+const chartCanvas = ref<HTMLCanvasElement | null>(null)
+let chartInstance: Chart | null = null
+
+function formatNumber(num: number): string {
+  return new Intl.NumberFormat('en-US').format(num)
+}
+
+function createChart() {
+  if (!chartCanvas.value) return
+  
+  if (chartInstance) {
+    chartInstance.destroy()
+    chartInstance = null
+  }
+  
+  const ctx = chartCanvas.value.getContext('2d')
+  if (!ctx) return
+  
+  chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: props.topRevenueData.labels,
+      datasets: [{
+        label: 'Revenue',
+        data: props.topRevenueData.data,
+        backgroundColor: '#43e97b',
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const label = context.label || ''
+              const revenue = context.raw || 0
+              const index = context.dataIndex
+              const profit = props.topRevenueData.profits[index] || 0
+              return [
+                `${label}: ₱${Number(revenue).toLocaleString()}`,
+                `Profit: ₱${profit.toLocaleString()}`
+              ]
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            maxRotation: 45,
+            minRotation: 45,
+            callback: function(_value, index) {
+              const label = props.topRevenueData.labels[index]
+              if (!label) return ''
+              return label.length > 20 ? label.substring(0, 20) + '...' : label
+            }
+          }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return '₱' + value.toLocaleString()
+            }
+          }
+        }
+      }
+    }
+  })
+}
+
+watch(() => props.topRevenueData, () => {
+  createChart()
+}, { deep: true })
+
+onMounted(() => {
+  createChart()
+})
+
+onUnmounted(() => {
+  if (chartInstance) {
+    chartInstance.destroy()
+    chartInstance = null
+  }
+})
+</script>
+
+<style scoped>
+.chart-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.chart-header h3 {
+  margin: 0;
+  color: #343a40;
+  font-size: 1.1rem;
+}
+
+.chart-subtitle {
+  margin: 0.25rem 0 0 0;
+  color: #6c757d;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.inventory-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.inventory-btn:hover {
+  background: #5a6fd8;
+}
+
+.chart-container {
+  position: relative;
+  height: 200px;
+}
+</style>
