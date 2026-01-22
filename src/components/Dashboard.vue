@@ -165,6 +165,10 @@
         <SalesByDayOfWeekChartCard
           :sales-by-day-of-week-data="dashboardData.salesByDayOfWeekData"
         />
+        
+        <SalesByTimeOfDayChartCard
+          :sales-by-time-of-day-data="dashboardData.salesByTimeOfDayData"
+        />
       </div>
       
       <!-- Recent Activity -->
@@ -223,6 +227,7 @@ import TopRevenueItemsChartCard from './dashboard/TopRevenueItemsChartCard.vue'
 import PaymentMethodsChartCard from './dashboard/PaymentMethodsChartCard.vue'
 import InventoryStatusCard from './dashboard/InventoryStatusCard.vue'
 import SalesByDayOfWeekChartCard from './dashboard/SalesByDayOfWeekChartCard.vue'
+import SalesByTimeOfDayChartCard from './dashboard/SalesByTimeOfDayChartCard.vue'
 import RecentActivityCard from './dashboard/RecentActivityCard.vue'
 import TopSellingItemsModal from './dashboard/TopSellingItemsModal.vue'
 import TopRevenueItemsModal from './dashboard/TopRevenueItemsModal.vue'
@@ -295,7 +300,8 @@ const dashboardData = computed(() => {
     topItemsData: getTopItemsData(),
     topRevenueData: getTopRevenueItemsData(),
     paymentMethodsData: getPaymentMethodsData(),
-    salesByDayOfWeekData: getSalesByDayOfWeek()
+    salesByDayOfWeekData: getSalesByDayOfWeek(),
+    salesByTimeOfDayData: getSalesByTimeOfDay()
   }
 })
 
@@ -1256,6 +1262,104 @@ function getSalesByDayOfWeek() {
       // Calculate average: total sales / number of occurrences of that weekday
       const occurrences = weekdayCounts[i] || 1
       averages.push(occurrences > 0 ? dayData.total / occurrences : 0)
+    } else {
+      totals.push(0)
+      averages.push(0)
+    }
+  }
+  
+  return {
+    available: true,
+    labels,
+    totals,
+    averages
+  }
+}
+
+function getSalesByTimeOfDay() {
+  const now = new Date()
+  const period = selectedPeriod.value
+  const type = periodType.value
+  const startDate = getPeriodStartDate(now, period, type)
+  const endDate = getPeriodEndDate(now, period, type)
+  
+  // Get orders for the period
+  const periodOrders = getOrdersForPeriod(now, period)
+  const completedOrders = periodOrders.filter(order => order.status === 'completed')
+  
+  // If no completed orders, return not available
+  if (completedOrders.length === 0) {
+    return {
+      available: false,
+      labels: [],
+      totals: [],
+      averages: []
+    }
+  }
+  
+  // Initialize data structures for each hour (9am to 11:59pm = hours 9-23)
+  const hourData: Record<number, { total: number; count: number }> = {}
+  
+  // Initialize all hours from 9 to 23
+  for (let hour = 9; hour <= 23; hour++) {
+    hourData[hour] = { total: 0, count: 0 }
+  }
+  
+  // Count occurrences of each hour in the date range
+  const hourCounts: Record<number, number> = {}
+  for (let hour = 9; hour <= 23; hour++) {
+    hourCounts[hour] = 0
+  }
+  
+  // Iterate through each day in the period and count hour occurrences
+  const currentDate = new Date(startDate)
+  while (currentDate <= endDate) {
+    // For each day, count hours 9-23
+    for (let hour = 9; hour <= 23; hour++) {
+      hourCounts[hour] = (hourCounts[hour] || 0) + 1
+    }
+    currentDate.setDate(currentDate.getDate() + 1)
+  }
+  
+  // Aggregate sales by hour (convert UTC to local timezone)
+  completedOrders.forEach(order => {
+    if (!order.created_at) return
+    
+    // Convert UTC timestamp to local timezone
+    const orderDate = new Date(order.created_at)
+    const hour = orderDate.getHours()
+    
+    // Only process hours between 9am (9) and 11:59pm (23)
+    if (hour >= 9 && hour <= 23) {
+      const hourInfo = hourData[hour]
+      if (hourInfo) {
+        hourInfo.total += order.total_amount
+        hourInfo.count += 1
+      }
+    }
+  })
+  
+  // Format hour labels (12-hour format with am/pm)
+  const formatHourLabel = (hour: number): string => {
+    if (hour === 0) return '12am'
+    if (hour < 12) return `${hour}am`
+    if (hour === 12) return '12pm'
+    return `${hour - 12}pm`
+  }
+  
+  // Build labels and data arrays (9am through 11pm)
+  const labels: string[] = []
+  const totals: number[] = []
+  const averages: number[] = []
+  
+  for (let hour = 9; hour <= 23; hour++) {
+    labels.push(formatHourLabel(hour))
+    const hourInfo = hourData[hour]
+    if (hourInfo) {
+      totals.push(hourInfo.total)
+      // Calculate average: total sales / number of days that hour appears in period
+      const occurrences = hourCounts[hour] || 1
+      averages.push(occurrences > 0 ? hourInfo.total / occurrences : 0)
     } else {
       totals.push(0)
       averages.push(0)
