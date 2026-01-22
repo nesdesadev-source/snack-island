@@ -39,7 +39,12 @@
         <div class="sales-right">
           <div class="sales-amount-wrapper">
             <div class="sales-amount">
-              <span v-if="showSalesAmount">₱{{ formatNumber(totalCompletedSales) }}</span>
+              <span v-if="showSalesAmount">
+                ₱{{ formatNumber(totalCompletedSales) }} 
+                <span class="sales-breakdown">
+                  (Cash: ₱{{ formatNumber(cashSales) }}, GCash: ₱{{ formatNumber(gcashSales) }})
+                </span>
+              </span>
               <span v-else>₱****</span>
             </div>
             <button @click="toggleSalesVisibility" class="eye-button" :class="{ 'active': showSalesAmount }">
@@ -143,20 +148,38 @@ let salesVisibilityTimeout: number | null = null
 // Computed properties for real-time updates
 let timeInterval: number | null = null
 
-// Computed total sales from completed orders (today only)
-const totalCompletedSales = computed(() => {
+// Helper function to get today's completed orders
+const getTodayCompletedOrders = () => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   
-  return orders.value
-    .filter(order => {
-      if (order.status !== 'completed' || !order.created_at) return false
-      
-      const orderDate = new Date(order.created_at)
-      orderDate.setHours(0, 0, 0, 0)
-      
-      return orderDate.getTime() === today.getTime()
-    })
+  return orders.value.filter(order => {
+    if (order.status !== 'completed' || !order.created_at) return false
+    
+    const orderDate = new Date(order.created_at)
+    orderDate.setHours(0, 0, 0, 0)
+    
+    return orderDate.getTime() === today.getTime()
+  })
+}
+
+// Computed total sales from completed orders (today only)
+const totalCompletedSales = computed(() => {
+  return getTodayCompletedOrders()
+    .reduce((total, order) => total + (order.total_amount || 0), 0)
+})
+
+// Computed cash sales from completed orders (today only)
+const cashSales = computed(() => {
+  return getTodayCompletedOrders()
+    .filter(order => order.payment_method === 'cash')
+    .reduce((total, order) => total + (order.total_amount || 0), 0)
+})
+
+// Computed gcash sales from completed orders (today only)
+const gcashSales = computed(() => {
+  return getTodayCompletedOrders()
+    .filter(order => order.payment_method === 'gcash')
     .reduce((total, order) => total + (order.total_amount || 0), 0)
 })
 
@@ -519,6 +542,13 @@ onUnmounted(() => {
   color: #1d1d1f;
   letter-spacing: 0.3px;
   font-variant-numeric: tabular-nums;
+}
+
+.sales-breakdown {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #86868b;
+  margin-left: 0.5rem;
 }
 
 .eye-button {
