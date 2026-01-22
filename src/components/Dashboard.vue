@@ -266,6 +266,34 @@
             </div>
           </div>
         </div>
+        
+        <!-- Sales by Day of Week Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Sales by Day of Week</h3>
+            <div v-if="dashboardData.salesByDayOfWeekData.available" class="chart-view-toggle">
+              <button
+                @click="salesByDayOfWeekView = 'total'; updateSalesByDayOfWeekChart()"
+                :class="['toggle-btn', { active: salesByDayOfWeekView === 'total' }]"
+              >
+                Total
+              </button>
+              <button
+                @click="salesByDayOfWeekView = 'average'; updateSalesByDayOfWeekChart()"
+                :class="['toggle-btn', { active: salesByDayOfWeekView === 'average' }]"
+              >
+                Average
+              </button>
+            </div>
+          </div>
+          <div class="chart-container">
+            <div v-if="!dashboardData.salesByDayOfWeekData.available" class="no-data-message">
+              <p>Not Available</p>
+              <p class="no-data-subtitle">Please select a period of 7 days or more</p>
+            </div>
+            <canvas v-else ref="salesByDayOfWeekChart" width="400" height="200"></canvas>
+          </div>
+        </div>
       </div>
       
       <!-- Recent Activity -->
@@ -582,6 +610,7 @@ const expenseChart = ref<HTMLCanvasElement | null>(null)
 const topItemsChart = ref<HTMLCanvasElement | null>(null)
 const topRevenueChart = ref<HTMLCanvasElement | null>(null)
 const paymentMethodsChart = ref<HTMLCanvasElement | null>(null)
+const salesByDayOfWeekChart = ref<HTMLCanvasElement | null>(null)
 
 // Chart instances for cleanup
 let salesChartInstance: Chart | null = null
@@ -589,6 +618,7 @@ let expenseChartInstance: Chart | null = null
 let topItemsChartInstance: Chart | null = null
 let topRevenueChartInstance: Chart | null = null
 let paymentMethodsChartInstance: Chart | null = null
+let salesByDayOfWeekChartInstance: Chart | null = null
 
 // State
 const loading = ref(true)
@@ -604,6 +634,7 @@ const paymentMethodsSortOrder = ref<'asc' | 'desc'>('desc')
 const selectedPaymentMethodFilter = ref<string>('')
 const revenueItemsSortColumn = ref<'revenue' | 'profit' | 'quantity'>('revenue')
 const revenueItemsSortOrder = ref<'asc' | 'desc'>('desc')
+const salesByDayOfWeekView = ref<'total' | 'average'>('total')
 
 // Edit state for payment methods
 const editingOrderId = ref<string | null>(null)
@@ -659,7 +690,8 @@ const dashboardData = computed(() => {
     expenseData: getExpenseChartData(),
     topItemsData: getTopItemsData(),
     topRevenueData: getTopRevenueItemsData(),
-    paymentMethodsData: getPaymentMethodsData()
+    paymentMethodsData: getPaymentMethodsData(),
+    salesByDayOfWeekData: getSalesByDayOfWeek()
   }
 })
 
@@ -1537,6 +1569,96 @@ function getPaymentMethodsData() {
   return { labels, data }
 }
 
+function getSalesByDayOfWeek() {
+  const now = new Date()
+  const period = selectedPeriod.value
+  const type = periodType.value
+  const startDate = getPeriodStartDate(now, period, type)
+  const endDate = getPeriodEndDate(now, period, type)
+  
+  // Calculate number of days in the period
+  const timeDiff = endDate.getTime() - startDate.getTime()
+  const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24)) + 1 // +1 to include both start and end days
+  
+  // If period is less than 7 days, return not available
+  if (daysDiff < 7) {
+    return {
+      available: false,
+      labels: [],
+      totals: [],
+      averages: []
+    }
+  }
+  
+  // Get orders for the period
+  const periodOrders = getOrdersForPeriod(now, period)
+  const completedOrders = periodOrders.filter(order => order.status === 'completed')
+  
+  // Initialize data structures for each day of week
+  // JavaScript Date.getDay() returns: 0=Sunday, 1=Monday, ..., 6=Saturday
+  // We want to display Monday-Sunday, so we'll map: Monday=0, Tuesday=1, ..., Sunday=6
+  const dayOfWeekData: Record<number, { total: number; count: number }> = {}
+  
+  // Initialize all days
+  for (let i = 0; i < 7; i++) {
+    dayOfWeekData[i] = { total: 0, count: 0 }
+  }
+  
+  // Count occurrences of each weekday in the date range
+  const weekdayCounts: Record<number, number> = {}
+  for (let i = 0; i < 7; i++) {
+    weekdayCounts[i] = 0
+  }
+  
+  // Iterate through each day in the period and count weekday occurrences
+  const currentDate = new Date(startDate)
+  while (currentDate <= endDate) {
+    // Get day of week: 0=Sunday, 1=Monday, ..., 6=Saturday
+    let dayOfWeek = currentDate.getDay()
+    // Convert to Monday=0, Tuesday=1, ..., Sunday=6
+    dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    weekdayCounts[dayOfWeek] = (weekdayCounts[dayOfWeek] || 0) + 1
+    currentDate.setDate(currentDate.getDate() + 1)
+  }
+  
+  // Aggregate sales by day of week
+  completedOrders.forEach(order => {
+    if (!order.created_at) return
+    
+    const orderDate = new Date(order.created_at)
+    // Get day of week: 0=Sunday, 1=Monday, ..., 6=Saturday
+    let dayOfWeek = orderDate.getDay()
+    // Convert to Monday=0, Tuesday=1, ..., Sunday=6
+    dayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    
+    if (dayOfWeekData[dayOfWeek]) {
+      dayOfWeekData[dayOfWeek].total += order.total_amount
+      dayOfWeekData[dayOfWeek].count += 1
+    }
+  })
+  
+  // Build labels and data arrays (Monday through Sunday)
+  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+  const labels: string[] = []
+  const totals: number[] = []
+  const averages: number[] = []
+  
+  for (let i = 0; i < 7; i++) {
+    labels.push(dayNames[i])
+    totals.push(dayOfWeekData[i].total)
+    // Calculate average: total sales / number of occurrences of that weekday
+    const occurrences = weekdayCounts[i] || 1
+    averages.push(occurrences > 0 ? dayOfWeekData[i].total / occurrences : 0)
+  }
+  
+  return {
+    available: true,
+    labels,
+    totals,
+    averages
+  }
+}
+
 // Get all items with sales data (not just top 5)
 const allItemsSales = computed(() => {
   const now = new Date()
@@ -2111,6 +2233,106 @@ function createPaymentMethodsChart() {
   })
 }
 
+function createSalesByDayOfWeekChart() {
+  if (!salesByDayOfWeekChart.value) return
+  
+  const chartData = dashboardData.value.salesByDayOfWeekData
+  
+  // If data is not available, don't create chart
+  if (!chartData.available) {
+    return
+  }
+  
+  // Destroy existing chart instance if it exists
+  if (salesByDayOfWeekChartInstance) {
+    salesByDayOfWeekChartInstance.destroy()
+    salesByDayOfWeekChartInstance = null
+  }
+  
+  const ctx = salesByDayOfWeekChart.value.getContext('2d')
+  if (!ctx) return
+  
+  // Determine which dataset to show based on view
+  const isTotalView = salesByDayOfWeekView.value === 'total'
+  const dataset = {
+    label: isTotalView ? 'Total Sales' : 'Average Sales',
+    data: isTotalView ? chartData.totals : chartData.averages,
+    backgroundColor: isTotalView ? '#667eea' : '#43e97b',
+    borderRadius: 4
+  }
+  
+  salesByDayOfWeekChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: chartData.labels,
+      datasets: [dataset]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const label = isTotalView ? 'Total Sales' : 'Average Sales'
+              const value = context.parsed.y || 0
+              return `${label}: ₱${value.toLocaleString()}`
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: {
+            display: false
+          }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return '₱' + value.toLocaleString()
+            }
+          }
+        }
+      }
+    }
+  })
+}
+
+function updateSalesByDayOfWeekChart() {
+  if (!salesByDayOfWeekChartInstance || !salesByDayOfWeekChart.value) return
+  
+  const chartData = dashboardData.value.salesByDayOfWeekData
+  if (!chartData.available) return
+  
+  const isTotalView = salesByDayOfWeekView.value === 'total'
+  
+  // Update the dataset
+  const dataset = salesByDayOfWeekChartInstance.data.datasets[0]
+  if (dataset) {
+    dataset.label = isTotalView ? 'Total Sales' : 'Average Sales'
+    dataset.data = isTotalView ? chartData.totals : chartData.averages
+    dataset.backgroundColor = isTotalView ? '#667eea' : '#43e97b'
+  }
+  
+  // Update tooltip callback
+  const plugins = salesByDayOfWeekChartInstance.options.plugins
+  if (plugins && plugins.tooltip && plugins.tooltip.callbacks) {
+    plugins.tooltip.callbacks.label = function(context: any) {
+      const label = isTotalView ? 'Total Sales' : 'Average Sales'
+      const value = context.parsed.y || 0
+      return `${label}: ₱${value.toLocaleString()}`
+    }
+  }
+  
+  // Update the chart
+  salesByDayOfWeekChartInstance.update()
+}
+
 // Data loading
 async function loadDashboardData() {
   try {
@@ -2153,6 +2375,7 @@ async function recreateCharts() {
   createTopItemsChart()
   createTopRevenueChart()
   createPaymentMethodsChart()
+  createSalesByDayOfWeekChart()
 }
 
 // Watch for period changes and recreate charts
@@ -2517,6 +2740,36 @@ onMounted(async () => {
 .chart-legend {
   display: flex;
   gap: 1rem;
+}
+
+.chart-view-toggle {
+  display: flex;
+  gap: 0.5rem;
+  background: #f8f9fa;
+  padding: 0.25rem;
+  border-radius: 8px;
+}
+
+.toggle-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.toggle-btn:hover {
+  background: white;
+}
+
+.toggle-btn.active {
+  background: white;
+  color: #667eea;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .legend-item {
@@ -2902,6 +3155,30 @@ onMounted(async () => {
   text-align: center;
   padding: 3rem 1rem;
   color: #6b7280;
+}
+
+.no-data-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+  height: 200px;
+}
+
+.no-data-message p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.no-data-subtitle {
+  margin-top: 0.5rem !important;
+  font-size: 0.875rem !important;
+  color: #9ca3af !important;
+  font-weight: 400 !important;
 }
 
 .sales-table-container {
