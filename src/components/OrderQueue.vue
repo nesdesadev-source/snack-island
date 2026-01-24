@@ -385,12 +385,28 @@ const loadOrders = async () => {
 
 const loadOrderItems = async () => {
   try {
-    const allOrderItems: OrderItem[] = []
-    for (const order of orders.value) {
+    // Split orders into priority (non-completed) and secondary (completed) batches
+    const priorityOrders = orders.value.filter(order => order.status !== 'completed')
+    const secondaryOrders = orders.value.filter(order => order.status === 'completed')
+    
+    // Initialize with empty array so UI can start showing items incrementally
+    orderItems.value = []
+    
+    // Load priority batch and update UI incrementally as each order loads
+    for (const order of priorityOrders) {
       const items = await OrderService.getOrderItems(order.id)
-      allOrderItems.push(...items)
+      // Append items immediately so UI updates progressively
+      orderItems.value = [...orderItems.value, ...items]
     }
-    orderItems.value = allOrderItems
+    
+    // Load secondary batch in the background
+    if (secondaryOrders.length > 0) {
+      for (const order of secondaryOrders) {
+        const items = await OrderService.getOrderItems(order.id)
+        // Append secondary items to existing items
+        orderItems.value = [...orderItems.value, ...items]
+      }
+    }
   } catch (error) {
     console.error('Error loading order items:', error)
     alert('Failed to load order items. Please refresh the page.')
