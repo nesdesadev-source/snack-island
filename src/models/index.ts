@@ -12,7 +12,9 @@ export type {
   MenuItem, 
   CreateMenuItemInput, 
   UpdateMenuItemInput,
-  MenuCategory
+  MenuCategory,
+  FriesOption,
+  DrinkOption
 } from './MenuItem';
 
 // RecipeMap

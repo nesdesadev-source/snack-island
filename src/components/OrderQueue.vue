@@ -32,7 +32,32 @@
                 :key="item.id"
                 class="item-row"
               >
-                <span class="item-name">{{ getMenuItemName(item.menu_id || '') }} ×{{ item.quantity }}</span>
+                <div class="item-name-container">
+                  <span class="item-name">{{ getMenuItemName(item.menu_id || '') }} ×{{ item.quantity }}</span>
+                  <div v-if="item.fries_option || item.is_spicy || item.drink_option" class="item-variations">
+                    <span v-if="item.fries_option" :class="['variation-badge', 'fries', `fries-${item.fries_option}`]" :title="`Fries: ${formatFriesOption(item.fries_option)}`">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="8" y1="6" x2="8" y2="18"></line>
+                        <line x1="12" y1="6" x2="12" y2="18"></line>
+                        <line x1="16" y1="6" x2="16" y2="18"></line>
+                        <path d="M6 6h12M6 18h12"></path>
+                      </svg>
+                    </span>
+                    <span v-if="item.is_spicy" class="variation-badge spicy" title="Spicy">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+                      </svg>
+                    </span>
+                    <span v-if="item.drink_option" :class="['variation-badge', 'drink', `drink-${item.drink_option}`]" :title="`Drink: ${formatDrinkOption(item.drink_option)}`">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 4h14v16H5z"></path>
+                        <line x1="5" y1="8" x2="19" y2="8"></line>
+                        <line x1="9" y1="4" x2="9" y2="8"></line>
+                        <line x1="15" y1="4" x2="15" y2="8"></line>
+                      </svg>
+                    </span>
+                  </div>
+                </div>
                 <span class="item-price">₱{{ item.subtotal }}</span>
               </div>
             </div>
@@ -95,7 +120,32 @@
                 :key="item.id"
                 class="item-row"
               >
-                <span class="item-name">{{ getMenuItemName(item.menu_id || '') }} ×{{ item.quantity }}</span>
+                <div class="item-name-container">
+                  <span class="item-name">{{ getMenuItemName(item.menu_id || '') }} ×{{ item.quantity }}</span>
+                  <div v-if="item.fries_option || item.is_spicy || item.drink_option" class="item-variations">
+                    <span v-if="item.fries_option" :class="['variation-badge', 'fries', `fries-${item.fries_option}`]" :title="`Fries: ${formatFriesOption(item.fries_option)}`">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="8" y1="6" x2="8" y2="18"></line>
+                        <line x1="12" y1="6" x2="12" y2="18"></line>
+                        <line x1="16" y1="6" x2="16" y2="18"></line>
+                        <path d="M6 6h12M6 18h12"></path>
+                      </svg>
+                    </span>
+                    <span v-if="item.is_spicy" class="variation-badge spicy" title="Spicy">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+                      </svg>
+                    </span>
+                    <span v-if="item.drink_option" :class="['variation-badge', 'drink', `drink-${item.drink_option}`]" :title="`Drink: ${formatDrinkOption(item.drink_option)}`">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 4h14v16H5z"></path>
+                        <line x1="5" y1="8" x2="19" y2="8"></line>
+                        <line x1="9" y1="4" x2="9" y2="8"></line>
+                        <line x1="15" y1="4" x2="15" y2="8"></line>
+                      </svg>
+                    </span>
+                  </div>
+                </div>
                 <span class="item-price">₱{{ item.subtotal }}</span>
               </div>
             </div>
@@ -158,7 +208,32 @@
                 :key="item.id"
                 class="item-row"
               >
-                <span class="item-name">{{ getMenuItemName(item.menu_id || '') }} ×{{ item.quantity }}</span>
+                <div class="item-name-container">
+                  <span class="item-name">{{ getMenuItemName(item.menu_id || '') }} ×{{ item.quantity }}</span>
+                  <div v-if="item.fries_option || item.is_spicy || item.drink_option" class="item-variations">
+                    <span v-if="item.fries_option" :class="['variation-badge', 'fries', `fries-${item.fries_option}`]" :title="`Fries: ${formatFriesOption(item.fries_option)}`">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="8" y1="6" x2="8" y2="18"></line>
+                        <line x1="12" y1="6" x2="12" y2="18"></line>
+                        <line x1="16" y1="6" x2="16" y2="18"></line>
+                        <path d="M6 6h12M6 18h12"></path>
+                      </svg>
+                    </span>
+                    <span v-if="item.is_spicy" class="variation-badge spicy" title="Spicy">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+                      </svg>
+                    </span>
+                    <span v-if="item.drink_option" :class="['variation-badge', 'drink', `drink-${item.drink_option}`]" :title="`Drink: ${formatDrinkOption(item.drink_option)}`">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 4h14v16H5z"></path>
+                        <line x1="5" y1="8" x2="19" y2="8"></line>
+                        <line x1="9" y1="4" x2="9" y2="8"></line>
+                        <line x1="15" y1="4" x2="15" y2="8"></line>
+                      </svg>
+                    </span>
+                  </div>
+                </div>
                 <span class="item-price">₱{{ item.subtotal }}</span>
               </div>
             </div>
@@ -223,6 +298,23 @@ const getOrderItems = (orderId: string): OrderItem[] => {
 const getMenuItemName = (itemId: string): string => {
   const item = menuItems.value.find(i => i.id === itemId)
   return item?.name || 'Unknown Item'
+}
+
+const formatFriesOption = (option: string): string => {
+  const options: Record<string, string> = {
+    'cheese': 'Cheese',
+    'sour_cream': 'Sour Cream',
+    'bbq': 'BBQ'
+  }
+  return options[option] || option
+}
+
+const formatDrinkOption = (option: string): string => {
+  const options: Record<string, string> = {
+    'cucumber': 'Cucumber',
+    'iced_tea': 'Iced Tea'
+  }
+  return options[option] || option
 }
 
 const isToday = (dateString: string | null): boolean => {
@@ -586,12 +678,87 @@ defineExpose({
 .item-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: 0.8125rem;
+}
+
+.item-name-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .item-name {
   color: #495057;
   font-weight: 400;
+  flex-shrink: 0;
+}
+
+.item-variations {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.variation-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  padding: 0.125rem;
+  transition: all 0.2s;
+}
+
+.variation-badge.fries {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+/* Fries option specific colors */
+.variation-badge.fries-cheese {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.variation-badge.fries-sour_cream {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.variation-badge.fries-bbq {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.variation-badge.spicy {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.variation-badge.drink {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+/* Drink option specific colors */
+.variation-badge.drink-cucumber {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.variation-badge.drink-iced_tea {
+  background: #fed7aa;
+  color: #ea580c;
+}
+
+.variation-badge svg {
+  width: 100%;
+  height: 100%;
 }
 
 .item-price {

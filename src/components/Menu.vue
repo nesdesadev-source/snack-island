@@ -126,9 +126,37 @@
             <div class="card-avatar">
               {{ item.item_code || 'N/A' }}
             </div>
-            <span class="category-badge" :class="getCategoryClass(item.category)">
-              {{ item.category }}
-            </span>
+            <div class="header-right">
+              <span class="category-badge" :class="getCategoryClass(item.category)">
+                {{ item.category }}
+              </span>
+              <div class="variation-icons" v-if="item.has_fries || item.has_spicy || item.has_drink">
+                <span v-if="item.has_fries" class="variation-icon fries-icon tooltip-container">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="8" y1="6" x2="8" y2="18"></line>
+                    <line x1="12" y1="6" x2="12" y2="18"></line>
+                    <line x1="16" y1="6" x2="16" y2="18"></line>
+                    <path d="M6 6h12M6 18h12"></path>
+                  </svg>
+                  <span class="tooltip">Fries Variations</span>
+                </span>
+                <span v-if="item.has_spicy" class="variation-icon spicy-icon tooltip-container">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+                  </svg>
+                  <span class="tooltip">Spicy Option</span>
+                </span>
+                <span v-if="item.has_drink" class="variation-icon drink-icon tooltip-container">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 4h14v16H5z"></path>
+                    <line x1="5" y1="8" x2="19" y2="8"></line>
+                    <line x1="9" y1="4" x2="9" y2="8"></line>
+                    <line x1="15" y1="4" x2="15" y2="8"></line>
+                  </svg>
+                  <span class="tooltip">Drink Variations</span>
+                </span>
+              </div>
+            </div>
           </div>
           <div class="card-body">
             <h3 class="card-title">{{ item.name }}</h3>
@@ -652,7 +680,7 @@ async function duplicateMenuItem(item: MenuItem) {
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
   transition: all 0.2s;
   cursor: pointer;
 }
@@ -670,6 +698,17 @@ async function duplicateMenuItem(item: MenuItem) {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid #e5e7eb;
+  border-radius: 12px 12px 0 0;
+  overflow: visible;
+  position: relative;
+  z-index: 1;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .card-avatar {
@@ -702,8 +741,86 @@ async function duplicateMenuItem(item: MenuItem) {
 .category-side { background: #d1fae5; color: #065f46; }
 .category-default { background: #f3f4f6; color: #374151; }
 
+.variation-icons {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.variation-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  padding: 0.25rem;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.variation-icon:hover {
+  transform: scale(1.1);
+}
+
+.tooltip-container {
+  position: relative;
+}
+
+.tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  background: #1f2937;
+  color: white;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 10000;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #1f2937;
+}
+
+.tooltip-container:hover .tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.fries-icon {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.spicy-icon {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.drink-icon {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
 .menu-card .card-body {
   padding: 1.25rem;
+  border-radius: 0;
+  overflow: hidden;
 }
 
 .card-title {
@@ -768,6 +885,8 @@ async function duplicateMenuItem(item: MenuItem) {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  border-radius: 0 0 12px 12px;
+  overflow: hidden;
 }
 
 .card-btn {

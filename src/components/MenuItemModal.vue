@@ -109,6 +109,47 @@
               </div>
             </div>
 
+            <!-- Variation Options Section -->
+            <div class="section-title">Variation Options</div>
+            
+            <div class="form-grid">
+              <div class="form-section">
+                <label class="checkbox-label">
+                  <input 
+                    type="checkbox" 
+                    v-model="localItem.has_fries"
+                    class="checkbox-input"
+                  />
+                  <span>Has Fries Variations</span>
+                </label>
+                <small class="form-hint">Allow customers to choose fries type (cheese, sour cream, bbq)</small>
+              </div>
+
+              <div class="form-section">
+                <label class="checkbox-label">
+                  <input 
+                    type="checkbox" 
+                    v-model="localItem.has_spicy"
+                    class="checkbox-input"
+                  />
+                  <span>Has Spicy Option</span>
+                </label>
+                <small class="form-hint">Allow customers to choose spicy level</small>
+              </div>
+
+              <div class="form-section">
+                <label class="checkbox-label">
+                  <input 
+                    type="checkbox" 
+                    v-model="localItem.has_drink"
+                    class="checkbox-input"
+                  />
+                  <span>Has Drink Variations</span>
+                </label>
+                <small class="form-hint">Allow customers to choose drink type (cucumber, iced tea)</small>
+              </div>
+            </div>
+
             <!-- Pricing Analysis Section -->
             <div class="section-title">Pricing Analysis</div>
             
@@ -352,7 +393,10 @@ async function saveAll() {
         name: localItem.value.name,
         price: localItem.value.price,
         category: localItem.value.category,
-        item_code: localItem.value.item_code
+        item_code: localItem.value.item_code,
+        has_fries: localItem.value.has_fries,
+        has_spicy: localItem.value.has_spicy,
+        has_drink: localItem.value.has_drink
       })
 
       // Update existing recipe maps
@@ -387,7 +431,10 @@ async function saveAll() {
         name: localItem.value.name,
         price: localItem.value.price,
         category: localItem.value.category,
-        item_code: localItem.value.item_code
+        item_code: localItem.value.item_code,
+        has_fries: localItem.value.has_fries,
+        has_spicy: localItem.value.has_spicy,
+        has_drink: localItem.value.has_drink
       })
 
       // Create recipe maps for new item
@@ -589,6 +636,31 @@ async function saveAll() {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+}
+
+.checkbox-input {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.form-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+  font-weight: 400;
 }
 
 .required {

@@ -9,7 +9,10 @@ export const menuItemService = {
       _name: input.name,
       _price: input.price,
       _category: input.category,
-      _item_code: input.item_code
+      _item_code: input.item_code,
+      _has_fries: input.has_fries ?? false,
+      _has_spicy: input.has_spicy ?? false,
+      _has_drink: input.has_drink ?? false
     })
     if (error) throw error
     return data as string
@@ -27,7 +30,10 @@ export const menuItemService = {
       _name: params.name,
       _price: params.price,
       _category: params.category,
-      _item_code: params.item_code
+      _item_code: params.item_code,
+      _has_fries: params.has_fries,
+      _has_spicy: params.has_spicy,
+      _has_drink: params.has_drink
     })
     if (error) throw error
     return true

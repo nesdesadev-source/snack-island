@@ -229,7 +229,10 @@ export class OrderService {
       subtotal: item.subtotal,
       created_at: item.created_at,
       created_by: item.created_by,
-      menu_id: item.menu_id
+      menu_id: item.menu_id,
+      fries_option: item.fries_option,
+      is_spicy: item.is_spicy,
+      drink_option: item.drink_option
     }))
     
     return mappedData
@@ -258,7 +261,10 @@ export class OrderService {
       subtotal: data.subtotal,
       created_at: data.created_at,
       created_by: data.created_by,
-      menu_id: data.menu_id
+      menu_id: data.menu_id,
+      fries_option: data.fries_option,
+      is_spicy: data.is_spicy,
+      drink_option: data.drink_option
     }
   }
 
@@ -307,7 +313,10 @@ export class OrderService {
       subtotal: item.subtotal,
       created_at: item.created_at,
       created_by: item.created_by,
-      menu_id: item.menu_id
+      menu_id: item.menu_id,
+      fries_option: item.fries_option,
+      is_spicy: item.is_spicy,
+      drink_option: item.drink_option
     }))
     
     return mappedData
@@ -343,12 +352,23 @@ export class OrderService {
   /**
    * Create a single order item
    */
-  static async createOrderItem(orderId: string, menuId: string, quantity: number, subtotal: number): Promise<OrderItem> {
+  static async createOrderItem(
+    orderId: string, 
+    menuId: string, 
+    quantity: number, 
+    subtotal: number,
+    fries_option?: string,
+    is_spicy?: boolean,
+    drink_option?: string
+  ): Promise<OrderItem> {
     const { data, error } = await supabase.rpc('create_order_item', {
       p_order_id: orderId,
       p_menu_id: menuId,
       p_quantity: quantity,
-      p_subtotal: subtotal
+      p_subtotal: subtotal,
+      p_fries_option: fries_option || null,
+      p_is_spicy: is_spicy ?? null,
+      p_drink_option: drink_option || null
     })
     
     if (error) {
@@ -364,21 +384,41 @@ export class OrderService {
       subtotal: data.subtotal,
       created_at: data.created_at,
       created_by: data.created_by,
-      menu_id: data.menu_id
+      menu_id: data.menu_id,
+      fries_option: data.fries_option,
+      is_spicy: data.is_spicy,
+      drink_option: data.drink_option
     }
   }
 
   /**
    * Create multiple order items in batch
    */
-  static async createOrderItemsBatch(orderId: string, items: Array<{ menu_id: string; quantity: number; subtotal: number }>): Promise<OrderItem[]> {
+  static async createOrderItemsBatch(
+    orderId: string, 
+    items: Array<{ 
+      menu_id: string; 
+      quantity: number; 
+      subtotal: number;
+      fries_option?: string;
+      is_spicy?: boolean;
+      drink_option?: string;
+    }>
+  ): Promise<OrderItem[]> {
     if (!orderId) {
       throw new Error('Order ID is required for creating order items')
     }
     
     const { data, error } = await supabase.rpc('create_order_items_batch', {
       p_order_id: orderId,
-      p_items: items
+      p_items: items.map(item => ({
+        menu_id: item.menu_id,
+        quantity: item.quantity,
+        subtotal: item.subtotal,
+        fries_option: item.fries_option || null,
+        is_spicy: item.is_spicy ?? null,
+        drink_option: item.drink_option || null
+      }))
     })
     
     if (error) {
@@ -394,7 +434,10 @@ export class OrderService {
       subtotal: item.subtotal,
       created_at: item.created_at,
       created_by: item.created_by,
-      menu_id: item.menu_id
+      menu_id: item.menu_id,
+      fries_option: item.fries_option,
+      is_spicy: item.is_spicy,
+      drink_option: item.drink_option
     }))
     
     return mappedData

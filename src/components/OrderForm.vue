@@ -67,7 +67,7 @@
             >
             <div class="order-item-first-row">
               <div class="item-info">
-                <div class="item-name">{{ getMenuItemName(item.menu_id || '') }}</div>
+                <div class="item-name">{{ getMenuItemName(item.menu_id || '') }}{{ formatVariations(item) }}</div>
                 <div class="item-unit-price">₱{{ getMenuItemPrice(item.menu_id || '') }} each</div>
               </div>
               <div class="item-controls">
@@ -213,12 +213,141 @@
         </div>
       </Transition>
     </Teleport>
+
+    <!-- Variation Selection Modal -->
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div v-if="showVariationModal" class="variation-modal-overlay" @click.self="cancelVariationSelection">
+          <div class="variation-modal-container" @click.stop>
+            <div class="variation-modal-header">
+              <button class="variation-modal-close" @click="cancelVariationSelection" aria-label="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+              <div class="variation-modal-title-section">
+                <div class="variation-modal-icon">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                    <path d="M2 17l10 5 10-5"></path>
+                    <path d="M2 12l10 5 10-5"></path>
+                  </svg>
+                </div>
+                <div>
+                  <h2 class="variation-modal-title">{{ pendingMenuItem?.name }}</h2>
+                  <p class="variation-modal-subtitle">Customize your order</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="variation-modal-body">
+              <!-- Fries Option -->
+              <div v-if="pendingMenuItem?.has_fries" class="variation-option-card">
+                <div class="variation-option-header">
+                  <div class="variation-option-icon fries">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="8" y1="6" x2="8" y2="18"></line>
+                      <line x1="12" y1="6" x2="12" y2="18"></line>
+                      <line x1="16" y1="6" x2="16" y2="18"></line>
+                      <path d="M6 6h12M6 18h12"></path>
+                    </svg>
+                  </div>
+                  <label class="variation-option-label">Fries Option</label>
+                </div>
+                <div class="variation-option-buttons">
+                  <button
+                    v-for="option in [{ value: 'cheese', label: 'Cheese' }, { value: 'sour_cream', label: 'Sour Cream' }, { value: 'bbq', label: 'BBQ' }]"
+                    :key="option.value"
+                    type="button"
+                    @click="selectedFriesOption = option.value as any"
+                    :class="['variation-option-btn', { 'active': selectedFriesOption === option.value }]"
+                  >
+                    {{ option.label }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- Spicy Option -->
+              <div v-if="pendingMenuItem?.has_spicy" class="variation-option-card">
+                <div class="variation-option-header">
+                  <div class="variation-option-icon spicy">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path>
+                    </svg>
+                  </div>
+                  <label class="variation-option-label">Spicy Level</label>
+                </div>
+                <div class="variation-option-buttons">
+                  <button
+                    type="button"
+                    @click="selectedSpicy = false"
+                    :class="['variation-option-btn', { 'active': !selectedSpicy }]"
+                  >
+                    Regular
+                  </button>
+                  <button
+                    type="button"
+                    @click="selectedSpicy = true"
+                    :class="['variation-option-btn', { 'active': selectedSpicy }]"
+                  >
+                    Spicy
+                  </button>
+                </div>
+              </div>
+
+              <!-- Drink Option -->
+              <div v-if="pendingMenuItem?.has_drink" class="variation-option-card">
+                <div class="variation-option-header">
+                  <div class="variation-option-icon drink">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M5 4h14v16H5z"></path>
+                      <line x1="5" y1="8" x2="19" y2="8"></line>
+                      <line x1="9" y1="4" x2="9" y2="8"></line>
+                      <line x1="15" y1="4" x2="15" y2="8"></line>
+                    </svg>
+                  </div>
+                  <label class="variation-option-label">Drink Option</label>
+                </div>
+                <div class="variation-option-buttons">
+                  <button
+                    v-for="option in [{ value: 'cucumber', label: 'Cucumber' }, { value: 'iced_tea', label: 'Iced Tea' }]"
+                    :key="option.value"
+                    type="button"
+                    @click="selectedDrinkOption = option.value as any"
+                    :class="['variation-option-btn', { 'active': selectedDrinkOption === option.value }]"
+                  >
+                    {{ option.label }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="variation-modal-footer">
+              <button @click="cancelVariationSelection" class="variation-btn variation-btn-secondary">
+                Cancel
+              </button>
+              <button 
+                @click="confirmVariationSelection" 
+                class="variation-btn variation-btn-primary"
+                :disabled="(pendingMenuItem?.has_fries && !selectedFriesOption) || (pendingMenuItem?.has_drink && !selectedDrinkOption)"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Add to Order
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import type { MenuItem, OrderItem, PaymentMethod } from '../models'
+import type { MenuItem, OrderItem, PaymentMethod, FriesOption, DrinkOption } from '../models'
 import { createOrderItem, calculateOrderTotal } from '../modules/orders/orderUtils'
 import { OrderService } from '../services/orderService'
 import { menuItemService } from '../services/menuItemService'
@@ -250,6 +379,13 @@ const pendingOrderData = ref<{
   status: 'pending'
 } | null>(null)
 const pendingOrderItems = ref<OrderItem[]>([])
+
+// Variation modal state
+const showVariationModal = ref(false)
+const pendingMenuItem = ref<MenuItem | null>(null)
+const selectedFriesOption = ref<FriesOption | null>(null)
+const selectedSpicy = ref<boolean>(false)
+const selectedDrinkOption = ref<DrinkOption | null>(null)
 
 const paymentMethods: PaymentMethod[] = ['cash', 'gcash']
 
@@ -295,21 +431,103 @@ const closeForm = () => {
 }
 
 const addItemToOrder = (menuItem: MenuItem) => {
-  const existingItemIndex = orderItems.value.findIndex(item => item.menu_id === menuItem.id)
+  // Check if menu item has variations
+  if (menuItem.has_fries || menuItem.has_spicy || menuItem.has_drink) {
+    // Show variation modal
+    pendingMenuItem.value = menuItem
+    selectedFriesOption.value = null
+    selectedSpicy.value = false
+    selectedDrinkOption.value = null
+    showVariationModal.value = true
+  } else {
+    // For items without variations, check if exact same item exists
+    const existingItemIndex = orderItems.value.findIndex(item => 
+      item.menu_id === menuItem.id &&
+      !item.fries_option &&
+      !item.is_spicy &&
+      !item.drink_option
+    )
+    
+    if (existingItemIndex >= 0) {
+      // Increase quantity of existing item
+      increaseQuantity(existingItemIndex)
+    } else {
+      // Add new item to order directly (no variations)
+      const newOrderItem = createOrderItem(
+        'temp-order-id', // Will be replaced when order is created
+        menuItem,
+        1,
+        'system'
+      )
+      orderItems.value.push(newOrderItem)
+    }
+  }
+}
+
+const confirmVariationSelection = () => {
+  if (!pendingMenuItem.value) return
+  
+  // Check if exact same item with same variations already exists
+  const existingItemIndex = orderItems.value.findIndex(item => 
+    item.menu_id === pendingMenuItem.value?.id &&
+    item.fries_option === (selectedFriesOption.value || undefined) &&
+    item.is_spicy === (selectedSpicy.value || undefined) &&
+    item.drink_option === (selectedDrinkOption.value || undefined)
+  )
   
   if (existingItemIndex >= 0) {
-    // Increase quantity of existing item
+    // Increase quantity of existing item with same variations
     increaseQuantity(existingItemIndex)
   } else {
-    // Add new item to order
+    // Add new item with variations
     const newOrderItem = createOrderItem(
-      'temp-order-id', // Will be replaced when order is created
-      menuItem,
+      'temp-order-id',
+      pendingMenuItem.value,
       1,
-      'system'
+      'system',
+      selectedFriesOption.value || undefined,
+      selectedSpicy.value || undefined,
+      selectedDrinkOption.value || undefined
     )
     orderItems.value.push(newOrderItem)
   }
+  
+  // Close modal and reset
+  showVariationModal.value = false
+  pendingMenuItem.value = null
+  selectedFriesOption.value = null
+  selectedSpicy.value = false
+  selectedDrinkOption.value = null
+}
+
+const cancelVariationSelection = () => {
+  showVariationModal.value = false
+  pendingMenuItem.value = null
+  selectedFriesOption.value = null
+  selectedSpicy.value = false
+  selectedDrinkOption.value = null
+}
+
+const formatVariations = (item: OrderItem): string => {
+  const parts: string[] = []
+  
+  if (item.fries_option) {
+    const friesLabel = item.fries_option === 'sour_cream' ? 'Sour Cream' : 
+                      item.fries_option === 'bbq' ? 'BBQ' : 
+                      'Cheese'
+    parts.push(`Fries: ${friesLabel}`)
+  }
+  
+  if (item.is_spicy) {
+    parts.push('Spicy: Yes')
+  }
+  
+  if (item.drink_option) {
+    const drinkLabel = item.drink_option === 'cucumber' ? 'Cucumber' : 'Iced Tea'
+    parts.push(`Drink: ${drinkLabel}`)
+  }
+  
+  return parts.length > 0 ? ` (${parts.join(', ')})` : ''
 }
 
 const increaseQuantity = (index: number) => {
@@ -380,7 +598,10 @@ const submitOrder = async () => {
     const orderItemsData = orderItems.value.map(item => ({
       menu_id: item.menu_id || '',
       quantity: item.quantity,
-      subtotal: item.subtotal
+      subtotal: item.subtotal,
+      fries_option: item.fries_option,
+      is_spicy: item.is_spicy,
+      drink_option: item.drink_option
     }))
 
     await OrderService.createOrderItemsBatch(result.order.id, orderItemsData)
@@ -420,7 +641,10 @@ const continueOrder = async () => {
     const orderItemsData = pendingOrderItems.value.map(item => ({
       menu_id: item.menu_id || '',
       quantity: item.quantity,
-      subtotal: item.subtotal
+      subtotal: item.subtotal,
+      fries_option: item.fries_option,
+      is_spicy: item.is_spicy,
+      drink_option: item.drink_option
     }))
 
     await OrderService.createOrderItemsBatch(order.id, orderItemsData)
@@ -1404,6 +1628,11 @@ onMounted(async () => {
   color: white;
 }
 
+.header-icon.add-mode {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
 .modal-header h2 {
   margin: 0;
   font-size: 1.5rem;
@@ -1496,6 +1725,317 @@ onMounted(async () => {
   }
 
   .modal-footer .btn {
+    width: 100%;
+  }
+}
+
+/* Variation Modal Styles */
+.variation-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.variation-modal-container {
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.variation-modal-header {
+  padding: 1.5rem 1.5rem 1.25rem 1.5rem;
+  border-bottom: 1px solid #f3f4f6;
+  position: relative;
+}
+
+.variation-modal-close {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: #f3f4f6;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.variation-modal-close:hover {
+  background: #e5e7eb;
+  color: #374151;
+  transform: rotate(90deg);
+}
+
+.variation-modal-title-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.variation-modal-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.variation-modal-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.25rem 0;
+  line-height: 1.2;
+}
+
+.variation-modal-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.variation-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.variation-option-card {
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem;
+  transition: all 0.2s;
+}
+
+.variation-option-card:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.variation-option-header {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.75rem;
+}
+
+.variation-option-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.variation-option-icon.fries {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.variation-option-icon.spicy {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.variation-option-icon.drink {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.variation-option-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.variation-option-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.variation-option-btn {
+  flex: 1;
+  min-width: 80px;
+  padding: 0.625rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: white;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.variation-option-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.variation-option-btn:hover::before {
+  left: 100%;
+}
+
+.variation-option-btn:hover {
+  border-color: #d1d5db;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.variation-option-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: #667eea;
+  color: white;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+}
+
+.variation-option-btn.active:hover {
+  background: linear-gradient(135deg, #5568d3 0%, #6a3d8f 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.variation-modal-footer {
+  padding: 1.25rem 1.5rem 1.5rem 1.5rem;
+  border-top: 1px solid #f3f4f6;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.variation-btn {
+  flex: 1;
+  padding: 0.875rem 1.5rem;
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: none;
+}
+
+.variation-btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.variation-btn-secondary:hover {
+  background: #e5e7eb;
+  transform: translateY(-1px);
+}
+
+.variation-btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+}
+
+.variation-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5568d3 0%, #6a3d8f 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.variation-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 768px) {
+  .variation-modal-container {
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    max-height: 85vh;
+  }
+
+  .variation-modal-header {
+    padding: 1.5rem 1.5rem 1.25rem 1.5rem;
+  }
+
+  .variation-modal-body {
+    padding: 1.5rem;
+  }
+
+  .variation-modal-footer {
+    padding: 1.25rem 1.5rem 1.5rem 1.5rem;
+    flex-direction: column-reverse;
+  }
+
+  .variation-btn {
+    width: 100%;
+  }
+
+  .variation-option-buttons {
+    flex-direction: column;
+  }
+
+  .variation-option-btn {
     width: 100%;
   }
 }

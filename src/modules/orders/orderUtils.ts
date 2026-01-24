@@ -1,4 +1,4 @@
-import type { OrderItem, MenuItem } from '../../models'
+import type { OrderItem, MenuItem, FriesOption, DrinkOption } from '../../models'
 
 /**
  * Calculate the subtotal for a single order item
@@ -51,13 +51,20 @@ export function validateOrderItems(items: OrderItem[]): boolean {
  * @param orderId - The order ID
  * @param menuItem - The menu item being ordered
  * @param quantity - The quantity ordered
+ * @param created_by - The user who created the order item
+ * @param fries_option - Optional fries variation
+ * @param is_spicy - Optional spicy option
+ * @param drink_option - Optional drink variation
  * @returns A new OrderItem with calculated subtotal
  */
 export function createOrderItem(
   orderId: string, 
   menuItem: MenuItem, 
   quantity: number,
-  created_by: string
+  created_by: string,
+  fries_option?: FriesOption,
+  is_spicy?: boolean,
+  drink_option?: DrinkOption
 ): OrderItem {
   if (quantity <= 0) {
     throw new Error('Quantity must be greater than 0')
@@ -72,7 +79,10 @@ export function createOrderItem(
     quantity,
     subtotal,
     created_at: new Date().toISOString(),
-    created_by: created_by
+    created_by: created_by,
+    fries_option,
+    is_spicy,
+    drink_option
   }
 }
 
