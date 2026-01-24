@@ -1,6 +1,6 @@
 export type MenuCategory = 'Snack' | 'Drink' | 'Combo' | 'Side';
 
-export type FriesOption = 'cheese' | 'sour_cream' | 'bbq';
+export type FriesOption = 'cheese' | 'sour_cream' | 'bbq' | 'plain';
 export type DrinkOption = 'cucumber' | 'iced_tea';
 
 export interface MenuItem {

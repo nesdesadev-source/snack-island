@@ -257,7 +257,7 @@
                 </div>
                 <div class="variation-option-buttons">
                   <button
-                    v-for="option in [{ value: 'cheese', label: 'Cheese' }, { value: 'sour_cream', label: 'Sour Cream' }, { value: 'bbq', label: 'BBQ' }]"
+                    v-for="option in [{ value: 'plain', label: 'Plain' }, { value: 'cheese', label: 'Cheese' }, { value: 'sour_cream', label: 'Sour Cream' }, { value: 'bbq', label: 'BBQ' }]"
                     :key="option.value"
                     type="button"
                     @click="selectedFriesOption = option.value as any"
@@ -512,7 +512,8 @@ const formatVariations = (item: OrderItem): string => {
   const parts: string[] = []
   
   if (item.fries_option) {
-    const friesLabel = item.fries_option === 'sour_cream' ? 'Sour Cream' : 
+    const friesLabel = item.fries_option === 'plain' ? 'Plain' :
+                      item.fries_option === 'sour_cream' ? 'Sour Cream' : 
                       item.fries_option === 'bbq' ? 'BBQ' : 
                       'Cheese'
     parts.push(`Fries: ${friesLabel}`)

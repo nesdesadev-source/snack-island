@@ -9,7 +9,7 @@ ADD COLUMN IF NOT EXISTS has_drink BOOLEAN DEFAULT false;
 
 -- Add variation columns to order_items table
 ALTER TABLE order_items
-ADD COLUMN IF NOT EXISTS fries_option TEXT CHECK (fries_option IN ('cheese', 'sour_cream', 'bbq')),
+ADD COLUMN IF NOT EXISTS fries_option TEXT CHECK (fries_option IN ('plain', 'cheese', 'sour_cream', 'bbq')),
 ADD COLUMN IF NOT EXISTS is_spicy BOOLEAN,
 ADD COLUMN IF NOT EXISTS drink_option TEXT CHECK (drink_option IN ('cucumber', 'iced_tea'));
 

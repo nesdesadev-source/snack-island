@@ -302,6 +302,7 @@ const getMenuItemName = (itemId: string): string => {
 
 const formatFriesOption = (option: string): string => {
   const options: Record<string, string> = {
+    'plain': 'Plain',
     'cheese': 'Cheese',
     'sour_cream': 'Sour Cream',
     'bbq': 'BBQ'
@@ -720,6 +721,11 @@ defineExpose({
 }
 
 /* Fries option specific colors */
+.variation-badge.fries-plain {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
 .variation-badge.fries-cheese {
   background: #fef3c7;
   color: #d97706;
