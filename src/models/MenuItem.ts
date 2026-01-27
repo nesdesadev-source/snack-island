@@ -13,6 +13,7 @@ export interface MenuItem {
   has_fries?: boolean;
   has_spicy?: boolean;
   has_drink?: boolean;
+  rank?: number;
   created_at?: string;
   updated_at?: string;
 }

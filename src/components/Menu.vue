@@ -6,13 +6,21 @@
         <h1>Menu Management</h1>
         <p>Manage your menu items, recipes, and pricing</p>
       </div>
-      <button class="btn-primary" @click="openAddModal">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Add Menu Item
-      </button>
+      <div class="header-actions">
+        <button class="btn-secondary" @click="openRankDialog">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path>
+          </svg>
+          Edit Rank
+        </button>
+        <button class="btn-primary" @click="openAddModal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Add Menu Item
+        </button>
+      </div>
     </div>
 
     <!-- Stats Cards -->
@@ -213,6 +221,12 @@
       @close="closeModal"
       @saved="handleSaved"
     />
+
+    <MenuRankDialog
+      :is-open="showRankDialog"
+      @close="closeRankDialog"
+      @updated="handleRankUpdated"
+    />
   </div>
 </template>
 
@@ -224,10 +238,12 @@ import { menuItemService } from '../services/menuItemService'
 import { recipeMapService } from '../services/recipeMapService'
 import { computeCostPerOrderForMenuItem } from '../modules/menu/menuPageUtils'
 import MenuItemModal from './MenuItemModal.vue'
+import MenuRankDialog from './MenuRankDialog.vue'
 
 const menuItems = ref<MenuItem[]>([])
 const allRecipeMaps = ref<RecipeMap[]>([])
 const showModal = ref(false)
+const showRankDialog = ref(false)
 const activeItem = ref<MenuItem | null>(null)
 const errorMessage = ref('')
 const searchQuery = ref('')
@@ -264,7 +280,14 @@ const filteredItems = computed(() => {
     filtered = filtered.filter(item => item.category === selectedCategory.value)
   }
   
-  return filtered
+  return filtered.sort((a, b) => {
+    const rankA = a.rank ?? 999999
+    const rankB = b.rank ?? 999999
+    if (rankA !== rankB) {
+      return rankA - rankB
+    }
+    return a.name.localeCompare(b.name)
+  })
 })
 
 const averagePrice = computed(() => {
@@ -337,6 +360,18 @@ function openModal(item: MenuItem) {
 function closeModal() {
   showModal.value = false
   activeItem.value = null
+}
+
+function openRankDialog() {
+  showRankDialog.value = true
+}
+
+function closeRankDialog() {
+  showRankDialog.value = false
+}
+
+async function handleRankUpdated() {
+  await loadData()
 }
 
 async function handleSaved() {
@@ -413,6 +448,12 @@ async function duplicateMenuItem(item: MenuItem) {
   gap: 1rem;
 }
 
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 .header-text h1 {
   font-size: 2rem;
   font-weight: 700;
@@ -446,6 +487,29 @@ async function duplicateMenuItem(item: MenuItem) {
 .btn-primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
+  padding: 0.875rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-secondary:hover {
+  background: #667eea;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
 }
 
 /* Stats Grid */
