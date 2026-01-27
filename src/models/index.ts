@@ -70,3 +70,11 @@ export type {
   UserProfile
 } from './User';
 
+// Discount
+export type { 
+  Discount, 
+  CreateDiscountInput, 
+  UpdateDiscountInput,
+  DiscountType
+} from './Discount';
+

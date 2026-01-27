@@ -103,9 +103,32 @@
 
         <!-- Order Summary -->
         <div class="section" v-if="orderItems.length > 0">
-          <div class="order-summary">
-            <span class="summary-label">TOTAL</span>
-            <span class="summary-amount">₱{{ orderTotal }}</span>
+          <div class="order-summary-wrapper">
+            <div class="order-summary">
+              <span class="summary-label">TOTAL</span>
+              <div class="total-amount-container">
+                <span v-if="selectedDiscountId" class="summary-amount-strikethrough">₱{{ orderTotal.toFixed(2) }}</span>
+                <span class="summary-amount" :class="{ 'discounted': selectedDiscountId }">
+                  ₱{{ discountedTotal.toFixed(2) }}
+                </span>
+              </div>
+            </div>
+            <div class="discount-selector">
+              <label class="discount-label">Discount</label>
+              <select 
+                v-model="selectedDiscountId" 
+                class="discount-select"
+              >
+                <option :value="null">Select Discount</option>
+                <option 
+                  v-for="discount in activeDiscounts" 
+                  :key="discount.id" 
+                  :value="discount.id"
+                >
+                  {{ discount.name }} ({{ formatDiscountAmount(discount) }})
+                </option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -347,11 +370,13 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import type { MenuItem, OrderItem, PaymentMethod, FriesOption, DrinkOption } from '../models'
+import type { MenuItem, OrderItem, PaymentMethod, FriesOption, DrinkOption, Discount } from '../models'
 import { createOrderItem, calculateOrderTotal } from '../modules/orders/orderUtils'
 import { OrderService } from '../services/orderService'
 import { menuItemService } from '../services/menuItemService'
 import { deductInventoryForOrder } from '../modules/orders/inventoryDeduction'
+import { discountService } from '../services/discountService'
+import { filterActiveDiscounts, calculateDiscountedPrice } from '../modules/discounts/discountUtils'
 
 // Props
 const emit = defineEmits<{
@@ -377,6 +402,7 @@ const pendingOrderData = ref<{
   total_amount: number
   payment_method: PaymentMethod
   status: 'pending'
+  discount_id?: string | null
 } | null>(null)
 const pendingOrderItems = ref<OrderItem[]>([])
 
@@ -387,13 +413,26 @@ const selectedFriesOption = ref<FriesOption | null>(null)
 const selectedSpicy = ref<boolean>(false)
 const selectedDrinkOption = ref<DrinkOption | null>(null)
 
+// Discount state
+const discounts = ref<Discount[]>([])
+const selectedDiscountId = ref<string | null>(null)
+
 const paymentMethods: PaymentMethod[] = ['cash', 'gcash']
 
 // Computed
 const orderTotal = computed(() => calculateOrderTotal(orderItems.value))
+const activeDiscounts = computed(() => filterActiveDiscounts(discounts.value))
+const selectedDiscount = computed(() => {
+  if (!selectedDiscountId.value) return null
+  return discounts.value.find(d => d.id === selectedDiscountId.value) || null
+})
+const discountedTotal = computed(() => {
+  if (!selectedDiscount.value) return orderTotal.value
+  return calculateDiscountedPrice(selectedDiscount.value, orderTotal.value)
+})
 const change = computed(() => {
   if (customerPayment.value <= 0) return 0
-  return customerPayment.value - orderTotal.value
+  return customerPayment.value - discountedTotal.value
 })
 const searchQuery = ref('')
 const selectedCategory = ref('')
@@ -565,6 +604,7 @@ const clearOrder = () => {
   orderItems.value = []
   selectedPaymentMethod.value = null
   customerPayment.value = 0
+  selectedDiscountId.value = null
 }
 
 const submitOrder = async () => {
@@ -577,9 +617,10 @@ const submitOrder = async () => {
   try {
     // Prepare order data
     const orderData = {
-      total_amount: orderTotal.value,
+      total_amount: discountedTotal.value,
       payment_method: selectedPaymentMethod.value,
-      status: 'pending' as const
+      status: 'pending' as const,
+      discount_id: selectedDiscountId.value || null
     }
 
     // Check inventory availability and create order
@@ -588,7 +629,10 @@ const submitOrder = async () => {
     if (!result.order) {
       // Inventory not available - show confirmation modal
       insufficientItemsList.value = result.inventoryCheck.insufficientItems
-      pendingOrderData.value = orderData
+      pendingOrderData.value = {
+        ...orderData,
+        discount_id: selectedDiscountId.value || null
+      }
       pendingOrderItems.value = [...orderItems.value]
       showInsufficientInventoryModal.value = true
       isSubmitting.value = false
@@ -681,14 +725,23 @@ const cancelOrder = () => {
   isSubmitting.value = false
 }
 
-// Load menu items on mount
+const formatDiscountAmount = (discount: Discount): string => {
+  if (discount.discount_type === 'flat') {
+    return `₱${discount.amount.toFixed(2)}`
+  } else {
+    return `${discount.amount}%`
+  }
+}
+
+// Load menu items and discounts on mount
 onMounted(async () => {
   isLoadingMenuItems.value = true
   try {
     menuItems.value = await menuItemService.getMenuItems()
+    discounts.value = await discountService.getAll()
   } catch (error) {
-    console.error('Error loading menu items:', error)
-    alert('Failed to load menu items. Please refresh the page.')
+    console.error('Error loading data:', error)
+    alert('Failed to load data. Please refresh the page.')
   } finally {
     isLoadingMenuItems.value = false
   }
@@ -1040,6 +1093,12 @@ onMounted(async () => {
 }
 
 /* Order Summary */
+.order-summary-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .order-summary {
   background: #f5f5f7;
   border: 1px solid #e5e5e5;
@@ -1048,6 +1107,55 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.total-amount-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.summary-amount-strikethrough {
+  text-decoration: line-through;
+  color: #6b7280;
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-amount.discounted {
+  color: #10b981;
+}
+
+.discount-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.discount-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.discount-select {
+  padding: 0.625rem 0.875rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  background: white;
+  color: #111827;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.discount-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .order-item-first-row {

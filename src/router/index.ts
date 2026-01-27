@@ -4,6 +4,7 @@ import Dashboard from '../components/Dashboard.vue'
 import Inventory from '../components/Inventory.vue'
 import Sales from '../components/Sales.vue'
 import Expenses from '../components/Expenses.vue'
+import Discounts from '../components/Discounts.vue'
 import Users from '../components/Users.vue'
 import Menu from '../components/Menu.vue'
 import Login from '../components/Login.vue'
@@ -68,6 +69,12 @@ const routes = [
     path: '/expenses',
     name: 'Expenses',
     component: Expenses,
+    meta: { requiresAuth: true, allowedRoles: [0] } // Admin only
+  },
+  {
+    path: '/discounts',
+    name: 'Discounts',
+    component: Discounts,
     meta: { requiresAuth: true, allowedRoles: [0] } // Admin only
   },
   {
