@@ -428,7 +428,7 @@ const paymentMethods: PaymentMethod[] = ['cash', 'gcash']
 
 // Computed
 const orderTotal = computed(() => calculateOrderTotal(orderItems.value))
-const activeDiscounts = computed(() => filterActiveDiscounts(discounts.value))
+// const activeDiscounts = computed(() => filterActiveDiscounts(discounts.value))
 const selectedDiscount = computed(() => {
   if (!selectedDiscountId.value) return null
   return discounts.value.find(d => d.id === selectedDiscountId.value) || null
@@ -737,13 +737,13 @@ const cancelOrder = () => {
   isSubmitting.value = false
 }
 
-const formatDiscountAmount = (discount: Discount): string => {
-  if (discount.discount_type === 'flat') {
-    return `₱${discount.amount.toFixed(2)}`
-  } else {
-    return `${discount.amount}%`
-  }
-}
+// const formatDiscountAmount = (discount: Discount): string => {
+//   if (discount.discount_type === 'flat') {
+//     return `₱${discount.amount.toFixed(2)}`
+//   } else {
+//     return `${discount.amount}%`
+//   }
+// }
 
 // Load menu items and discounts on mount
 onMounted(async () => {
