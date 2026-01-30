@@ -104,6 +104,12 @@
         <!-- Order Summary -->
         <div class="section" v-if="orderItems.length > 0">
           <div class="order-summary-wrapper">
+            <div class="order-goal-row">
+              <span class="order-goal-label">Goal: ₱{{ ORDER_GOAL_PESOS }}</span>
+              <span class="order-goal-remaining" :class="{ 'reached': hasReachedGoal }">
+                {{ hasReachedGoal ? 'Reached' : '₱' + remainingToGoal.toFixed(2) + ' left' }}
+              </span>
+            </div>
             <div class="order-summary">
               <span class="summary-label">TOTAL</span>
               <div class="total-amount-container">
@@ -377,6 +383,7 @@ import { menuItemService } from '../services/menuItemService'
 import { deductInventoryForOrder } from '../modules/orders/inventoryDeduction'
 import { discountService } from '../services/discountService'
 import { filterActiveDiscounts, calculateDiscountedPrice } from '../modules/discounts/discountUtils'
+import { ORDER_GOAL_PESOS } from '../const/orderGoal'
 
 // Props
 const emit = defineEmits<{
@@ -434,6 +441,11 @@ const change = computed(() => {
   if (customerPayment.value <= 0) return 0
   return customerPayment.value - discountedTotal.value
 })
+const remainingToGoal = computed(() => {
+  const remaining = ORDER_GOAL_PESOS - discountedTotal.value
+  return Math.max(0, Math.round(remaining * 100) / 100)
+})
+const hasReachedGoal = computed(() => discountedTotal.value >= ORDER_GOAL_PESOS)
 const searchQuery = ref('')
 const selectedCategory = ref('')
 const availableCategories = computed(() => {
@@ -1107,6 +1119,30 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.order-goal-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0;
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.order-goal-label {
+  font-weight: 500;
+}
+
+.order-goal-remaining {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: red;
+}
+
+.order-goal-remaining.reached {
+  color: #10b981;
 }
 
 .total-amount-container {

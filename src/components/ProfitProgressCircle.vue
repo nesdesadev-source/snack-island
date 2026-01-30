@@ -27,6 +27,98 @@
         transform="rotate(-90 60 60)"
         style="transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease;"
       />
+      <!-- Mood icon (face), centered in circle -->
+      <g class="mood-icon-wrap">
+        <svg
+          v-if="moodLevel === 'super-sad'"
+          class="mood-icon"
+          x="38"
+          y="38"
+          width="44"
+          height="44"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="9" cy="9" r="1.5" fill="currentColor" />
+          <circle cx="15" cy="9" r="1.5" fill="currentColor" />
+          <path d="M7 17 Q12 13 17 17" />
+        </svg>
+        <svg
+          v-else-if="moodLevel === 'frown'"
+          class="mood-icon"
+          x="38"
+          y="38"
+          width="44"
+          height="44"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="9" cy="9" r="1.5" fill="currentColor" />
+          <circle cx="15" cy="9" r="1.5" fill="currentColor" />
+          <path d="M8 16 Q12 13 16 16" />
+        </svg>
+        <svg
+          v-else-if="moodLevel === 'neutral'"
+          class="mood-icon"
+          x="38"
+          y="38"
+          width="44"
+          height="44"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+        >
+          <circle cx="9" cy="9" r="1.5" fill="currentColor" />
+          <circle cx="15" cy="9" r="1.5" fill="currentColor" />
+          <line x1="8" y1="16" x2="16" y2="16" />
+        </svg>
+        <svg
+          v-else-if="moodLevel === 'smile'"
+          class="mood-icon"
+          x="38"
+          y="38"
+          width="44"
+          height="44"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="9" cy="9" r="1.5" fill="currentColor" />
+          <circle cx="15" cy="9" r="1.5" fill="currentColor" />
+          <path d="M8 15 Q12 18 16 15" />
+        </svg>
+        <svg
+          v-else
+          class="mood-icon"
+          x="38"
+          y="38"
+          width="44"
+          height="44"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="9" cy="9" r="1.5" fill="currentColor" />
+          <circle cx="15" cy="9" r="1.5" fill="currentColor" />
+          <path d="M7 14 Q12 20 17 14" />
+        </svg>
+      </g>
     </svg>
   </div>
 </template>
@@ -69,7 +161,7 @@ const progressColor = computed(() => {
   if (profit <= 0) {
     return '#c41e3a' // Urgent dark red
   } else if (profit > GOLD_THRESHOLD) {
-    return '#ffd700' // Gold
+    return '#6b21a8' // Rich violet
   } else if (profit < RED_THRESHOLD) {
     return '#dc3545' // Red
   } else if (profit < ORANGE_THRESHOLD) {
@@ -92,6 +184,17 @@ const progressColorClass = computed(() => {
   } else {
     return 'color-green'
   }
+})
+
+type MoodLevel = 'super-sad' | 'frown' | 'neutral' | 'smile' | 'super-happy'
+
+const moodLevel = computed<MoodLevel>(() => {
+  const profit = props.profit
+  if (profit < 0) return 'super-sad'
+  if (profit < RED_THRESHOLD) return 'frown'
+  if (profit < ORANGE_THRESHOLD) return 'neutral'
+  if (profit < GOLD_THRESHOLD) return 'smile'
+  return 'super-happy'
 })
 
 </script>
@@ -118,6 +221,15 @@ const progressColorClass = computed(() => {
 
 .progress-circle {
   transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease;
+}
+
+.mood-icon-wrap {
+  pointer-events: none;
+}
+
+.mood-icon {
+  overflow: visible;
+  color: inherit;
 }
 
 .profit-progress-circle.urgent {

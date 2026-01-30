@@ -57,7 +57,7 @@
               </svg>
             </button>
           </div>
-          <ProfitProgressCircle :profit="todayProfit" />
+          <ProfitProgressCircle :profit="-20" />
         </div>
       </div>
     </div>
