@@ -113,7 +113,7 @@
                 </span>
               </div>
             </div>
-            <div class="discount-selector">
+            <!-- <div class="discount-selector">
               <label class="discount-label">Discount</label>
               <select 
                 v-model="selectedDiscountId" 
@@ -128,7 +128,7 @@
                   {{ discount.name }} ({{ formatDiscountAmount(discount) }})
                 </option>
               </select>
-            </div>
+            </div> -->
           </div>
         </div>
 
