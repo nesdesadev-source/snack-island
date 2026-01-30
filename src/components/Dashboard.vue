@@ -98,6 +98,20 @@
         </StatCard>
         
         <StatCard
+          title="Average Order Value"
+          :value="averageOrderValueFormatted"
+          :trend="dashboardData.averageOrderValueTrend"
+          icon-class="sales"
+          prefix="₱"
+        >
+          <template #icon>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+          </template>
+        </StatCard>
+        
+        <StatCard
           title="Total Expenses"
           :value="dashboardData.totalExpenses"
           :trend="dashboardData.expensesTrend"
@@ -278,12 +292,22 @@ const periods = [
 const dashboardData = computed(() => {
   const currentPeriodData = getCurrentPeriodData()
   const previousPeriodData = getPreviousPeriodData()
-  
+  const averageOrderValue =
+    currentPeriodData.totalOrders > 0
+      ? currentPeriodData.totalSales / currentPeriodData.totalOrders
+      : 0
+  const previousAverageOrderValue =
+    previousPeriodData.totalOrders > 0
+      ? previousPeriodData.totalSales / previousPeriodData.totalOrders
+      : 0
+
   return {
     totalSales: currentPeriodData.totalSales,
     totalOrders: currentPeriodData.totalOrders,
     totalExpenses: currentPeriodData.totalExpenses,
     netProfit: currentPeriodData.totalSales - currentPeriodData.totalExpenses,
+    averageOrderValue,
+    averageOrderValueTrend: calculateTrend(averageOrderValue, previousAverageOrderValue),
     salesTrend: calculateTrend(currentPeriodData.totalSales, previousPeriodData.totalSales),
     ordersTrend: calculateTrend(currentPeriodData.totalOrders, previousPeriodData.totalOrders),
     expensesTrend: calculateTrend(currentPeriodData.totalExpenses, previousPeriodData.totalExpenses),
@@ -304,6 +328,13 @@ const dashboardData = computed(() => {
     salesByTimeOfDayData: getSalesByTimeOfDay()
   }
 })
+
+// Average Order Value displayed with 2 decimal places
+const averageOrderValueFormatted = computed(() =>
+  new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
+    dashboardData.value.averageOrderValue
+  )
+)
 
 // Computed average orders per day
 const averageOrdersPerDay = computed(() => {

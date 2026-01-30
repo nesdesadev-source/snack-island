@@ -160,6 +160,32 @@ describe('Dashboard Utility Functions', () => {
       expect(calculateTrend(0, 100)).toBe(-100) // 100% decrease
     })
 
+    it('calculates average order value from totalSales and totalOrders', () => {
+      const getAverageOrderValue = (totalSales: number, totalOrders: number): number =>
+        totalOrders > 0 ? totalSales / totalOrders : 0
+
+      expect(getAverageOrderValue(1000, 10)).toBe(100)
+      expect(getAverageOrderValue(450, 5)).toBe(90)
+      expect(getAverageOrderValue(0, 0)).toBe(0)
+      expect(getAverageOrderValue(100, 0)).toBe(0)
+    })
+
+    it('calculates average order value trend correctly', () => {
+      const calculateTrend = (current: number, previous: number): number => {
+        if (previous === 0) return 0
+        return ((current - previous) / previous) * 100
+      }
+      const getAverageOrderValue = (totalSales: number, totalOrders: number): number =>
+        totalOrders > 0 ? totalSales / totalOrders : 0
+
+      const currentAOV = getAverageOrderValue(1000, 10) // 100
+      const previousAOV = getAverageOrderValue(800, 10) // 80
+      expect(calculateTrend(currentAOV, previousAOV)).toBe(25) // 25% increase
+
+      const prevZeroOrders = getAverageOrderValue(100, 0) // 0 when no orders
+      expect(calculateTrend(100, prevZeroOrders)).toBe(0) // trend is 0 when previous is 0
+    })
+
     it('formats numbers correctly', () => {
       const formatNumber = (num: number): string => {
         return new Intl.NumberFormat('en-US').format(num)
