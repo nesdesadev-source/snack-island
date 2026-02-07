@@ -18,7 +18,10 @@
       </div>
     </div>
     <div class="chart-container">
-      <div v-if="!salesByDayOfWeekData.available" class="no-data-message">
+      <div v-if="!hasOrderData" class="no-data-message">
+        <p>No order data to show</p>
+      </div>
+      <div v-else-if="!salesByDayOfWeekData.available" class="no-data-message">
         <p>Not Available</p>
         <p class="no-data-subtitle">Please select a period of 7 days or more</p>
       </div>
@@ -28,12 +31,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { Chart, registerables } from 'chart.js'
 
 Chart.register(...registerables)
 
 interface Props {
+  hasOrderData: boolean
   salesByDayOfWeekData: {
     available: boolean
     labels: string[]
@@ -142,6 +146,14 @@ function updateChart() {
 watch(() => props.salesByDayOfWeekData, () => {
   createChart()
 }, { deep: true })
+
+watch([() => props.hasOrderData, () => props.salesByDayOfWeekData.available], () => {
+  if (props.hasOrderData && props.salesByDayOfWeekData.available) nextTick(() => createChart())
+  else if (chartInstance) {
+    chartInstance.destroy()
+    chartInstance = null
+  }
+})
 
 onMounted(() => {
   createChart()

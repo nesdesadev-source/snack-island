@@ -4,18 +4,22 @@
       <h3>Expense Breakdown</h3>
     </div>
     <div class="chart-container">
-      <canvas ref="chartCanvas" width="400" height="200"></canvas>
+      <div v-if="!hasOrderData" class="no-data-message">
+        <p>No order data to show</p>
+      </div>
+      <canvas v-else ref="chartCanvas" width="400" height="200"></canvas>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { Chart, registerables } from 'chart.js'
 
 Chart.register(...registerables)
 
 interface Props {
+  hasOrderData: boolean
   expenseData: { labels: string[]; data: number[] }
 }
 
@@ -67,6 +71,14 @@ watch(() => props.expenseData, () => {
   createChart()
 }, { deep: true })
 
+watch(() => props.hasOrderData, (val) => {
+  if (val) nextTick(() => createChart())
+  else if (chartInstance) {
+    chartInstance.destroy()
+    chartInstance = null
+  }
+})
+
 onMounted(() => {
   createChart()
 })
@@ -103,5 +115,20 @@ onUnmounted(() => {
 .chart-container {
   position: relative;
   height: 200px;
+}
+
+.no-data-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  text-align: center;
+}
+
+.no-data-message p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 1rem;
+  font-weight: 500;
 }
 </style>

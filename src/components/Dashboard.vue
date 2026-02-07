@@ -145,6 +145,7 @@
       <!-- Charts Section -->
       <div class="charts-grid">
         <SalesTrendChartCard
+          :has-order-data="dashboardData.totalOrders > 0"
           :sales-data="dashboardData.salesData"
           :expenses-data="dashboardData.expensesData"
           :profit-data="dashboardData.profitData"
@@ -153,20 +154,24 @@
         />
         
         <ExpenseBreakdownChartCard
+          :has-order-data="dashboardData.totalOrders > 0"
           :expense-data="dashboardData.expenseData"
         />
         
         <TopSellingItemsChartCard
+          :has-order-data="dashboardData.totalOrders > 0"
           :top-items-data="dashboardData.topItemsData"
           @view-all="showTopItemsModal = true"
         />
         
         <TopRevenueItemsChartCard
+          :has-order-data="dashboardData.totalOrders > 0"
           :top-revenue-data="dashboardData.topRevenueData"
           @view-all="showTopRevenueModal = true"
         />
         
         <PaymentMethodsChartCard
+          :has-order-data="dashboardData.totalOrders > 0"
           :payment-methods-data="dashboardData.paymentMethodsData"
           @view-orders="showPaymentMethodsModal = true"
         />
@@ -177,10 +182,12 @@
         />
         
         <SalesByDayOfWeekChartCard
+          :has-order-data="dashboardData.totalOrders > 0"
           :sales-by-day-of-week-data="dashboardData.salesByDayOfWeekData"
         />
         
         <SalesByTimeOfDayChartCard
+          :has-order-data="dashboardData.totalOrders > 0"
           :sales-by-time-of-day-data="dashboardData.salesByTimeOfDayData"
         />
       </div>
@@ -256,7 +263,7 @@ const paymentMethodsModalRef = ref<InstanceType<typeof PaymentMethodsModal> | nu
 // State
 const loading = ref(true)
 const error = ref<string | null>(null)
-const selectedPeriod = ref('week')
+const selectedPeriod = ref('today')
 const periodType = ref<'toDate' | 'calendar'>('toDate')
 const customStartDate = ref<string>('')
 const customEndDate = ref<string>('')
