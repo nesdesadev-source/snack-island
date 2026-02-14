@@ -21,7 +21,10 @@
         >
           <div class="card-header">
             <span class="order-id">#{{ order.id.slice(-6) }}</span>
-            <span class="order-time">{{ formatDateTime(order.created_at || '') }}</span>
+            <span class="order-time-wrap">
+              <span class="order-time">{{ formatDateTime(order.created_at || '') }}</span>
+              <span v-if="formatTimeElapsed(order.created_at)" class="order-time-elapsed">{{ formatTimeElapsed(order.created_at) }}</span>
+            </span>
           </div>
           
           <div class="card-items">
@@ -109,7 +112,10 @@
         >
           <div class="card-header">
             <span class="order-id">#{{ order.id.slice(-6) }}</span>
-            <span class="order-time">{{ formatDateTime(order.created_at || '') }}</span>
+            <span class="order-time-wrap">
+              <span class="order-time">{{ formatDateTime(order.created_at || '') }}</span>
+              <span v-if="formatTimeElapsed(order.created_at)" class="order-time-elapsed">{{ formatTimeElapsed(order.created_at) }}</span>
+            </span>
           </div>
           
           <div class="card-items">
@@ -197,7 +203,10 @@
         >
           <div class="card-header">
             <span class="order-id">#{{ order.id.slice(-6) }}</span>
+            <span class="order-time-wrap">
               <span class="order-time">{{ formatDateTime(order.created_at || '') }}</span>
+              <span v-if="formatTimeElapsed(order.created_at)" class="order-time-elapsed">{{ formatTimeElapsed(order.created_at) }}</span>
+            </span>
           </div>
           
           <div class="card-items">
@@ -260,6 +269,7 @@ import { ref, onMounted, watch } from 'vue'
 import type { Order, OrderItem, OrderStatus } from '../models'
 import { OrderService } from '../services/orderService'
 import { menuItemService } from '../services/menuItemService'
+import { sortOrdersForQueue } from '../utils/orderQueueSort'
 
 // Props
 const emit = defineEmits<{
@@ -284,11 +294,25 @@ const toggleRow = (row: 'todo' | 'ready' | 'done') => {
 
 const formatDateTime = (dateTime: string): string => {
   const date = new Date(dateTime)
-  return date.toLocaleTimeString('en-US', { 
-    hour: '2-digit', 
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
     minute: '2-digit',
-    hour12: true 
+    hour12: true
   })
+}
+
+const formatTimeElapsed = (dateTime: string | null): string => {
+  if (!dateTime) return ''
+  const then = new Date(dateTime).getTime()
+  const now = Date.now()
+  const diffMs = now - then
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+  if (diffMins < 1) return '< 1m ago'
+  if (diffMins < 60) return `${diffMins}m ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  return `${diffDays}d ago`
 }
 
 const getOrderItems = (orderId: string): OrderItem[] => {
@@ -332,14 +356,13 @@ const isToday = (dateString: string | null): boolean => {
 }
 
 const getOrdersByStatus = (status: OrderStatus): Order[] => {
-  const filtered = orders.value.filter(order => order.status === status as OrderStatus)
-  
-  // For completed orders, only show today's orders
+  let filtered = orders.value.filter(order => order.status === status as OrderStatus)
+
   if (status === 'completed') {
-    return filtered.filter(order => isToday(order.created_at))
+    filtered = filtered.filter(order => isToday(order.created_at))
   }
-  
-  return filtered
+
+  return sortOrdersForQueue(filtered, status)
 }
 
 const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
@@ -574,14 +597,15 @@ defineExpose({
 }
 
 .row-content {
-  padding: 1rem;
+  padding: 0.75rem;
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   overflow-x: auto;
   overflow-y: auto;
-  min-height: 200px;
-  max-height: 400px;
+  min-height: 180px;
+  max-height: 360px;
   padding-bottom: 0.5rem;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Custom scrollbar for rows (both horizontal and vertical) */
@@ -610,14 +634,14 @@ defineExpose({
   background: #f8f9fa;
 }
 
-/* Order Cards */
+/* Order Cards - smaller footprint for 4+ orders */
 .order-card {
   background: #ffffff;
   border: 1px solid #dee2e6;
   border-radius: 6px;
-  padding: 1rem;
-  min-width: 280px;
-  max-width: 320px;
+  padding: 0.75rem;
+  min-width: 220px;
+  max-width: 260px;
   height: fit-content;
   transition: all 0.15s ease;
   cursor: pointer;
@@ -635,41 +659,55 @@ defineExpose({
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.375rem;
   border-bottom: 1px solid #e9ecef;
 }
 
 .order-id {
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: #495057;
   font-variant-numeric: tabular-nums;
 }
 
+.order-time-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .order-time {
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   color: #6c757d;
   font-variant-numeric: tabular-nums;
 }
 
+.order-time-elapsed {
+  font-size: 0.5625rem;
+  color: #adb5bd;
+  font-variant-numeric: tabular-nums;
+}
+
 .card-items {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .items-label {
-  font-size: 0.625rem;
+  font-size: 0.5625rem;
   font-weight: 600;
   color: #6c757d;
   letter-spacing: 0.5px;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.375rem;
 }
 
 .items-list {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
-  max-height: 150px;
+  gap: 0.25rem;
+  max-height: 120px;
   overflow-y: auto;
   padding-right: 0.25rem;
 }
@@ -696,7 +734,7 @@ defineExpose({
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
 }
 
 .item-name-container {
@@ -792,8 +830,8 @@ defineExpose({
 .card-payment {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 0.75rem;
-  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.6875rem;
 }
 
 .payment-label {
@@ -808,13 +846,13 @@ defineExpose({
 }
 
 .card-total {
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 700;
   color: #212529;
   font-variant-numeric: tabular-nums;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   text-align: center;
-  padding: 0.5rem;
+  padding: 0.375rem 0.5rem;
   background: #f8f9fa;
   border-radius: 4px;
   border: 1px solid #e9ecef;
@@ -827,6 +865,7 @@ defineExpose({
 }
 
 .action-btn {
+  min-height: 44px;
   padding: 0.5rem 0.75rem;
   border-radius: 4px;
   font-size: 0.75rem;
@@ -883,16 +922,27 @@ defineExpose({
   color: #6c757d;
 }
 
-/* Responsive Design */
+/* Responsive Design - tablet (e.g. iPad) and below */
+@media (max-width: 1024px) {
+  .row-content {
+    gap: 0.75rem;
+  }
+
+  .order-card {
+    min-width: 200px;
+    max-width: 240px;
+  }
+}
+
 @media (max-width: 1200px) {
   .row-content {
     flex-wrap: wrap;
     gap: 0.75rem;
   }
-  
+
   .order-card {
-    min-width: 250px;
-    max-width: 280px;
+    min-width: 220px;
+    max-width: 260px;
   }
 }
 
@@ -927,6 +977,10 @@ defineExpose({
     min-width: 100%;
     max-width: 100%;
     padding: 0.75rem;
+  }
+
+  .action-btn {
+    min-height: 44px;
   }
 
   .card-header {
@@ -1030,6 +1084,7 @@ defineExpose({
   }
 
   .action-btn {
+    min-height: 44px;
     padding: 0.4375rem 0.5rem;
     font-size: 0.6875rem;
   }
