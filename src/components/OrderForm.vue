@@ -769,8 +769,6 @@ onMounted(async () => {
   max-width: 900px;
   margin: 0 auto;
   min-height: 100%;
-  max-height: calc(100vh - 8rem);
-  overflow-y: auto;
   overflow-x: hidden;
 }
 
@@ -788,25 +786,6 @@ onMounted(async () => {
   width: 100%;
 }
 
-/* Custom scrollbar for order form */
-.order-form::-webkit-scrollbar {
-  width: 8px;
-}
-
-.order-form::-webkit-scrollbar-track {
-  background: #f8f9fa;
-  border-radius: 4px;
-}
-
-.order-form::-webkit-scrollbar-thumb {
-  background: #dee2e6;
-  border-radius: 4px;
-}
-
-.order-form::-webkit-scrollbar-thumb:hover {
-  background: #adb5bd;
-}
-
 .section {
   margin-bottom: 1.5rem;
 }
@@ -818,6 +797,11 @@ onMounted(async () => {
   letter-spacing: 0.5px;
   margin: 0 0 1rem 0;
   text-transform: uppercase;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #f8f9fa;
+  padding-bottom: 0.5rem;
 }
 
 /* Mobile Header - Hidden on Desktop */
@@ -925,8 +909,6 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 0.75rem;
-  max-height: 300px;
-  overflow-y: auto;
   padding-right: 0.5rem;
 }
 
@@ -990,8 +972,6 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-height: 150px;
-  overflow-y: auto;
   padding-right: 0.5rem;
 }
 
@@ -1405,6 +1385,32 @@ onMounted(async () => {
   margin: 0;
 }
 
+/* Tablet: single scroll, two columns, touch-friendly */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .order-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .menu-item {
+    min-height: 44px;
+    padding: 0.875rem 1rem;
+  }
+
+  .quantity-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .payment-btn {
+    min-height: 44px;
+  }
+
+  .btn {
+    min-height: 44px;
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .order-form {
@@ -1436,6 +1442,10 @@ onMounted(async () => {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+  }
+
+  .section-title {
+    background: #ffffff;
   }
 
   /* Mobile Header - Show on Mobile */
@@ -1524,7 +1534,6 @@ onMounted(async () => {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    max-height: 250px;
     width: 100%;
     box-sizing: border-box;
   }
@@ -1575,7 +1584,6 @@ onMounted(async () => {
   }
   
   .order-items-list {
-    max-height: 120px;
     width: 100%;
     box-sizing: border-box;
   }

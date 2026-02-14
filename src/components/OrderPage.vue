@@ -744,6 +744,7 @@ onUnmounted(() => {
   padding: 1.5rem;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
 }
 
 /* Custom scrollbar for modal */
