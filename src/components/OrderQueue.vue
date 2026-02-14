@@ -613,6 +613,7 @@ defineExpose({
 .row-content {
   padding: 0.75rem;
   display: flex;
+  flex-wrap: nowrap;
   gap: 0.75rem;
   overflow-x: scroll;
   overflow-y: hidden;
@@ -623,7 +624,7 @@ defineExpose({
   padding-bottom: 0.5rem;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x;
-  /* Bounded height + overflow-x: scroll so iOS treats this as a proper horizontal scroll container */
+  /* Single row (nowrap) so cards overflow horizontally; max-height bounds the scroll area for iOS */
 }
 
 /* Custom scrollbar for row horizontal scroll only */
@@ -959,13 +960,14 @@ defineExpose({
 
 @media (max-width: 1200px) {
   .row-content {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 0.75rem;
   }
 
   .order-card {
     min-width: 220px;
     max-width: 260px;
+    flex-shrink: 0;
   }
 }
 
