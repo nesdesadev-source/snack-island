@@ -23,7 +23,7 @@
             <span class="order-id">#{{ order.id.slice(-6) }}</span>
             <span class="order-time-wrap">
               <span class="order-time">{{ formatDateTime(order.created_at || '') }}</span>
-              <span v-if="formatTimeElapsed(order.created_at)" class="order-time-elapsed">{{ formatTimeElapsed(order.created_at) }}</span>
+              <span v-if="formatTimeElapsed(order.created_at)" :class="['order-time-elapsed', getElapsedTimeClass(order.created_at)]">{{ formatTimeElapsed(order.created_at) }}</span>
             </span>
           </div>
           
@@ -114,7 +114,7 @@
             <span class="order-id">#{{ order.id.slice(-6) }}</span>
             <span class="order-time-wrap">
               <span class="order-time">{{ formatDateTime(order.created_at || '') }}</span>
-              <span v-if="formatTimeElapsed(order.created_at)" class="order-time-elapsed">{{ formatTimeElapsed(order.created_at) }}</span>
+              <span v-if="formatTimeElapsed(order.created_at)" :class="['order-time-elapsed', getElapsedTimeClass(order.created_at)]">{{ formatTimeElapsed(order.created_at) }}</span>
             </span>
           </div>
           
@@ -205,7 +205,6 @@
             <span class="order-id">#{{ order.id.slice(-6) }}</span>
             <span class="order-time-wrap">
               <span class="order-time">{{ formatDateTime(order.created_at || '') }}</span>
-              <span v-if="formatTimeElapsed(order.created_at)" class="order-time-elapsed">{{ formatTimeElapsed(order.created_at) }}</span>
             </span>
           </div>
           
@@ -313,6 +312,20 @@ const formatTimeElapsed = (dateTime: string | null): string => {
   if (diffMins < 60) return `${diffMins}m ago`
   if (diffHours < 24) return `${diffHours}h ago`
   return `${diffDays}d ago`
+}
+
+const getElapsedMinutes = (dateTime: string | null): number | null => {
+  if (!dateTime) return null
+  const then = new Date(dateTime).getTime()
+  const now = Date.now()
+  return Math.floor((now - then) / 60000)
+}
+
+const getElapsedTimeClass = (dateTime: string | null): string => {
+  const m = getElapsedMinutes(dateTime) ?? 0
+  if (m > 20) return 'order-time-elapsed-over-20'
+  if (m >= 10) return 'order-time-elapsed-10-20'
+  return ''
 }
 
 const getOrderItems = (orderId: string): OrderItem[] => {
@@ -689,6 +702,16 @@ defineExpose({
   font-size: 0.5625rem;
   color: #adb5bd;
   font-variant-numeric: tabular-nums;
+}
+
+.order-time-elapsed-10-20 {
+  color: #fd7e14;
+  font-weight: 600;
+}
+
+.order-time-elapsed-over-20 {
+  color: #dc3545;
+  font-weight: 600;
 }
 
 .card-items {
