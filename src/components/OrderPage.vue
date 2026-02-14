@@ -333,9 +333,10 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Modern Professional Layout */
+/* Modern Professional Layout - single scroll for whole page (no nested scroll) */
 .order-page {
   min-height: 100vh;
+  min-height: 100dvh;
   background: #f5f5f7;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   position: relative;
@@ -579,32 +580,11 @@ onUnmounted(() => {
   stroke-width: 2;
 }
 
-/* Main Content */
+/* Main Content - single scroll: no inner scroll container, page scrolls as one */
 .main-content {
   max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
-  max-height: calc(100vh - 4rem);
-  overflow: hidden;
-}
-
-/* Custom scrollbar for main content */
-.main-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.main-content::-webkit-scrollbar-track {
-  background: #f5f5f7;
-  border-radius: 4px;
-}
-
-.main-content::-webkit-scrollbar-thumb {
-  background: #d2d2d7;
-  border-radius: 4px;
-}
-
-.main-content::-webkit-scrollbar-thumb:hover {
-  background: #86868b;
 }
 
 /* Card Styles */
@@ -657,21 +637,18 @@ onUnmounted(() => {
   background: #ffffff;
 }
 
-/* Order Queue Card - Full Width */
+/* Order Queue Card - Full Width, grows with content (single page scroll) */
 .order-queue-card {
   background: #ffffff;
   border: 1px solid #e5e5e5;
-  max-height: calc(100vh - 15rem);
-  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
 .order-queue-card .card-body {
   flex: 1;
-  overflow: auto;
   padding: 0;
-  height: 100%;
+  min-height: 0;
 }
 
 /* Modal Styles */
@@ -696,6 +673,7 @@ onUnmounted(() => {
   max-width: 1000px;
   width: 100%;
   max-height: 90vh;
+  max-height: min(90vh, 90dvh);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -743,8 +721,10 @@ onUnmounted(() => {
 .modal-body {
   padding: 1.5rem;
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
   min-height: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Custom scrollbar for modal */
@@ -999,7 +979,6 @@ onUnmounted(() => {
 
   .main-content {
     padding: 0;
-    max-height: calc(100vh - 3.5rem);
   }
 
   .card {
@@ -1025,7 +1004,6 @@ onUnmounted(() => {
   }
 
   .order-queue-card {
-    max-height: calc(100vh - 4.5rem);
     border-radius: 0;
     border-left: none;
     border-right: none;
@@ -1043,7 +1021,9 @@ onUnmounted(() => {
   .modal-dialog {
     max-width: 100vw;
     max-height: 100vh;
+    max-height: 100dvh;
     height: 100vh;
+    height: 100dvh;
     margin: 0;
     border-radius: 0;
     width: 100vw;
@@ -1118,7 +1098,6 @@ onUnmounted(() => {
 
   .main-content {
     padding: 0;
-    max-height: calc(100vh - 3rem);
   }
 
   .card-header {
@@ -1130,8 +1109,33 @@ onUnmounted(() => {
     font-size: 0.8125rem;
   }
 
-  .order-queue-card {
-    max-height: calc(100vh - 4rem);
+}
+
+/* Tablet / iPad: single scroll, safe area, touch-friendly */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .order-page {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .header {
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
+  }
+
+  .sales-summary,
+  .main-content {
+    padding-left: max(2rem, env(safe-area-inset-left, 0));
+    padding-right: max(2rem, env(safe-area-inset-right, 0));
+  }
+
+  .modal-dialog {
+    max-height: min(90vh, 90dvh);
+    margin: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+  }
+
+  .new-order-btn {
+    min-height: 44px;
+    padding: 0.75rem 1.5rem;
   }
 }
 </style>
