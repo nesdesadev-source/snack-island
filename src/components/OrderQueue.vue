@@ -619,10 +619,11 @@ defineExpose({
   min-height: 0;
   min-width: 0;
   width: 100%;
+  max-height: 380px;
   padding-bottom: 0.5rem;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x;
-  /* overflow-x: scroll + touch-action: pan-x for reliable horizontal scroll on real iOS */
+  /* Bounded height + overflow-x: scroll so iOS treats this as a proper horizontal scroll container */
 }
 
 /* Custom scrollbar for row horizontal scroll only */
