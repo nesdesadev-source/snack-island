@@ -614,17 +614,15 @@ defineExpose({
   display: flex;
   gap: 0.75rem;
   overflow-x: auto;
-  overflow-y: auto;
-  min-height: 180px;
-  max-height: 360px;
+  overflow-y: visible;
+  min-height: 0;
   padding-bottom: 0.5rem;
   -webkit-overflow-scrolling: touch;
 }
 
-/* Custom scrollbar for rows (both horizontal and vertical) */
+/* Custom scrollbar for row horizontal scroll only */
 .row-content::-webkit-scrollbar {
   height: 8px;
-  width: 8px;
 }
 
 .row-content::-webkit-scrollbar-track {
@@ -641,10 +639,6 @@ defineExpose({
 
 .row-content::-webkit-scrollbar-thumb:hover {
   background: #495057;
-}
-
-.row-content::-webkit-scrollbar-corner {
-  background: #f8f9fa;
 }
 
 /* Order Cards - smaller footprint for 4+ orders */
