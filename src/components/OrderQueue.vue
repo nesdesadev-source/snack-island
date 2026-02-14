@@ -77,14 +77,18 @@
             <button
               @click="updateOrderStatus(order.id, 'ready' as OrderStatus)"
               class="action-btn action-primary"
+              :disabled="isActionLoading(order.id, 'ready')"
             >
-              Mark Ready
+              <span v-if="isActionLoading(order.id, 'ready')" class="action-btn-spinner"></span>
+              <span v-else>Mark Ready</span>
             </button>
             <button
               @click="updateOrderStatus(order.id, 'cancelled' as OrderStatus)"
               class="action-btn action-secondary"
+              :disabled="isActionLoading(order.id, 'cancelled')"
             >
-              Cancel
+              <span v-if="isActionLoading(order.id, 'cancelled')" class="action-btn-spinner"></span>
+              <span v-else>Cancel</span>
             </button>
           </div>
         </div>
@@ -168,14 +172,18 @@
             <button
               @click="updateOrderStatus(order.id, 'completed' as OrderStatus)"
               class="action-btn action-primary"
+              :disabled="isActionLoading(order.id, 'completed')"
             >
-              Complete Order
+              <span v-if="isActionLoading(order.id, 'completed')" class="action-btn-spinner"></span>
+              <span v-else>Complete Order</span>
             </button>
             <button
               @click="updateOrderStatus(order.id, 'cancelled' as OrderStatus)"
               class="action-btn action-secondary"
+              :disabled="isActionLoading(order.id, 'cancelled')"
             >
-              Cancel
+              <span v-if="isActionLoading(order.id, 'cancelled')" class="action-btn-spinner"></span>
+              <span v-else>Cancel</span>
             </button>
           </div>
         </div>
@@ -280,11 +288,15 @@ const orders = ref<Order[]>([])
 const orderItems = ref<OrderItem[]>([])
 const menuItems = ref<any[]>([])
 const isLoading = ref(false)
+const actionLoading = ref<{ orderId: string; status: OrderStatus } | null>(null)
 const collapsedRows = ref({
   todo: false,
   ready: false,
   done: false
 })
+
+const isActionLoading = (orderId: string, status: OrderStatus): boolean =>
+  actionLoading.value?.orderId === orderId && actionLoading.value?.status === status
 
 // Methods
 const toggleRow = (row: 'todo' | 'ready' | 'done') => {
@@ -379,6 +391,7 @@ const getOrdersByStatus = (status: OrderStatus): Order[] => {
 }
 
 const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+  actionLoading.value = { orderId, status: newStatus }
   try {
     await OrderService.updateOrderStatus(orderId, newStatus as OrderStatus)
     
@@ -398,6 +411,8 @@ const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
   } catch (error) {
     console.error('Error updating order status:', error)
     alert('Failed to update order status. Please try again.')
+  } finally {
+    actionLoading.value = null
   }
 }
 
@@ -920,6 +935,25 @@ defineExpose({
 .action-secondary:hover {
   background: #c82333;
   border-color: #c82333;
+}
+
+.action-btn:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
+.action-btn-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: action-btn-spin 0.7s linear infinite;
+}
+
+@keyframes action-btn-spin {
+  to { transform: rotate(360deg); }
 }
 
 .completed-badge {
