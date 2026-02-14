@@ -505,8 +505,6 @@ defineExpose({
 <style scoped>
 .kanban-board {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  height: 100%;
-  min-height: 100%;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -514,6 +512,7 @@ defineExpose({
   margin: 0;
   overflow-y: visible;
   overflow-x: hidden;
+  /* No height: 100% so content grows and page scrolls on real iPad */
 }
 
 /* Custom scrollbar for main kanban board */
@@ -541,6 +540,8 @@ defineExpose({
   background: #f8f9fa;
   border-radius: 8px;
   overflow: hidden;
+  min-width: 0;
+  /* min-width: 0 allows row-content to shrink and scroll horizontally on iOS */
 }
 
 .row-header {
@@ -613,11 +614,15 @@ defineExpose({
   padding: 0.75rem;
   display: flex;
   gap: 0.75rem;
-  overflow-x: auto;
-  overflow-y: visible;
+  overflow-x: scroll;
+  overflow-y: hidden;
   min-height: 0;
+  min-width: 0;
+  width: 100%;
   padding-bottom: 0.5rem;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  /* overflow-x: scroll + touch-action: pan-x for reliable horizontal scroll on real iOS */
 }
 
 /* Custom scrollbar for row horizontal scroll only */

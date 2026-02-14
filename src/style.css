@@ -22,10 +22,16 @@ a:hover {
   color: #535bf2;
 }
 
+html {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 h1 {
@@ -58,8 +64,9 @@ button:focus-visible {
 
 #app {
   width: 100%;
-  height: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
+  /* Allow content to grow so page scrolls on iOS (no height: 100% which can block scroll) */
 }
 
 @media (prefers-color-scheme: light) {
