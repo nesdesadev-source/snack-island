@@ -23,7 +23,7 @@
             <span class="order-id">#{{ order.id.slice(-6) }}</span>
             <span class="order-time-wrap">
               <span class="order-time">{{ formatDateTime(order.created_at || '') }}</span>
-              <span v-if="formatTimeElapsed(order.created_at)" :class="['order-time-elapsed', getElapsedTimeClass(order.created_at)]">{{ formatTimeElapsed(order.created_at) }}</span>
+              <span v-if="getElapsedDisplay(order.created_at).text" :class="['order-time-elapsed', getElapsedDisplay(order.created_at).class]">{{ getElapsedDisplay(order.created_at).text }}</span>
             </span>
           </div>
           
@@ -70,6 +70,7 @@
             <span class="payment-label">PAYMENT</span>
             <span class="payment-method">{{ order.payment_method }}</span>
           </div>
+          <span :class="orderFulfillmentChipClass(order)" class="fulfillment-chip-wrap">{{ orderFulfillmentLabel(order) }}</span>
           
           <div class="card-total">₱{{ order.total_amount }}</div>
           
@@ -118,7 +119,7 @@
             <span class="order-id">#{{ order.id.slice(-6) }}</span>
             <span class="order-time-wrap">
               <span class="order-time">{{ formatDateTime(order.created_at || '') }}</span>
-              <span v-if="formatTimeElapsed(order.created_at)" :class="['order-time-elapsed', getElapsedTimeClass(order.created_at)]">{{ formatTimeElapsed(order.created_at) }}</span>
+              <span v-if="getElapsedDisplay(order.created_at).text" :class="['order-time-elapsed', getElapsedDisplay(order.created_at).class]">{{ getElapsedDisplay(order.created_at).text }}</span>
             </span>
           </div>
           
@@ -165,6 +166,7 @@
             <span class="payment-label">PAYMENT</span>
             <span class="payment-method">{{ order.payment_method }}</span>
           </div>
+          <span :class="orderFulfillmentChipClass(order)" class="fulfillment-chip-wrap">{{ orderFulfillmentLabel(order) }}</span>
           
           <div class="card-total">₱{{ order.total_amount }}</div>
           
@@ -259,6 +261,7 @@
             <span class="payment-label">PAYMENT</span>
             <span class="payment-method">{{ order.payment_method }}</span>
           </div>
+          <span :class="orderFulfillmentChipClass(order)" class="fulfillment-chip-wrap">{{ orderFulfillmentLabel(order) }}</span>
           
           <div class="card-total">₱{{ order.total_amount }}</div>
           
@@ -272,7 +275,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import type { Order, OrderItem, OrderStatus } from '../models'
 import { OrderService } from '../services/orderService'
 import { menuItemService } from '../services/menuItemService'
@@ -294,6 +297,10 @@ const collapsedRows = ref({
   ready: false,
   done: false
 })
+
+// Ticks so elapsed time (e.g. "5m ago") updates without refresh
+const elapsedTick = ref(Date.now())
+let elapsedIntervalId: ReturnType<typeof setInterval> | null = null
 
 const isActionLoading = (orderId: string, status: OrderStatus): boolean =>
   actionLoading.value?.orderId === orderId && actionLoading.value?.status === status
@@ -320,7 +327,7 @@ const formatTimeElapsed = (dateTime: string | null): string => {
   const diffMins = Math.floor(diffMs / 60000)
   const diffHours = Math.floor(diffMs / 3600000)
   const diffDays = Math.floor(diffMs / 86400000)
-  if (diffMins < 1) return '< 1m ago'
+  if (diffMins < 1) return '<1m ago'
   if (diffMins < 60) return `${diffMins}m ago`
   if (diffHours < 24) return `${diffHours}h ago`
   return `${diffDays}d ago`
@@ -338,6 +345,15 @@ const getElapsedTimeClass = (dateTime: string | null): string => {
   if (m > 20) return 'order-time-elapsed-over-20'
   if (m >= 10) return 'order-time-elapsed-10-20'
   return ''
+}
+
+/** Reactive elapsed display: depends on elapsedTick so it updates without refresh */
+const getElapsedDisplay = (dateTime: string | null): { text: string; class: string } => {
+  elapsedTick.value // dependency so template re-renders when tick updates
+  return {
+    text: formatTimeElapsed(dateTime),
+    class: getElapsedTimeClass(dateTime)
+  }
 }
 
 const getOrderItems = (orderId: string): OrderItem[] => {
@@ -366,6 +382,12 @@ const formatDrinkOption = (option: string): string => {
   }
   return options[option] || option
 }
+
+const orderFulfillmentLabel = (order: Order): 'Dine in' | 'Take out' =>
+  order.order_fulfillment === 'take_out' ? 'Take out' : 'Dine in'
+
+const orderFulfillmentChipClass = (order: Order): string =>
+  order.order_fulfillment === 'take_out' ? 'fulfillment-chip chip-take-out' : 'fulfillment-chip chip-dine-in'
 
 const isToday = (dateString: string | null): boolean => {
   if (!dateString) return false
@@ -502,6 +524,16 @@ onMounted(async () => {
   await loadMenuItems()
   await loadOrders()
   await loadOrderItems()
+  elapsedIntervalId = setInterval(() => {
+    elapsedTick.value = Date.now()
+  }, 30000) // update elapsed time every 30s
+})
+
+onUnmounted(() => {
+  if (elapsedIntervalId !== null) {
+    clearInterval(elapsedIntervalId)
+    elapsedIntervalId = null
+  }
 })
 
 const refreshAll = async () => {
@@ -882,6 +914,26 @@ defineExpose({
 .payment-method {
   color: #495057;
   font-weight: 500;
+}
+
+.fulfillment-chip-wrap {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: none;
+  margin-bottom: 0.5rem;
+}
+
+.fulfillment-chip-wrap.chip-dine-in {
+  background: #2563eb;
+  color: #fff;
+}
+
+.fulfillment-chip-wrap.chip-take-out {
+  background: #ea580c;
+  color: #fff;
 }
 
 .card-total {

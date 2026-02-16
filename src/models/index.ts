@@ -39,6 +39,7 @@ export type {
   CreateOrderInput, 
   UpdateOrderInput,
   OrderStatus,
+  OrderFulfillment,
   PaymentMethod
 } from './Order';
 

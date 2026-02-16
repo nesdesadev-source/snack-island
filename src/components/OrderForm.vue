@@ -161,6 +161,29 @@
           </div>
         </div>
 
+        <!-- Dine in or Take out -->
+        <div class="section" v-if="orderItems.length > 0">
+          <h3 class="section-title">DINE IN OR TAKE OUT</h3>
+          <div class="payment-grid">
+            <button
+              type="button"
+              @click="selectedOrderFulfillment = 'dine_in'"
+              :class="['payment-btn', { 'payment-btn-active': selectedOrderFulfillment === 'dine_in' }]"
+              data-testid="fulfillment-dine-in"
+            >
+              Dine in
+            </button>
+            <button
+              type="button"
+              @click="selectedOrderFulfillment = 'take_out'"
+              :class="['payment-btn', { 'payment-btn-active': selectedOrderFulfillment === 'take_out' }]"
+              data-testid="fulfillment-take-out"
+            >
+              Take out
+            </button>
+          </div>
+        </div>
+
         <!-- Payment Method -->
         <div class="section" v-if="orderItems.length > 0">
           <h3 class="section-title">PAYMENT METHOD</h3>
@@ -183,8 +206,9 @@
           </button>
           <button
             @click="submitOrder"
-            :disabled="!selectedPaymentMethod || isSubmitting"
+            :disabled="!selectedPaymentMethod || !selectedOrderFulfillment || isSubmitting"
             class="btn btn-primary"
+            data-testid="submit-order-btn"
           >
             {{ isSubmitting ? 'Processing...' : 'Submit Order' }}
           </button>
@@ -376,7 +400,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import type { MenuItem, OrderItem, PaymentMethod, FriesOption, DrinkOption, Discount } from '../models'
+import type { MenuItem, OrderItem, PaymentMethod, OrderFulfillment, FriesOption, DrinkOption, Discount } from '../models'
 import { createOrderItem, calculateOrderTotal } from '../modules/orders/orderUtils'
 import { OrderService } from '../services/orderService'
 import { menuItemService } from '../services/menuItemService'
@@ -395,6 +419,7 @@ const emit = defineEmits<{
 const menuItems = ref<MenuItem[]>([])
 const orderItems = ref<OrderItem[]>([])
 const selectedPaymentMethod = ref<PaymentMethod | null>(null)
+const selectedOrderFulfillment = ref<OrderFulfillment | null>(null)
 const customerPayment = ref<number>(0)
 const isSubmitting = ref(false)
 const isLoadingMenuItems = ref(false)
@@ -409,6 +434,7 @@ const pendingOrderData = ref<{
   total_amount: number
   payment_method: PaymentMethod
   status: 'pending'
+  order_fulfillment: OrderFulfillment
   discount_id?: string | null
 } | null>(null)
 const pendingOrderItems = ref<OrderItem[]>([])
@@ -615,12 +641,13 @@ const removeItem = (index: number) => {
 const clearOrder = () => {
   orderItems.value = []
   selectedPaymentMethod.value = null
+  selectedOrderFulfillment.value = null
   customerPayment.value = 0
   selectedDiscountId.value = null
 }
 
 const submitOrder = async () => {
-  if (!selectedPaymentMethod.value || orderItems.value.length === 0) {
+  if (!selectedPaymentMethod.value || !selectedOrderFulfillment.value || orderItems.value.length === 0) {
     return
   }
 
@@ -632,6 +659,7 @@ const submitOrder = async () => {
       total_amount: discountedTotal.value,
       payment_method: selectedPaymentMethod.value,
       status: 'pending' as const,
+      order_fulfillment: selectedOrderFulfillment.value,
       discount_id: selectedDiscountId.value || null
     }
 
@@ -643,6 +671,7 @@ const submitOrder = async () => {
       insufficientItemsList.value = result.inventoryCheck.insufficientItems
       pendingOrderData.value = {
         ...orderData,
+        order_fulfillment: selectedOrderFulfillment.value,
         discount_id: selectedDiscountId.value || null
       }
       pendingOrderItems.value = [...orderItems.value]

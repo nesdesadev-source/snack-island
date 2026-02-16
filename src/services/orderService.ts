@@ -80,7 +80,8 @@ export class OrderService {
       p_total_amount: orderData.total_amount,
       p_payment_method: orderData.payment_method || null,
       p_status: orderData.status || 'pending',
-      p_discount_id: orderData.discount_id || null
+      p_discount_id: orderData.discount_id || null,
+      p_order_fulfillment: orderData.order_fulfillment ?? null
     })
     
     if (error) {
@@ -143,7 +144,8 @@ export class OrderService {
       p_total_amount: updates.total_amount || null,
       p_payment_method: updates.payment_method || null,
       p_status: updates.status || null,
-      p_discount_id: updates.discount_id !== undefined ? updates.discount_id : null
+      p_discount_id: updates.discount_id !== undefined ? updates.discount_id : null,
+      p_order_fulfillment: updates.order_fulfillment ?? null
     })
     
     if (error) {
