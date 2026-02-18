@@ -134,7 +134,12 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in filteredItems" :key="item.id" class="table-row">
+          <tr
+            v-for="item in filteredItems"
+            :key="item.id"
+            class="table-row"
+            :class="{ 'row-highlight': item.id === lastAddedStockId }"
+          >
             <td>
               <div class="item-cell">
                 <div class="item-avatar">
@@ -176,29 +181,51 @@
             </td>
             
             <td>
-              <div class="action-buttons">
-                <button 
-                  class="action-btn edit" 
-                  @click="openEditModal(item)"
-                  aria-label="Edit item"
-                  title="Edit"
+              <div class="action-cell">
+                <button
+                  class="action-btn dropdown-trigger"
+                  type="button"
+                  :aria-expanded="openDropdownId === item.id"
+                  aria-haspopup="true"
+                  aria-label="Row actions"
+                  title="Actions"
+                  @click="toggleDropdown(item.id)"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    <circle cx="12" cy="6" r="1.5"></circle>
+                    <circle cx="12" cy="12" r="1.5"></circle>
+                    <circle cx="12" cy="18" r="1.5"></circle>
                   </svg>
                 </button>
-                <button 
-                  class="action-btn delete" 
-                  @click="deleteItem(item)"
-                  aria-label="Delete item"
-                  title="Delete"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3,6 5,6 21,6"></polyline>
-                    <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
-                  </svg>
-                </button>
+                <Transition name="dropdown">
+                  <div
+                    v-show="openDropdownId === item.id"
+                    class="dropdown-panel"
+                    role="menu"
+                    @click.stop
+                  >
+                    <button type="button" role="menuitem" class="dropdown-item" @click="onDropdownAction(() => openEditModal(item))">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                      Edit
+                    </button>
+                    <button type="button" role="menuitem" class="dropdown-item add-stock" @click="onDropdownAction(() => openAddStockModal(item))">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 5v14M5 12h14"></path>
+                      </svg>
+                      Add stock
+                    </button>
+                    <button type="button" role="menuitem" class="dropdown-item delete" @click="onDropdownAction(() => deleteItem(item))">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3,6 5,6 21,6"></polyline>
+                        <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                      </svg>
+                      Delete
+                    </button>
+                  </div>
+                </Transition>
               </div>
             </td>
           </tr>
@@ -214,14 +241,48 @@
       @close="closeModal"
       @submit="saveItem"
     />
+
+    <!-- Add Stock Modal -->
+    <AddStockModal
+      :is-open="showAddStockModal"
+      :item="addStockItem"
+      :api-error="addStockError"
+      @close="closeAddStockModal"
+      @submit="submitAddStock"
+      @clear-error="addStockError = null"
+    />
+
+    <!-- Success Toast -->
+    <Transition name="toast">
+      <div v-if="showToast" class="toast-notification" role="status">
+        <div class="toast-body">
+          <div class="toast-icon-wrapper">
+            <svg class="toast-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <div class="toast-text">
+            <div class="toast-title">Stock updated</div>
+            <div class="toast-description">{{ toastMessage }}</div>
+          </div>
+          <button @click="showToast = false" class="toast-close" aria-label="Close notification">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { inventoryService } from '../services/inventoryService'
 import type { Inventory, InventoryUnit } from '../models/Inventory'
 import InventoryModal from './InventoryModal.vue'
+import AddStockModal from './AddStockModal.vue'
 
 const searchQuery = ref('')
 const selectedCategory = ref('')
@@ -234,6 +295,22 @@ const error = ref<string | null>(null)
 const showModal = ref(false)
 const isEditMode = ref(false)
 const currentItemId = ref<string | null>(null)
+
+// Dropdown state (only one open at a time)
+const openDropdownId = ref<string | null>(null)
+
+// Add Stock modal state
+const showAddStockModal = ref(false)
+const addStockItem = ref<Inventory | null>(null)
+const addStockError = ref<string | null>(null)
+
+// Toast state
+const showToast = ref(false)
+const toastMessage = ref('')
+
+// Row highlight after add stock (cleared after 2.5s)
+const lastAddedStockId = ref<string | null>(null)
+let highlightTimeout: ReturnType<typeof setTimeout> | null = null
 
 // Form data
 const formData = ref({
@@ -337,18 +414,21 @@ const getStockPercentage = (stock: number, reorderLevel: number): number => {
 }
 
 const getProgressClass = (stock: number, reorderLevel: number): string => {
+  if (stock < 0) return 'danger'
   if (stock === 0) return 'danger'
   if (stock <= reorderLevel) return 'warning'
   return 'success'
 }
 
 const getStatusClass = (stock: number, reorderLevel: number): string => {
+  if (stock < 0) return 'status-negative'
   if (stock === 0) return 'status-out'
   if (stock <= reorderLevel) return 'status-low'
   return 'status-good'
 }
 
 const getStatusText = (stock: number, reorderLevel: number): string => {
+  if (stock < 0) return 'Negative stock'
   if (stock === 0) return 'Out of Stock'
   if (stock <= reorderLevel) return 'Low Stock'
   return 'In Stock'
@@ -436,6 +516,80 @@ const deleteItem = async (item: Inventory) => {
   } catch (err) {
     console.error('Error deleting item:', err)
     alert(err instanceof Error ? err.message : 'Failed to delete item')
+  }
+}
+
+// Dropdown: toggle and close on outside click
+function toggleDropdown(itemId: string) {
+  const next = openDropdownId.value === itemId ? null : itemId
+  openDropdownId.value = next
+  if (next) {
+    nextTick(() => {
+      setTimeout(() => {
+        const close = () => {
+          openDropdownId.value = null
+          document.removeEventListener('click', close)
+        }
+        document.addEventListener('click', close)
+      }, 0)
+    })
+  }
+}
+
+function onDropdownAction(fn: () => void) {
+  openDropdownId.value = null
+  fn()
+}
+
+// Add Stock modal
+function openAddStockModal(item: Inventory) {
+  addStockItem.value = item
+  addStockError.value = null
+  showAddStockModal.value = true
+}
+
+function closeAddStockModal() {
+  showAddStockModal.value = false
+  addStockItem.value = null
+  addStockError.value = null
+}
+
+function formatNumberForToast(num: number): string {
+  return num % 1 === 0 ? num.toString() : num.toFixed(2)
+}
+
+const submitAddStock = async (amount: number) => {
+  const item = addStockItem.value
+  if (!item) return
+
+  try {
+    const newQuantity = item.quantity + amount
+    await inventoryService.updateItem({
+      id: item.id,
+      name: item.name,
+      unit: item.unit,
+      quantity: newQuantity,
+      reorder_level: item.reorder_level,
+      supplier_id: item.supplier_id || null,
+    })
+    await loadInventory()
+
+    toastMessage.value = `Added ${formatNumberForToast(amount)} ${item.unit} to ${item.name}. New stock: ${formatNumberForToast(newQuantity)}`
+    showToast.value = true
+    if (highlightTimeout) clearTimeout(highlightTimeout)
+    lastAddedStockId.value = item.id
+    highlightTimeout = setTimeout(() => {
+      lastAddedStockId.value = null
+      highlightTimeout = null
+    }, 2500)
+
+    setTimeout(() => {
+      showToast.value = false
+    }, 4000)
+
+    closeAddStockModal()
+  } catch (err) {
+    addStockError.value = err instanceof Error ? err.message : 'Failed to update stock'
   }
 }
 </script>
@@ -880,38 +1034,211 @@ const deleteItem = async (item: Inventory) => {
   background: #ef4444;
 }
 
-/* Action Buttons */
-.action-buttons {
-  display: flex;
-  gap: 0.5rem;
+.status-badge.status-negative {
+  background: #fecaca;
+  color: #b91c1c;
 }
 
-.action-btn {
-  padding: 8px;
+.status-badge.status-negative .status-dot {
+  background: #dc2626;
+}
+
+/* Action cell & dropdown */
+.action-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.action-btn.dropdown-trigger {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px;
   background: none;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #6b7280;
 }
 
-.action-btn.edit {
-  color: #667eea;
+.action-btn.dropdown-trigger:hover {
+  background: #f3f4f6;
+  color: #111827;
 }
 
-.action-btn.edit:hover {
-  background: #f0f3ff;
+.dropdown-panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 160px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.action-btn.delete {
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.625rem 0.75rem;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background: #f3f4f6;
+}
+
+.dropdown-item.add-stock {
+  color: #059669;
+}
+
+.dropdown-item.delete {
   color: #dc3545;
 }
 
-.action-btn.delete:hover {
-  background: #ffebee;
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+/* Row highlight after add stock */
+.table-row.row-highlight {
+  animation: rowHighlight 2.5s ease-out;
+}
+
+@keyframes rowHighlight {
+  0% {
+    background: rgba(52, 211, 153, 0.25);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+/* Toast */
+.toast-notification {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10000;
+  min-width: 320px;
+  max-width: 420px;
+}
+
+.toast-body {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  gap: 0.75rem;
+}
+
+.toast-icon-wrapper {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  background: #10b981;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toast-icon {
+  width: 1rem;
+  height: 1rem;
+  color: #ffffff;
+  stroke-width: 3;
+}
+
+.toast-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 0.125rem 0;
+}
+
+.toast-description {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.toast-close {
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  color: #6b7280;
+  transition: color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.toast-close:hover {
+  color: #111827;
+  background: #f3f4f6;
+}
+
+.toast-enter-active {
+  transition: all 0.2s ease-out;
+}
+
+.toast-enter-from {
+  transform: translateX(2rem);
+  opacity: 0;
+}
+
+.toast-leave-active {
+  transition: all 0.15s ease-in;
+}
+
+.toast-leave-from {
+  opacity: 1;
+}
+
+.toast-leave-to {
+  opacity: 0;
 }
 
 /* Responsive Design */
