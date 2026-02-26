@@ -57,6 +57,9 @@
                     <option value="Equipment">Equipment</option>
                     <option value="Ingredients">Ingredients</option>
                     <option value="Utilities">Utilities</option>
+                    <option value="Labor">Labor</option>
+                    <option value="Machinery">Machinery</option>
+                    <option value="Government Fees">Government Fees</option>
                     <option value="Other">Other</option>
                   </select>
                   <svg class="select-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -41,6 +41,9 @@
           <option value="Equipment">Equipment</option>
           <option value="Ingredients">Ingredients</option>
           <option value="Utilities">Utilities</option>
+          <option value="Labor">Labor</option>
+          <option value="Machinery">Machinery</option>
+          <option value="Government Fees">Government Fees</option>
           <option value="Other">Other</option>
         </select>
       </div>
@@ -481,6 +484,9 @@ const getCategoryClass = (category: string): string => {
     'Equipment': 'category-equipment',
     'Ingredients': 'category-ingredients',
     'Utilities': 'category-utilities',
+    'Labor': 'category-labor',
+    'Machinery': 'category-machinery',
+    'Government Fees': 'category-government-fees',
     'Other': 'category-other'
   }
   return classes[category] || 'category-default'
@@ -842,6 +848,9 @@ onMounted(() => {
 .category-equipment { background: #fce4ec; color: #c2185b; }
 .category-ingredients { background: #fff9c4; color: #f9a825; }
 .category-utilities { background: #e0f2f1; color: #00796b; }
+.category-labor { background: #e8eaf6; color: #3949ab; }
+.category-machinery { background: #efebe9; color: #6d4c41; }
+.category-government-fees { background: #fbe9e7; color: #d84315; }
 .category-other { background: #eceff1; color: #546e7a; }
 .category-default { background: #f5f5f5; color: #616161; }
 
@@ -997,6 +1006,9 @@ onMounted(() => {
 .category-progress-bar.category-equipment { background: #c2185b; }
 .category-progress-bar.category-ingredients { background: #f9a825; }
 .category-progress-bar.category-utilities { background: #00796b; }
+.category-progress-bar.category-labor { background: #3949ab; }
+.category-progress-bar.category-machinery { background: #6d4c41; }
+.category-progress-bar.category-government-fees { background: #d84315; }
 .category-progress-bar.category-other { background: #546e7a; }
 
 @media (max-width: 480px) {

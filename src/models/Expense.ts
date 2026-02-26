@@ -6,7 +6,10 @@ export type ExpenseCategory =
   | 'Equipment' 
   | 'Ingredients' 
   | 'Utilities' 
-  | 'Other';
+  | 'Other'
+  | 'Labor'
+  | 'Machinery'
+  | 'Government Fees';
 
 // This matches the actual database schema from Supabase
 export interface Expense {

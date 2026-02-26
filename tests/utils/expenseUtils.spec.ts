@@ -11,7 +11,9 @@ import {
   calculateBudgetRemaining,
   calculateYearToDateExpenses,
   filterExpensesByDateRange,
-  calculateExpenseGrowth
+  calculateExpenseGrowth,
+  filterOperationalExpenses,
+  NON_OPERATIONAL_CATEGORIES
 } from '../../src/modules/expenses/expenseUtils';
 import type { Expense } from '../../src/models';
 
@@ -743,6 +745,190 @@ describe('Expense Utils - Calculations', () => {
       const result = calculateExpenseGrowth(currentExpenses, previousExpenses);
       
       expect(result).toBe(0);
+    });
+  });
+
+  describe('NON_OPERATIONAL_CATEGORIES', () => {
+    it('should contain Machinery and Government Fees', () => {
+      expect(NON_OPERATIONAL_CATEGORIES).toContain('Machinery');
+      expect(NON_OPERATIONAL_CATEGORIES).toContain('Government Fees');
+    });
+
+    it('should have exactly 2 categories', () => {
+      expect(NON_OPERATIONAL_CATEGORIES).toHaveLength(2);
+    });
+  });
+
+  describe('filterOperationalExpenses', () => {
+    it('should filter out Machinery expenses', () => {
+      const expenses: Expense[] = [
+        {
+          id: '1',
+          expense_date: '2025-10-01',
+          category: 'Ingredients',
+          description: 'Food supplies',
+          amount: 500,
+          paid_by: 'Test User',
+          reimburse_status: 0
+        },
+        {
+          id: '2',
+          expense_date: '2025-10-02',
+          category: 'Machinery',
+          description: 'New fryer',
+          amount: 5000,
+          paid_by: 'Test User',
+          reimburse_status: 0
+        }
+      ];
+      
+      const result = filterOperationalExpenses(expenses);
+      
+      expect(result).toHaveLength(1);
+      expect(result[0].category).toBe('Ingredients');
+    });
+
+    it('should filter out Government Fees expenses', () => {
+      const expenses: Expense[] = [
+        {
+          id: '1',
+          expense_date: '2025-10-01',
+          category: 'Gas',
+          description: 'Fuel',
+          amount: 200,
+          paid_by: 'Test User',
+          reimburse_status: 0
+        },
+        {
+          id: '2',
+          expense_date: '2025-10-02',
+          category: 'Government Fees',
+          description: 'Business permit',
+          amount: 1500,
+          paid_by: 'Test User',
+          reimburse_status: 0
+        }
+      ];
+      
+      const result = filterOperationalExpenses(expenses);
+      
+      expect(result).toHaveLength(1);
+      expect(result[0].category).toBe('Gas');
+    });
+
+    it('should filter out both Machinery and Government Fees', () => {
+      const expenses: Expense[] = [
+        {
+          id: '1',
+          expense_date: '2025-10-01',
+          category: 'Ingredients',
+          description: 'Food supplies',
+          amount: 500,
+          paid_by: 'Test User',
+          reimburse_status: 0
+        },
+        {
+          id: '2',
+          expense_date: '2025-10-02',
+          category: 'Machinery',
+          description: 'New fryer',
+          amount: 5000,
+          paid_by: 'Test User',
+          reimburse_status: 0
+        },
+        {
+          id: '3',
+          expense_date: '2025-10-03',
+          category: 'Government Fees',
+          description: 'Business permit',
+          amount: 1500,
+          paid_by: 'Test User',
+          reimburse_status: 0
+        },
+        {
+          id: '4',
+          expense_date: '2025-10-04',
+          category: 'Gas',
+          description: 'Fuel',
+          amount: 200,
+          paid_by: 'Test User',
+          reimburse_status: 0
+        }
+      ];
+      
+      const result = filterOperationalExpenses(expenses);
+      
+      expect(result).toHaveLength(2);
+      expect(result.map(e => e.category)).toEqual(['Ingredients', 'Gas']);
+    });
+
+    it('should keep all expenses when none are non-operational', () => {
+      const expenses: Expense[] = [
+        {
+          id: '1',
+          expense_date: '2025-10-01',
+          category: 'Ingredients',
+          description: 'Food',
+          amount: 500,
+          paid_by: 'Test User',
+          reimburse_status: 0
+        },
+        {
+          id: '2',
+          expense_date: '2025-10-02',
+          category: 'Labor',
+          description: 'Staff wages',
+          amount: 3000,
+          paid_by: 'Test User',
+          reimburse_status: 0
+        },
+        {
+          id: '3',
+          expense_date: '2025-10-03',
+          category: 'Utilities',
+          description: 'Electricity',
+          amount: 150,
+          paid_by: 'Test User',
+          reimburse_status: 0
+        }
+      ];
+      
+      const result = filterOperationalExpenses(expenses);
+      
+      expect(result).toHaveLength(3);
+    });
+
+    it('should return empty array when all expenses are non-operational', () => {
+      const expenses: Expense[] = [
+        {
+          id: '1',
+          expense_date: '2025-10-01',
+          category: 'Machinery',
+          description: 'Equipment',
+          amount: 5000,
+          paid_by: 'Test User',
+          reimburse_status: 0
+        },
+        {
+          id: '2',
+          expense_date: '2025-10-02',
+          category: 'Government Fees',
+          description: 'Permit',
+          amount: 1500,
+          paid_by: 'Test User',
+          reimburse_status: 0
+        }
+      ];
+      
+      const result = filterOperationalExpenses(expenses);
+      
+      expect(result).toHaveLength(0);
+    });
+
+    it('should return empty array for empty input', () => {
+      const result = filterOperationalExpenses([]);
+      
+      expect(result).toHaveLength(0);
     });
   });
 });

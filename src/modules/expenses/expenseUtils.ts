@@ -1,4 +1,19 @@
-import type { Expense } from '../../models';
+import type { Expense, ExpenseCategory } from '../../models';
+
+/**
+ * Categories that are not considered operational expenses (excluded from dashboard calculations)
+ */
+export const NON_OPERATIONAL_CATEGORIES: ExpenseCategory[] = ['Machinery', 'Government Fees', 'Equipment'];
+
+/**
+ * Filters out non-operational expenses (Machinery, Government Fees)
+ * Use this for dashboard calculations where only operational expenses should be counted
+ */
+export function filterOperationalExpenses(expenses: Expense[]): Expense[] {
+  return expenses.filter(expense => 
+    !NON_OPERATIONAL_CATEGORIES.includes(expense.category)
+  );
+}
 
 /**
  * Calculates the total amount of all expenses

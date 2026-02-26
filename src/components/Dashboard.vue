@@ -233,7 +233,8 @@ import { recipeMapService } from '../services/recipeMapService'
 import { 
   calculateTotalExpenses, 
   calculateExpensesByCategory,
-  filterExpensesByDateRange 
+  filterExpensesByDateRange,
+  filterOperationalExpenses
 } from '../modules/expenses/expenseUtils'
 import { isLowStock } from '../modules/inventory/inventoryUtils'
 import { computeCostPerOrderForMenuItem } from '../modules/menu/menuPageUtils'
@@ -443,20 +444,25 @@ function getExpensesForPeriod(date: Date, period: string) {
     return `${year}-${month}-${day}`
   }
   
+  let filteredExpenses: Expense[]
+  
   // For custom period, use full date range including time
   if (period === 'custom') {
-    return expenses.value.filter(expense => {
+    filteredExpenses = expenses.value.filter(expense => {
       if (!expense.expense_date) return false
       const expenseDate = new Date(expense.expense_date)
       return expenseDate >= startDate && expenseDate <= endDate
     })
+  } else {
+    filteredExpenses = filterExpensesByDateRange(
+      expenses.value,
+      formatLocalDate(startDate),
+      formatLocalDate(endDate)
+    )
   }
   
-  return filterExpensesByDateRange(
-    expenses.value,
-    formatLocalDate(startDate),
-    formatLocalDate(endDate)
-  )
+  // Exclude non-operational expenses (Machinery, Government Fees) from dashboard calculations
+  return filterOperationalExpenses(filteredExpenses)
 }
 
 // Helper functions for calendar periods
