@@ -6,13 +6,22 @@
         <h1>Inventory Management</h1>
         <p>Track and manage your stock levels in real-time</p>
       </div>
-      <button class="btn-primary" @click="openAddModal">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Add New Item
-      </button>
+      <div class="page-header-actions">
+        <button class="btn-secondary" type="button" @click="openLogsForAll">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9"></path>
+            <path d="M9 3v4a2 2 0 0 0 2 2h4"></path>
+          </svg>
+          View Change Logs
+        </button>
+        <button class="btn-primary" type="button" @click="openAddModal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Add New Item
+        </button>
+      </div>
     </div>
 
     <!-- Stats Cards -->
@@ -217,6 +226,14 @@
                       </svg>
                       Add stock
                     </button>
+                    <button type="button" role="menuitem" class="dropdown-item" @click="onDropdownAction(() => openLogsForItem(item.id))">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 4h14v2H5z"></path>
+                        <path d="M5 9h14v2H5z"></path>
+                        <path d="M5 14h9v2H5z"></path>
+                      </svg>
+                      View logs
+                    </button>
                     <button type="button" role="menuitem" class="dropdown-item delete" @click="onDropdownAction(() => deleteItem(item))">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="3,6 5,6 21,6"></polyline>
@@ -252,6 +269,13 @@
       @clear-error="addStockError = null"
     />
 
+    <InventoryLogs
+      :is-open="showLogsModal"
+      :inventory-items="inventoryItems"
+      :initial-inventory-id="logsInitialInventoryId"
+      @close="closeLogsModal"
+    />
+
     <!-- Success Toast -->
     <Transition name="toast">
       <div v-if="showToast" class="toast-notification" role="status">
@@ -278,12 +302,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { inventoryService } from '../services/inventoryService'
+import { inventoryChangeLogService } from '../services/inventoryChangeLogService'
 import type { Inventory, InventoryUnit } from '../models/Inventory'
 import InventoryModal from './InventoryModal.vue'
 import AddStockModal from './AddStockModal.vue'
-
+import InventoryLogs from './InventoryLogs.vue'
 const searchQuery = ref('')
 const selectedCategory = ref('')
 const statusFilter = ref('all')
@@ -295,14 +320,20 @@ const error = ref<string | null>(null)
 const showModal = ref(false)
 const isEditMode = ref(false)
 const currentItemId = ref<string | null>(null)
+const itemBeforeEdit = ref<Inventory | null>(null)
 
 // Dropdown state (only one open at a time)
 const openDropdownId = ref<string | null>(null)
+let dropdownOutsideClickHandler: ((event: MouseEvent) => void) | null = null
 
 // Add Stock modal state
 const showAddStockModal = ref(false)
 const addStockItem = ref<Inventory | null>(null)
 const addStockError = ref<string | null>(null)
+
+// Logs modal state
+const showLogsModal = ref(false)
+const logsInitialInventoryId = ref<string | null>(null)
 
 // Toast state
 const showToast = ref(false)
@@ -320,6 +351,21 @@ const formData = ref({
   reorder_level: 0,
   supplier_id: ''
 })
+
+function openLogsForAll() {
+  logsInitialInventoryId.value = null
+  showLogsModal.value = true
+}
+
+function openLogsForItem(itemId: string) {
+  logsInitialInventoryId.value = itemId
+  showLogsModal.value = true
+}
+
+function closeLogsModal() {
+  showLogsModal.value = false
+  logsInitialInventoryId.value = null
+}
 
 // Load inventory from Supabase
 const loadInventory = async () => {
@@ -444,6 +490,7 @@ const resetForm = () => {
     supplier_id: ''
   }
   currentItemId.value = null
+  itemBeforeEdit.value = null
   isEditMode.value = false
 }
 
@@ -454,6 +501,7 @@ const openAddModal = () => {
 }
 
 const openEditModal = (item: Inventory) => {
+  itemBeforeEdit.value = { ...item }
   formData.value = {
     name: item.name,
     unit: item.unit,
@@ -479,6 +527,7 @@ const saveItem = async (data: typeof formData.value) => {
     }
 
     if (isEditMode.value && currentItemId.value) {
+      const prev = itemBeforeEdit.value
       await inventoryService.updateItem({
         id: currentItemId.value,
         name: data.name,
@@ -487,6 +536,30 @@ const saveItem = async (data: typeof formData.value) => {
         reorder_level: data.reorder_level,
         supplier_id: data.supplier_id || null,
       })
+
+      if (prev) {
+        const next: Inventory = {
+          id: prev.id,
+          name: data.name,
+          unit: data.unit as Inventory['unit'],
+          quantity: data.quantity,
+          reorder_level: data.reorder_level,
+          supplier_id: data.supplier_id || undefined,
+        }
+        try {
+          if (prev.quantity !== next.quantity) {
+            await inventoryChangeLogService.logQuantityChange({
+              inventory: next,
+              prevQty: prev.quantity,
+              newQty: next.quantity,
+              verb: 'set',
+            })
+          }
+          await inventoryChangeLogService.logFieldChanges({ prev, next })
+        } catch (logErr) {
+          console.error('Error writing inventory change log:', logErr)
+        }
+      }
     } else {
       await inventoryService.addItem({
         name: data.name,
@@ -519,27 +592,50 @@ const deleteItem = async (item: Inventory) => {
   }
 }
 
-// Dropdown: toggle and close on outside click
-function toggleDropdown(itemId: string) {
-  const next = openDropdownId.value === itemId ? null : itemId
-  openDropdownId.value = next
-  if (next) {
-    nextTick(() => {
-      setTimeout(() => {
-        const close = () => {
-          openDropdownId.value = null
-          document.removeEventListener('click', close)
-        }
-        document.addEventListener('click', close)
-      }, 0)
-    })
+function clearDropdownOutsideClickHandler() {
+  if (dropdownOutsideClickHandler) {
+    document.removeEventListener('click', dropdownOutsideClickHandler)
+    dropdownOutsideClickHandler = null
   }
 }
 
-function onDropdownAction(fn: () => void) {
+function closeDropdown() {
   openDropdownId.value = null
+  clearDropdownOutsideClickHandler()
+}
+
+// Dropdown: toggle and close on outside click
+function toggleDropdown(itemId: string) {
+  const isOpening = openDropdownId.value !== itemId
+
+  if (!isOpening) {
+    closeDropdown()
+    return
+  }
+
+  openDropdownId.value = itemId
+
+  nextTick(() => {
+    setTimeout(() => {
+      clearDropdownOutsideClickHandler()
+
+      dropdownOutsideClickHandler = () => {
+        closeDropdown()
+      }
+
+      document.addEventListener('click', dropdownOutsideClickHandler!)
+    }, 0)
+  })
+}
+
+function onDropdownAction(fn: () => void) {
+  closeDropdown()
   fn()
 }
+
+onBeforeUnmount(() => {
+  clearDropdownOutsideClickHandler()
+})
 
 // Add Stock modal
 function openAddStockModal(item: Inventory) {
@@ -563,6 +659,7 @@ const submitAddStock = async (amount: number) => {
   if (!item) return
 
   try {
+    const prevQty = item.quantity
     const newQuantity = item.quantity + amount
     await inventoryService.updateItem({
       id: item.id,
@@ -572,6 +669,17 @@ const submitAddStock = async (amount: number) => {
       reorder_level: item.reorder_level,
       supplier_id: item.supplier_id || null,
     })
+
+    try {
+      await inventoryChangeLogService.logQuantityChange({
+        inventory: item,
+        prevQty,
+        newQty: newQuantity,
+      })
+    } catch (logErr) {
+      console.error('Error writing inventory change log:', logErr)
+    }
+
     await loadInventory()
 
     toastMessage.value = `Added ${formatNumberForToast(amount)} ${item.unit} to ${item.name}. New stock: ${formatNumberForToast(newQuantity)}`
@@ -609,6 +717,12 @@ const submitAddStock = async (amount: number) => {
   gap: 1rem;
 }
 
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .header-text h1 {
   font-size: 2rem;
   font-weight: 700;
@@ -642,6 +756,27 @@ const submitAddStock = async (amount: number) => {
 .btn-primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-secondary:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
 }
 
 /* Stats Grid */

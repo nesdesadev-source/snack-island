@@ -7,14 +7,17 @@ import {
 } from '../../../src/modules/orders/inventoryDeduction'
 import { inventoryService } from '../../../src/services/inventoryService'
 import { recipeMapService } from '../../../src/services/recipeMapService'
+import { inventoryChangeLogService } from '../../../src/services/inventoryChangeLogService'
 import type { OrderItem, RecipeMap } from '../../../src/models'
 
 // Mock the services
 vi.mock('../../../src/services/inventoryService')
 vi.mock('../../../src/services/recipeMapService')
+vi.mock('../../../src/services/inventoryChangeLogService')
 
 const mockInventoryService = vi.mocked(inventoryService)
 const mockRecipeMapService = vi.mocked(recipeMapService)
+const mockInventoryChangeLogService = vi.mocked(inventoryChangeLogService)
 
 describe('Inventory Deduction Module', () => {
   const mockOrderItems: OrderItem[] = [
@@ -117,8 +120,9 @@ describe('Inventory Deduction Module', () => {
         eggsInventory,
         oilInventory
       ])
-      
+
       mockInventoryService.updateItem.mockResolvedValue(true)
+      mockInventoryChangeLogService.logQuantityChange.mockResolvedValue()
 
       // Act
       await deductInventoryForOrder(mockOrderItems)
@@ -127,6 +131,27 @@ describe('Inventory Deduction Module', () => {
       expect(mockRecipeMapService.getRecipeMaps).toHaveBeenCalledTimes(1)
       expect(mockInventoryService.getAll).toHaveBeenCalledTimes(1)
       expect(mockInventoryService.updateItem).toHaveBeenCalledTimes(3)
+
+      // Verify logging calls for each ingredient
+      expect(mockInventoryChangeLogService.logQuantityChange).toHaveBeenCalledTimes(3)
+
+      expect(mockInventoryChangeLogService.logQuantityChange).toHaveBeenCalledWith({
+        inventory: flourInventory,
+        prevQty: 10,
+        newQty: 5
+      })
+
+      expect(mockInventoryChangeLogService.logQuantityChange).toHaveBeenCalledWith({
+        inventory: eggsInventory,
+        prevQty: 20,
+        newQty: 18
+      })
+
+      expect(mockInventoryChangeLogService.logQuantityChange).toHaveBeenCalledWith({
+        inventory: oilInventory,
+        prevQty: 15,
+        newQty: 12
+      })
 
       // Verify correct calculations for each ingredient
       // Flour: 10 - (2.5 * 2) = 5
@@ -205,6 +230,19 @@ describe('Inventory Deduction Module', () => {
         reorder_level: 3,
         supplier_id: 'supplier-3'
       })
+
+      // Logging should be created only for existing inventory items
+      expect(mockInventoryChangeLogService.logQuantityChange).toHaveBeenCalledTimes(2)
+      expect(mockInventoryChangeLogService.logQuantityChange).toHaveBeenCalledWith({
+        inventory: expect.objectContaining({ id: 'ingredient-1' }),
+        prevQty: 10,
+        newQty: 5
+      })
+      expect(mockInventoryChangeLogService.logQuantityChange).toHaveBeenCalledWith({
+        inventory: expect.objectContaining({ id: 'ingredient-3' }),
+        prevQty: 15,
+        newQty: 12
+      })
     })
 
     it('should handle empty order items array', async () => {
@@ -218,6 +256,7 @@ describe('Inventory Deduction Module', () => {
       expect(mockRecipeMapService.getRecipeMaps).toHaveBeenCalledTimes(1)
       expect(mockInventoryService.getAll).not.toHaveBeenCalled()
       expect(mockInventoryService.updateItem).not.toHaveBeenCalled()
+       expect(mockInventoryChangeLogService.logQuantityChange).not.toHaveBeenCalled()
     })
 
     it('should propagate errors from services', async () => {
@@ -227,6 +266,7 @@ describe('Inventory Deduction Module', () => {
 
       // Act & Assert
       await expect(deductInventoryForOrder(mockOrderItems)).rejects.toThrow('Database connection failed')
+      expect(mockInventoryChangeLogService.logQuantityChange).not.toHaveBeenCalled()
     })
   })
 
@@ -266,8 +306,9 @@ describe('Inventory Deduction Module', () => {
         eggsInventory,
         oilInventory
       ])
-      
+
       mockInventoryService.updateItem.mockResolvedValue(true)
+      mockInventoryChangeLogService.logQuantityChange.mockResolvedValue()
 
       // Act
       await restoreInventoryForOrder(mockOrderItems)
@@ -276,6 +317,24 @@ describe('Inventory Deduction Module', () => {
       expect(mockRecipeMapService.getRecipeMaps).toHaveBeenCalledTimes(1)
       expect(mockInventoryService.getAll).toHaveBeenCalledTimes(1)
       expect(mockInventoryService.updateItem).toHaveBeenCalledTimes(3)
+
+      // Verify logging calls for each restored ingredient
+      expect(mockInventoryChangeLogService.logQuantityChange).toHaveBeenCalledTimes(3)
+      expect(mockInventoryChangeLogService.logQuantityChange).toHaveBeenCalledWith({
+        inventory: flourInventory,
+        prevQty: 5,
+        newQty: 10
+      })
+      expect(mockInventoryChangeLogService.logQuantityChange).toHaveBeenCalledWith({
+        inventory: eggsInventory,
+        prevQty: 18,
+        newQty: 20
+      })
+      expect(mockInventoryChangeLogService.logQuantityChange).toHaveBeenCalledWith({
+        inventory: oilInventory,
+        prevQty: 12,
+        newQty: 15
+      })
 
       // Verify correct restoration calculations for each ingredient
       // Flour: 5 + (2.5 * 2) = 10
@@ -354,6 +413,9 @@ describe('Inventory Deduction Module', () => {
         reorder_level: 3,
         supplier_id: 'supplier-3'
       })
+
+      // Logging should be created only for existing inventory items
+      expect(mockInventoryChangeLogService.logQuantityChange).toHaveBeenCalledTimes(2)
     })
 
     it('should handle empty order items array', async () => {
@@ -367,6 +429,7 @@ describe('Inventory Deduction Module', () => {
       expect(mockRecipeMapService.getRecipeMaps).toHaveBeenCalledTimes(1)
       expect(mockInventoryService.getAll).not.toHaveBeenCalled()
       expect(mockInventoryService.updateItem).not.toHaveBeenCalled()
+      expect(mockInventoryChangeLogService.logQuantityChange).not.toHaveBeenCalled()
     })
 
     it('should propagate errors from services', async () => {
@@ -376,6 +439,7 @@ describe('Inventory Deduction Module', () => {
 
       // Act & Assert
       await expect(restoreInventoryForOrder(mockOrderItems)).rejects.toThrow('Database connection failed')
+      expect(mockInventoryChangeLogService.logQuantityChange).not.toHaveBeenCalled()
     })
   })
 
@@ -695,6 +759,7 @@ describe('Inventory Deduction Module', () => {
       // Assert
       expect(mockInventoryService.getAll).not.toHaveBeenCalled()
       expect(mockInventoryService.updateItem).not.toHaveBeenCalled()
+      expect(mockInventoryChangeLogService.logQuantityChange).not.toHaveBeenCalled()
     })
 
     it('should handle zero quantity order items', async () => {
@@ -723,6 +788,7 @@ describe('Inventory Deduction Module', () => {
         }
       ])
       mockInventoryService.updateItem.mockResolvedValue(true)
+      mockInventoryChangeLogService.logQuantityChange.mockResolvedValue()
 
       // Act
       await deductInventoryForOrder(zeroQuantityItems)
@@ -736,6 +802,13 @@ describe('Inventory Deduction Module', () => {
         quantity: 10, // 10 - (2.5 * 0) = 10
         reorder_level: 2,
         supplier_id: 'supplier-1'
+      })
+
+      expect(mockInventoryChangeLogService.logQuantityChange).toHaveBeenCalledTimes(1)
+      expect(mockInventoryChangeLogService.logQuantityChange).toHaveBeenCalledWith({
+        inventory: expect.objectContaining({ id: 'ingredient-1' }),
+        prevQty: 10,
+        newQty: 10
       })
     })
 

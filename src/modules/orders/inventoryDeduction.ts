@@ -1,6 +1,24 @@
 import type { Inventory, OrderItem, RecipeMap } from '../../models'
 import { inventoryService } from '../../services/inventoryService'
 import { recipeMapService } from '../../services/recipeMapService'
+import { inventoryChangeLogService } from '../../services/inventoryChangeLogService'
+
+function formatInventoryAdjustmentList(parts: string[]): string {
+  if (parts.length === 0) return ''
+
+  if (parts.length === 1) {
+    return parts[0] ?? ''
+  }
+
+  if (parts.length === 2) {
+    const [first = '', second = ''] = parts
+    return `${first} and ${second}`
+  }
+
+  const last = parts[parts.length - 1] ?? ''
+  const initial = parts.slice(0, -1).join(', ')
+  return `${initial} and ${last}`
+}
 
 /**
  * Deduct inventory for completed order items
@@ -28,6 +46,12 @@ export async function deductInventoryForOrder(orderItems: OrderItem[]): Promise<
         ingredientIds.add(recipeMapping.ingredient_id)
       }
     }
+
+    // If there are no ingredients involved, nothing to deduct
+    if (ingredientIds.size === 0) {
+      console.log('Inventory deduction completed successfully')
+      return
+    }
     
     // Batch query all inventory items
     const allInventory = await inventoryService.getAll()
@@ -50,6 +74,7 @@ export async function deductInventoryForOrder(orderItems: OrderItem[]): Promise<
     }
     
     // Process all deductions concurrently
+    const bulkDeductionItems: Array<{ inventory: Inventory; amount: number }> = []
     const updatePromises = Array.from(ingredientUsage.entries()).map(async ([ingredientId, totalUsage]) => {
       const inventoryItem = inventoryMap.get(ingredientId)
       if (!inventoryItem) {
@@ -68,10 +93,37 @@ export async function deductInventoryForOrder(orderItems: OrderItem[]): Promise<
         supplier_id: inventoryItem.supplier_id ?? null
       })
       
+      bulkDeductionItems.push({
+        inventory: inventoryItem,
+        amount: totalUsage
+      })
+      
       console.log(`[DEBUG] Deducted ${totalUsage} ${inventoryItem.unit} of ingredient ${inventoryItem.name}`)
     })
     
     await Promise.all(updatePromises)
+
+    if (bulkDeductionItems.length > 0) {
+      const primaryEntry = bulkDeductionItems[0]
+      if (!primaryEntry) {
+        console.warn('[DEBUG] No primary inventory entry found for bulk deduction log')
+      } else {
+        const primaryInventory = primaryEntry.inventory
+      const parts = bulkDeductionItems.map(({ inventory, amount }) => {
+        const unit = inventory.unit ? `${inventory.unit}` : ''
+        return `${amount}${unit} ${inventory.name}`.trim()
+      })
+
+      const listText = formatInventoryAdjustmentList(parts)
+      const verb = bulkDeductionItems.length === 1 ? 'was' : 'were'
+      const message = `Order items were completed. ${listText} ${verb} subtracted from inventory.`
+
+        await inventoryChangeLogService.logCustomMessage({
+          inventory: primaryInventory,
+          message
+        })
+      }
+    }
     
     console.log('Inventory deduction completed successfully')
   } catch (error) {
@@ -124,12 +176,12 @@ export async function checkInventoryAvailability(orderItems: OrderItem[]): Promi
           const requiredAmount = recipeMapping.usage_per_order * orderItem.quantity
           const inventory = await inventoryService.getInventoryItem(recipeMapping.ingredient_id)
           
-          if (inventory && inventory.quantity < requiredAmount) {
+          if (inventory && inventory.current_stock < requiredAmount) {
             insufficientItems.push({
               ingredientId: recipeMapping.ingredient_id,
-              ingredientName: inventory.name,
+              ingredientName: inventory.item_name,
               required: requiredAmount,
-              available: inventory.quantity
+              available: inventory.current_stock
             })
           }
         }
@@ -268,6 +320,12 @@ export async function restoreInventoryForOrder(orderItems: OrderItem[]): Promise
         ingredientIds.add(recipeMapping.ingredient_id)
       }
     }
+
+    // If there are no ingredients involved, nothing to restore
+    if (ingredientIds.size === 0) {
+      console.log('Inventory restored successfully')
+      return
+    }
     
     // Batch query all inventory items
     const allInventory = await inventoryService.getAll()
@@ -290,6 +348,7 @@ export async function restoreInventoryForOrder(orderItems: OrderItem[]): Promise
     }
     
     // Process all restorations concurrently
+    const bulkRestorationItems: Array<{ inventory: Inventory; amount: number }> = []
     const updatePromises = Array.from(ingredientRestoration.entries()).map(async ([ingredientId, totalUsage]) => {
       const inventoryItem = inventoryMap.get(ingredientId)
       if (!inventoryItem) {
@@ -308,10 +367,37 @@ export async function restoreInventoryForOrder(orderItems: OrderItem[]): Promise
         supplier_id: inventoryItem.supplier_id ?? null
       })
       
+      bulkRestorationItems.push({
+        inventory: inventoryItem,
+        amount: totalUsage
+      })
+      
       console.log(`[DEBUG]Restored ${totalUsage} ${inventoryItem.unit} of ingredient ${inventoryItem.name}`)
     })
     
     await Promise.all(updatePromises)
+
+    if (bulkRestorationItems.length > 0) {
+      const primaryEntry = bulkRestorationItems[0]
+      if (!primaryEntry) {
+        console.warn('[DEBUG] No primary inventory entry found for bulk restoration log')
+      } else {
+        const primaryInventory = primaryEntry.inventory
+        const parts = bulkRestorationItems.map(({ inventory, amount }) => {
+          const unit = inventory.unit ? `${inventory.unit}` : ''
+          return `${amount}${unit} ${inventory.name}`.trim()
+        })
+
+        const listText = formatInventoryAdjustmentList(parts)
+        const verb = bulkRestorationItems.length === 1 ? 'was' : 'were'
+        const message = `Order items were cancelled. ${listText} ${verb} restored to inventory.`
+
+        await inventoryChangeLogService.logCustomMessage({
+          inventory: primaryInventory,
+          message
+        })
+      }
+    }
     
     console.log('Inventory restored successfully')
   } catch (error) {
