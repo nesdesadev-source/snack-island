@@ -370,7 +370,10 @@ function handleClose() {
   flex-direction: column;
   gap: 1rem;
   min-width: 0;
-  overflow: hidden;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .logs-filters {

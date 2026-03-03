@@ -142,13 +142,13 @@ export const inventoryChangeLogService = {
       })
     }
 
-    if (prev.supplier_id !== next.supplier_id) {
-      changes.push({
-        fieldLabel: 'supplier',
-        prevValue: prev.supplier_id ?? null,
-        newValue: next.supplier_id ?? null
-      })
-    }
+    // if (prev.supplier_id !== next.supplier_id) {
+    //   changes.push({
+    //     fieldLabel: 'supplier',
+    //     prevValue: prev.supplier_id ?? null,
+    //     newValue: next.supplier_id ?? null
+    //   })
+    // }
 
     if (changes.length === 0) {
       return
