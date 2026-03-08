@@ -39,7 +39,7 @@ The mobile app should mirror these flows when creating orders, attaching items, 
 
 **Notes**
 
-- `OrderQueue.vue` uses this with `startDate` and `endDate` set to **today** to show today’s queue.
+- `OrderQueue.vue` uses this with `startDate` and `endDate` from the **active store session** (see `store_sessions` table and `StoreSessionService`). The session window replaces calendar “today” so the queue does not reset at midnight when the store stays open.
 
 #### 1.2 `rpc('get_order')` – fetch single order
 

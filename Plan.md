@@ -224,6 +224,19 @@ For large liquid containers (like oil batches).
 
 ---
 
+#### `store_sessions`
+Manual Start Day / End of Day for the POS. Only one session is open at a time. Orders and sales use the active session window instead of calendar date (prevents midnight resets when the store stays open past 12am).
+
+| Column | Type | Description |
+|---------|------|-------------|
+| id | uuid | Primary key |
+| opened_at | timestamptz | When the session started (Start Day) |
+| closed_at | timestamptz | When the session ended (End of Day). NULL = still open |
+| opened_by | text | Optional: who started the session |
+| closed_by | text | Optional: who closed the session |
+
+---
+
 ## 🔄 6. Logic Flow Summary (Plain English)
 
 ### When an Order is Placed:

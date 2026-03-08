@@ -19,18 +19,36 @@
           </div>
         </div>
         <div class="header-right">
+          <div class="session-controls">
+            <button v-if="!activeSession && !isSessionLoading" @click="handleStartDay" class="session-btn session-btn-start">
+              Start Day
+            </button>
+            <button v-else-if="activeSession" @click="handleEndDay" class="session-btn session-btn-end">
+              End of Day
+            </button>
+            <span v-else-if="isSessionLoading" class="session-loading">Loading...</span>
+          </div>
           <div class="datetime-section">
             <div class="date-display date-display-desktop">{{ currentDate }}</div>
             <div class="date-display date-display-mobile">{{ currentDateMobile }}</div>
             <div class="time-display">{{ currentTime }}</div>
           </div>
-          <div class="status-badge">
+          <div class="status-badge" :class="{ 'session-closed': !activeSession }">
             <span class="status-dot"></span>
-            <span class="status-label">ONLINE</span>
+            <span class="status-label">{{ activeSession ? 'SESSION ACTIVE' : 'SESSION CLOSED' }}</span>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Store closed banner -->
+    <Transition name="fade">
+      <div v-if="!activeSession && !isSessionLoading" class="closed-banner-wrap">
+        <div class="closed-banner">
+          <p>Store is currently closed. Tap <strong>Start Day</strong> to begin a new session.</p>
+        </div>
+      </div>
+    </Transition>
 
     <!-- Total Sales Display -->
     <div class="sales-summary">
@@ -68,11 +86,20 @@
       <div class="card order-queue-card">
         <div class="card-header">
           <h2 class="card-title">Order Queue</h2>
-          <button @click="openModal" class="new-order-btn">+ New Order</button>
+          <button
+            @click="openModal"
+            class="new-order-btn"
+            :class="{ 'new-order-btn-disabled': !activeSession }"
+            :disabled="!activeSession"
+            :title="!activeSession ? 'Start Day to create orders' : ''"
+          >
+            + New Order
+          </button>
         </div>
         <div class="card-body">
           <OrderQueue 
             ref="orderQueueRef"
+            :session-range="sessionRange"
             @order-updated="handleOrderUpdated" 
           />
         </div>
@@ -94,6 +121,23 @@
           <div class="modal-body">
             <OrderForm @order-submitted="handleOrderSubmitted" @close="closeModal" />
           </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Session closed toast -->
+    <Transition name="toast">
+      <div v-if="sessionError" class="toast-notification toast-warning">
+        <div class="toast-body">
+          <div class="toast-text">
+            <div class="toast-title">Store Closed</div>
+            <div class="toast-description">{{ sessionError }}</div>
+          </div>
+          <button @click="sessionError = null" class="toast-close">
+            <svg class="close-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
         </div>
       </div>
     </Transition>
@@ -129,8 +173,9 @@ import OrderQueue from './OrderQueue.vue'
 import ProfitProgressCircle from './ProfitProgressCircle.vue'
 import { OrderService } from '../services/orderService'
 import { expenseService } from '../services/expenseService'
+import { StoreSessionService } from '../services/storeSessionService'
 import { calculateTotalExpenses } from '../modules/expenses/expenseUtils'
-import type { Order, Expense } from '../models'
+import type { Order, Expense, StoreSession } from '../models'
 
 // State
 const orderQueueRef = ref<InstanceType<typeof OrderQueue> | null>(null)
@@ -143,64 +188,64 @@ const orders = ref<Order[]>([])
 const expenses = ref<Expense[]>([])
 const showSalesAmount = ref(false)
 const isLoading = ref(true)
+const activeSession = ref<StoreSession | null>(null)
+const isSessionLoading = ref(true)
+const sessionError = ref<string | null>(null)
 let salesVisibilityTimeout: number | null = null
+
+// Session range for OrderQueue and filtering (null when no active session)
+const sessionRange = computed(() => {
+  if (!activeSession.value) return null
+  return StoreSessionService.getSessionRange(activeSession.value)
+})
 
 // Computed properties for real-time updates
 let timeInterval: number | null = null
 
-// Helper function to get today's completed orders
-const getTodayCompletedOrders = () => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  
+// Helper: completed orders within the active session range
+const getSessionCompletedOrders = () => {
+  if (!sessionRange.value) return []
+  const { start, end } = sessionRange.value
   return orders.value.filter(order => {
     if (order.status !== 'completed' || !order.created_at) return false
-    
-    const orderDate = new Date(order.created_at)
-    orderDate.setHours(0, 0, 0, 0)
-    
-    return orderDate.getTime() === today.getTime()
+    const t = new Date(order.created_at).getTime()
+    return t >= start.getTime() && t <= end.getTime()
   })
 }
 
-// Computed total sales from completed orders (today only)
+// Computed total sales from completed orders (session only)
 const totalCompletedSales = computed(() => {
-  return getTodayCompletedOrders()
+  return getSessionCompletedOrders()
     .reduce((total, order) => total + (order.total_amount || 0), 0)
 })
 
-// Computed cash sales from completed orders (today only)
+// Computed cash sales from completed orders (session only)
 const cashSales = computed(() => {
-  return getTodayCompletedOrders()
+  return getSessionCompletedOrders()
     .filter(order => order.payment_method === 'cash')
     .reduce((total, order) => total + (order.total_amount || 0), 0)
 })
 
-// Computed gcash sales from completed orders (today only)
+// Computed gcash sales from completed orders (session only)
 const gcashSales = computed(() => {
-  return getTodayCompletedOrders()
+  return getSessionCompletedOrders()
     .filter(order => order.payment_method === 'gcash')
     .reduce((total, order) => total + (order.total_amount || 0), 0)
 })
 
-// Computed total expenses for today
+// Computed total expenses for the active session
 const todayExpenses = computed(() => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  
-  const todayExpensesList = expenses.value.filter(expense => {
+  if (!sessionRange.value) return 0
+  const { start, end } = sessionRange.value
+  const sessionExpenses = expenses.value.filter(expense => {
     if (!expense.expense_date) return false
-    
-    const expenseDate = new Date(expense.expense_date)
-    expenseDate.setHours(0, 0, 0, 0)
-    
-    return expenseDate.getTime() === today.getTime()
+    const expenseTime = new Date(expense.expense_date).getTime()
+    return expenseTime >= start.getTime() && expenseTime <= end.getTime()
   })
-  
-  return calculateTotalExpenses(todayExpensesList)
+  return calculateTotalExpenses(sessionExpenses)
 })
 
-// Computed today's profit
+// Computed session profit
 const todayProfit = computed(() => {
   return totalCompletedSales.value - todayExpenses.value
 })
@@ -230,7 +275,16 @@ const updateDateTime = () => {
 }
 
 const openModal = () => {
+  if (!activeSession.value) {
+    showSessionClosedToast()
+    return
+  }
   showModal.value = true
+}
+
+const showSessionClosedToast = () => {
+  sessionError.value = 'Store is closed. Start Day to create orders.'
+  setTimeout(() => { sessionError.value = null }, 4000)
 }
 
 const closeModal = () => {
@@ -263,21 +317,69 @@ const handleOrderUpdated = async () => {
   await loadExpenses()
 }
 
-// Load orders
-const loadOrders = async () => {
+// Load active session
+const loadSession = async () => {
+  isSessionLoading.value = true
+  sessionError.value = null
   try {
-    const ordersData = await OrderService.getOrders()
-    orders.value = ordersData
+    activeSession.value = await StoreSessionService.getActiveSession()
+  } catch (error) {
+    console.error('Error loading session:', error)
+    sessionError.value = 'Failed to load session. Please refresh.'
+  } finally {
+    isSessionLoading.value = false
+  }
+}
+
+const handleStartDay = async () => {
+  try {
+    activeSession.value = await StoreSessionService.openSession()
+    await Promise.all([loadOrders(), loadExpenses()])
+    if (orderQueueRef.value) await orderQueueRef.value.refreshAll()
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Failed to start day.'
+    sessionError.value = msg
+    setTimeout(() => { sessionError.value = null }, 5000)
+  }
+}
+
+const handleEndDay = async () => {
+  if (!activeSession.value) return
+  const hasPending = orders.value.some(o => o.status === 'pending' || o.status === 'ready')
+  if (hasPending && !confirm('There are still open orders. Are you sure you want to end the day?')) {
+    return
+  }
+  try {
+    await StoreSessionService.closeSession(activeSession.value.id)
+    activeSession.value = null
+    orders.value = []
+    await loadExpenses()
+    if (orderQueueRef.value) await orderQueueRef.value.refreshAll()
+  } catch (error) {
+    console.error('Error closing session:', error)
+    sessionError.value = 'Failed to end day. Please try again.'
+    setTimeout(() => { sessionError.value = null }, 5000)
+  }
+}
+
+// Load orders (uses session range when activeSession exists)
+const loadOrders = async () => {
+  if (!sessionRange.value) {
+    orders.value = []
+    return
+  }
+  try {
+    const { start, end } = sessionRange.value
+    orders.value = await OrderService.getOrders({ startDate: start, endDate: end })
   } catch (error) {
     console.error('Error loading orders:', error)
   }
 }
 
-// Load expenses
+// Load expenses (full list; filtering by session is done in computed)
 const loadExpenses = async () => {
   try {
-    const expensesData = await expenseService.getAll()
-    expenses.value = expensesData
+    expenses.value = await expenseService.getAll()
   } catch (error) {
     console.error('Error loading expenses:', error)
   }
@@ -313,7 +415,10 @@ onMounted(async () => {
   timeInterval = setInterval(updateDateTime, 1000)
   try {
     isLoading.value = true
-    await Promise.all([loadOrders(), loadExpenses()])
+    await loadSession()
+    if (activeSession.value) {
+      await Promise.all([loadOrders(), loadExpenses()])
+    }
   } catch (error) {
     console.error('Error loading data:', error)
     alert('Failed to load data. Please try again.')
@@ -496,6 +601,95 @@ onUnmounted(() => {
   font-weight: 600;
   color: #1d1d1f;
   letter-spacing: 0.5px;
+}
+
+.status-badge.session-closed .status-dot {
+  background: #86868b;
+}
+
+.session-controls {
+  display: flex;
+  align-items: center;
+}
+
+.session-btn {
+  padding: 0.375rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid;
+}
+
+.session-btn-start {
+  background: #34c759;
+  color: #ffffff;
+  border-color: #34c759;
+}
+
+.session-btn-start:hover {
+  background: #2da84c;
+  border-color: #2da84c;
+}
+
+.session-btn-end {
+  background: #dc3545;
+  color: #ffffff;
+  border-color: #dc3545;
+}
+
+.session-btn-end:hover {
+  background: #c82333;
+  border-color: #c82333;
+}
+
+.session-loading {
+  font-size: 0.75rem;
+  color: #86868b;
+}
+
+.closed-banner-wrap {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  margin-top: 1rem;
+}
+
+.closed-banner {
+  padding: 0.75rem 1.5rem;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+}
+
+.closed-banner p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #856404;
+}
+
+.closed-banner strong {
+  font-weight: 700;
+}
+
+.new-order-btn-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.new-order-btn:disabled:hover {
+  background: #1d1d1f;
+  border-color: #1d1d1f;
+}
+
+.toast-warning .toast-body {
+  border-color: #ffc107;
+  background: #fffdf5;
+}
+
+.toast-warning .toast-title {
+  color: #856404;
 }
 
 /* Sales Summary */

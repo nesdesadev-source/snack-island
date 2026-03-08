@@ -1,5 +1,9 @@
 <template>
   <div class="kanban-board">
+    <div v-if="!sessionRange" class="no-session-placeholder">
+      <p class="no-session-text">No active session. Start Day to view orders.</p>
+    </div>
+    <template v-else>
     <!-- TO DO Row -->
     <div class="kanban-row todo-row">
       <div class="row-header" @click="toggleRow('todo')">
@@ -271,6 +275,7 @@
         </div>
       </div>
     </div>
+    </template>
   </div>
 </template>
 
@@ -282,6 +287,16 @@ import { menuItemService } from '../services/menuItemService'
 import { sortOrdersForQueue } from '../utils/orderQueueSort'
 
 // Props
+interface SessionRange {
+  start: Date
+  end: Date
+}
+const props = withDefaults(
+  defineProps<{
+    sessionRange?: SessionRange | null
+  }>(),
+  { sessionRange: null }
+)
 const emit = defineEmits<{
   orderUpdated: []
 }>()
@@ -389,26 +404,8 @@ const orderFulfillmentLabel = (order: Order): 'Dine in' | 'Take out' =>
 const orderFulfillmentChipClass = (order: Order): string =>
   order.order_fulfillment === 'take_out' ? 'fulfillment-chip chip-take-out' : 'fulfillment-chip chip-dine-in'
 
-const isToday = (dateString: string | null): boolean => {
-  if (!dateString) return false
-  
-  const orderDate = new Date(dateString)
-  const today = new Date()
-  
-  return (
-    orderDate.getDate() === today.getDate() &&
-    orderDate.getMonth() === today.getMonth() &&
-    orderDate.getFullYear() === today.getFullYear()
-  )
-}
-
 const getOrdersByStatus = (status: OrderStatus): Order[] => {
-  let filtered = orders.value.filter(order => order.status === status as OrderStatus)
-
-  if (status === 'completed') {
-    filtered = filtered.filter(order => isToday(order.created_at))
-  }
-
+  const filtered = orders.value.filter(order => order.status === status as OrderStatus)
   return sortOrdersForQueue(filtered, status)
 }
 
@@ -439,14 +436,15 @@ const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
 }
 
 const loadOrders = async () => {
+  if (!props.sessionRange) {
+    orders.value = []
+    updateCollapsedRows()
+    return
+  }
   isLoading.value = true
   try {
-    const today = new Date()
-    const startOfToday = new Date(today)
-    startOfToday.setHours(0, 0, 0, 0)
-    const endOfToday = new Date(today)
-    endOfToday.setHours(23, 59, 59, 999)
-    orders.value = await OrderService.getOrders({ startDate: startOfToday, endDate: endOfToday })
+    const { start, end } = props.sessionRange
+    orders.value = await OrderService.getOrders({ startDate: start, endDate: end })
     updateCollapsedRows()
   } catch (error) {
     console.error('Error loading orders:', error)
@@ -518,12 +516,16 @@ watch(orders, () => {
   updateCollapsedRows()
 }, { deep: true })
 
+// Reload orders and items when session range changes (e.g. Start Day from parent)
+watch(() => props.sessionRange, async () => {
+  await loadOrders()
+  await loadOrderItems()
+}, { immediate: true })
+
 // Lifecycle
 onMounted(async () => {
   updateCollapsedRows()
   await loadMenuItems()
-  await loadOrders()
-  await loadOrderItems()
   elapsedIntervalId = setInterval(() => {
     elapsedTick.value = Date.now()
   }, 30000) // update elapsed time every 30s
@@ -579,6 +581,20 @@ defineExpose({
 
 .kanban-board::-webkit-scrollbar-thumb:hover {
   background: #adb5bd;
+}
+
+.no-session-placeholder {
+  padding: 2rem;
+  text-align: center;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px dashed #dee2e6;
+}
+
+.no-session-text {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: #6c757d;
 }
 
 .kanban-row {

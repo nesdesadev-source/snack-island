@@ -79,3 +79,6 @@ export type {
   DiscountType
 } from './Discount';
 
+// StoreSession
+export type { StoreSession } from './StoreSession';
+
