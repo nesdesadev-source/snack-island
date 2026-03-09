@@ -374,7 +374,6 @@ const handleEndDay = async () => {
 
 // Load orders (uses session range when activeSession exists)
 const loadOrders = async () => {
-  syncSessionRange()
   if (!sessionRange.value) {
     orders.value = []
     return

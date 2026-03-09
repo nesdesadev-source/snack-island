@@ -50,12 +50,12 @@
                 </label>
                 <div class="select-wrapper">
                   <select v-model="localFormData.category" class="form-select" required>
+                    <option value="Ingredients">Ingredients</option>
                     <option value="Supplies">Supplies</option>
                     <option value="Gas">Gas</option>
                     <option value="Misc">Misc</option>
                     <option value="Maintenance">Maintenance</option>
                     <option value="Equipment">Equipment</option>
-                    <option value="Ingredients">Ingredients</option>
                     <option value="Utilities">Utilities</option>
                     <option value="Labor">Labor</option>
                     <option value="Machinery">Machinery</option>
@@ -206,7 +206,7 @@ const emit = defineEmits<{
 
 const localFormData = ref<ExpenseFormData>({
   expense_date: new Date().toISOString().split('T')[0] as string,
-  category: 'Supplies' as ExpenseCategory,
+  category: 'Ingredients' as ExpenseCategory,
   description: '',
   amount: 0,
   supplier_id: '',
@@ -229,7 +229,7 @@ watch(() => props.isOpen, (isOpen) => {
   if (isOpen && !props.isEditMode) {
     localFormData.value = {
       expense_date: new Date().toISOString().split('T')[0] as string,
-      category: 'Supplies' as ExpenseCategory,
+      category: 'Ingredients' as ExpenseCategory,
       description: '',
       amount: 0,
       supplier_id: '',
