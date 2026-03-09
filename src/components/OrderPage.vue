@@ -24,7 +24,7 @@
               Start Day
             </button>
             <button v-else-if="activeSession" @click="handleEndDay" class="session-btn session-btn-end">
-              End of Day
+              End Day
             </button>
             <span v-else-if="isSessionLoading" class="session-loading">Loading...</span>
           </div>
@@ -194,10 +194,13 @@ const sessionError = ref<string | null>(null)
 let salesVisibilityTimeout: number | null = null
 
 // Session range for OrderQueue and filtering (null when no active session)
-const sessionRange = computed(() => {
-  if (!activeSession.value) return null
-  return StoreSessionService.getSessionRange(activeSession.value)
-})
+const sessionRange = ref<{ start: Date; end: Date } | null>(null)
+
+const syncSessionRange = () => {
+  sessionRange.value = activeSession.value
+    ? StoreSessionService.getSessionRange(activeSession.value)
+    : null
+}
 
 // Computed properties for real-time updates
 let timeInterval: number | null = null
@@ -294,6 +297,9 @@ const closeModal = () => {
 const handleOrderSubmitted = async () => {
   // Close modal
   closeModal()
+
+  // Ensure end=now so the new order is included in the session window
+  syncSessionRange()
   
   // Refresh the order queue
   if (orderQueueRef.value) {
@@ -312,6 +318,7 @@ const handleOrderSubmitted = async () => {
 
 const handleOrderUpdated = async () => {
   // Refresh orders when orders are updated
+  syncSessionRange()
   await loadOrders()
   // Refresh expenses to update profit calculation
   await loadExpenses()
@@ -323,6 +330,7 @@ const loadSession = async () => {
   sessionError.value = null
   try {
     activeSession.value = await StoreSessionService.getActiveSession()
+    syncSessionRange()
   } catch (error) {
     console.error('Error loading session:', error)
     sessionError.value = 'Failed to load session. Please refresh.'
@@ -334,6 +342,7 @@ const loadSession = async () => {
 const handleStartDay = async () => {
   try {
     activeSession.value = await StoreSessionService.openSession()
+    syncSessionRange()
     await Promise.all([loadOrders(), loadExpenses()])
     if (orderQueueRef.value) await orderQueueRef.value.refreshAll()
   } catch (error) {
@@ -352,6 +361,7 @@ const handleEndDay = async () => {
   try {
     await StoreSessionService.closeSession(activeSession.value.id)
     activeSession.value = null
+    syncSessionRange()
     orders.value = []
     await loadExpenses()
     if (orderQueueRef.value) await orderQueueRef.value.refreshAll()
@@ -364,6 +374,7 @@ const handleEndDay = async () => {
 
 // Load orders (uses session range when activeSession exists)
 const loadOrders = async () => {
+  syncSessionRange()
   if (!sessionRange.value) {
     orders.value = []
     return

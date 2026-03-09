@@ -122,6 +122,21 @@ describe('StoreSessionService', () => {
       expect(range.end.getTime()).toBeLessThanOrEqual(after + 100)
     })
 
+    it('advances end when called again later for an open session', () => {
+      vi.useFakeTimers()
+      try {
+        vi.setSystemTime(new Date('2026-03-08T12:00:00Z'))
+        const first = StoreSessionService.getSessionRange(mockSession)
+
+        vi.setSystemTime(new Date('2026-03-08T12:05:00Z'))
+        const second = StoreSessionService.getSessionRange(mockSession)
+
+        expect(second.end.getTime()).toBeGreaterThan(first.end.getTime())
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
     it('returns start and closed_at for closed session', () => {
       const range = StoreSessionService.getSessionRange(mockClosedSession)
 
