@@ -19,7 +19,7 @@
           <span class="legend-color expenses"></span>
           Expenses
         </span>
-        <span 
+        <span
           class="legend-item"
           :class="{ 'legend-item-disabled': !chartVisibility.profit }"
           @click="toggleLine('profit')"
@@ -27,6 +27,15 @@
           <span class="legend-color profit"></span>
           Profit
         </span>
+        <!-- <span
+          v-if="selectedPeriod !== 'today' && selectedPeriod !== 'custom'"
+          class="legend-item"
+          :class="{ 'legend-item-disabled': !chartVisibility.breakeven }"
+          @click="toggleLine('breakeven')"
+        >
+          <span class="legend-color breakeven"></span>
+          Breakeven
+        </span> -->
       </div>
     </div>
     <div class="chart-container">
@@ -49,19 +58,29 @@ interface Props {
   salesData: { labels: string[]; data: number[] }
   expensesData: { labels: string[]; data: number[] }
   profitData: { labels: string[]; data: number[] }
-  chartVisibility: { sales: boolean; expenses: boolean; profit: boolean }
+  chartVisibility: { sales: boolean; expenses: boolean; profit: boolean; breakeven: boolean }
+  selectedPeriod: string
+  periodType: 'toDate' | 'calendar'
 }
 
 const props = defineProps<Props>()
 const emit = defineEmits<{
-  toggleLine: [line: 'sales' | 'expenses' | 'profit']
+  toggleLine: [line: 'sales' | 'expenses' | 'profit' | 'breakeven']
 }>()
 
 const chartCanvas = ref<HTMLCanvasElement | null>(null)
 let chartInstance: Chart | null = null
 
-function toggleLine(line: 'sales' | 'expenses' | 'profit') {
+function toggleLine(line: 'sales' | 'expenses' | 'profit' | 'breakeven') {
   emit('toggleLine', line)
+}
+
+function getBreakevenValue(): number | null {
+  const { selectedPeriod, periodType } = props
+  if (selectedPeriod === 'week') return 1600
+  if (selectedPeriod === 'month') return periodType === 'calendar' ? 11200 : 1600
+  if (selectedPeriod === 'year') return 48000
+  return null
 }
 
 function createChart() {
@@ -109,7 +128,20 @@ function createChart() {
           fill: true,
           tension: 0.4,
           hidden: !props.chartVisibility.profit
-        }
+        },
+        ...(getBreakevenValue() !== null ? [{
+          label: 'Breakeven',
+          data: props.salesData.labels.map(() => getBreakevenValue() as number),
+          borderColor: '#f59e0b',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          borderDash: [6, 4],
+          fill: false,
+          tension: 0,
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          hidden: !props.chartVisibility.breakeven
+        }] : [])
       ]
     },
     options: {
@@ -144,11 +176,17 @@ function updateChart() {
   const salesMeta = chartInstance.getDatasetMeta(datasetIndex('sales'))
   const expensesMeta = chartInstance.getDatasetMeta(datasetIndex('expenses'))
   const profitMeta = chartInstance.getDatasetMeta(datasetIndex('profit'))
-  
+
   if (salesMeta) salesMeta.hidden = !props.chartVisibility.sales
   if (expensesMeta) expensesMeta.hidden = !props.chartVisibility.expenses
   if (profitMeta) profitMeta.hidden = !props.chartVisibility.profit
-  
+
+  const breakevenDatasetIndex = chartInstance.data.datasets.findIndex(d => d.label === 'Breakeven')
+  if (breakevenDatasetIndex !== -1) {
+    const breakevenMeta = chartInstance.getDatasetMeta(breakevenDatasetIndex)
+    if (breakevenMeta) breakevenMeta.hidden = !props.chartVisibility.breakeven
+  }
+
   chartInstance.update()
 }
 
@@ -159,6 +197,10 @@ watch(() => props.chartVisibility, () => {
 watch(() => [props.salesData, props.expensesData, props.profitData], () => {
   createChart()
 }, { deep: true })
+
+watch(() => [props.selectedPeriod, props.periodType], () => {
+  createChart()
+})
 
 watch(() => props.hasOrderData, (val) => {
   if (val) nextTick(() => createChart())
@@ -248,6 +290,10 @@ onUnmounted(() => {
 
 .legend-color.profit {
   background: #28a745;
+}
+
+.legend-color.breakeven {
+  background: #f59e0b;
 }
 
 .chart-container {

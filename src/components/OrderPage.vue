@@ -75,7 +75,7 @@
               </svg>
             </button>
           </div>
-          <ProfitProgressCircle :profit="todayProfit" />
+          <ProfitProgressCircle :profit="totalCompletedSales" /> <!-- Prop is profit but it is really just sales -->
         </div>
       </div>
     </div>

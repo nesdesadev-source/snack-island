@@ -130,10 +130,10 @@ const props = defineProps<{
   profit: number
 }>()
 
-const GOAL = 650
-const RED_THRESHOLD = 570
-const ORANGE_THRESHOLD = 650
-const GOLD_THRESHOLD = 999
+const GOAL = 1800
+const RED_THRESHOLD = 1600
+const ORANGE_THRESHOLD = 1800
+const GOLD_THRESHOLD = 2200
 
 const circumference = 2 * Math.PI * 25 // 2πr where r = 25
 

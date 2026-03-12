@@ -150,6 +150,8 @@
           :expenses-data="dashboardData.expensesData"
           :profit-data="dashboardData.profitData"
           :chart-visibility="chartVisibility"
+          :selected-period="selectedPeriod"
+          :period-type="periodType"
           @toggle-line="toggleChartLine"
         />
         
@@ -276,7 +278,8 @@ const showPaymentMethodsModal = ref(false)
 const chartVisibility = ref({
   sales: true,
   expenses: true,
-  profit: true
+  profit: true,
+  breakeven: true
 })
 
 // Data
@@ -1638,7 +1641,7 @@ function goToInventory() {
 }
 
 // Chart line toggle function
-function toggleChartLine(line: 'sales' | 'expenses' | 'profit') {
+function toggleChartLine(line: 'sales' | 'expenses' | 'profit' | 'breakeven') {
   chartVisibility.value[line] = !chartVisibility.value[line]
 }
 
