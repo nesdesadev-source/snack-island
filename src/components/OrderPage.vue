@@ -174,7 +174,6 @@ import ProfitProgressCircle from './ProfitProgressCircle.vue'
 import { OrderService } from '../services/orderService'
 import { expenseService } from '../services/expenseService'
 import { StoreSessionService } from '../services/storeSessionService'
-import { calculateTotalExpenses } from '../modules/expenses/expenseUtils'
 import type { Order, Expense, StoreSession } from '../models'
 
 // State
@@ -236,17 +235,17 @@ const gcashSales = computed(() => {
     .reduce((total, order) => total + (order.total_amount || 0), 0)
 })
 
-// Computed total expenses for the active session
-const todayExpenses = computed(() => {
-  if (!sessionRange.value) return 0
-  const { start, end } = sessionRange.value
-  const sessionExpenses = expenses.value.filter(expense => {
-    if (!expense.expense_date) return false
-    const expenseTime = new Date(expense.expense_date).getTime()
-    return expenseTime >= start.getTime() && expenseTime <= end.getTime()
-  })
-  return calculateTotalExpenses(sessionExpenses)
-})
+// // Computed total expenses for the active session
+// const todayExpenses = computed(() => {
+//   if (!sessionRange.value) return 0
+//   const { start, end } = sessionRange.value
+//   const sessionExpenses = expenses.value.filter(expense => {
+//     if (!expense.expense_date) return false
+//     const expenseTime = new Date(expense.expense_date).getTime()
+//     return expenseTime >= start.getTime() && expenseTime <= end.getTime()
+//   })
+//   return calculateTotalExpenses(sessionExpenses)
+// })
 
 // Methods
 const updateDateTime = () => {
