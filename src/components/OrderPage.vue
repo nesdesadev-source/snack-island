@@ -248,11 +248,6 @@ const todayExpenses = computed(() => {
   return calculateTotalExpenses(sessionExpenses)
 })
 
-// Computed session profit
-const todayProfit = computed(() => {
-  return totalCompletedSales.value - todayExpenses.value
-})
-
 // Methods
 const updateDateTime = () => {
   const now = new Date()
