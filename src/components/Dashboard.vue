@@ -678,6 +678,84 @@ function getRecentActivity() {
   }).slice(0, 5)
 }
 
+function formatLocalDate(d: Date): string {
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function getCustomChartBuckets(startDate: Date, endDate: Date): { start: Date, end: Date, label: string }[] {
+  const diffDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+  const buckets: { start: Date, end: Date, label: string }[] = []
+
+  if (diffDays <= 1) {
+    for (let hour = 0; hour < 24; hour++) {
+      const start = new Date(startDate)
+      start.setHours(hour, 0, 0, 0)
+      const end = new Date(startDate)
+      end.setHours(hour, 59, 59, 999)
+      buckets.push({ start, end, label: `${hour}:00` })
+    }
+  } else if (diffDays <= 14) {
+    for (let i = 0; i < Math.ceil(diffDays); i++) {
+      const start = new Date(startDate)
+      start.setDate(start.getDate() + i)
+      start.setHours(0, 0, 0, 0)
+      const end = new Date(start)
+      end.setHours(23, 59, 59, 999)
+      buckets.push({ start, end, label: start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) })
+    }
+  } else if (diffDays <= 56) {
+    const current = new Date(startDate)
+    current.setHours(0, 0, 0, 0)
+    while (current <= endDate) {
+      const start = new Date(current)
+      const end = new Date(current)
+      end.setDate(end.getDate() + 6)
+      end.setHours(23, 59, 59, 999)
+      if (end > endDate) end.setTime(endDate.getTime())
+      buckets.push({ start, end, label: start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) })
+      current.setDate(current.getDate() + 7)
+    }
+  } else if (diffDays <= 365) {
+    const current = new Date(startDate.getFullYear(), startDate.getMonth(), 1)
+    while (current <= endDate) {
+      const start = new Date(current)
+      start.setHours(0, 0, 0, 0)
+      const end = new Date(current.getFullYear(), current.getMonth() + 1, 0)
+      end.setHours(23, 59, 59, 999)
+      if (end > endDate) end.setTime(endDate.getTime())
+      buckets.push({ start, end, label: start.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }) })
+      current.setMonth(current.getMonth() + 1)
+    }
+  } else if (diffDays <= 912) {
+    const current = new Date(startDate.getFullYear(), Math.floor(startDate.getMonth() / 3) * 3, 1)
+    while (current <= endDate) {
+      const start = new Date(current)
+      start.setHours(0, 0, 0, 0)
+      const end = new Date(current.getFullYear(), current.getMonth() + 3, 0)
+      end.setHours(23, 59, 59, 999)
+      if (end > endDate) end.setTime(endDate.getTime())
+      buckets.push({ start, end, label: `Q${Math.floor(start.getMonth() / 3) + 1} ${start.getFullYear()}` })
+      current.setMonth(current.getMonth() + 3)
+    }
+  } else {
+    const current = new Date(startDate.getFullYear(), 0, 1)
+    while (current <= endDate) {
+      const start = new Date(current)
+      start.setHours(0, 0, 0, 0)
+      const end = new Date(current.getFullYear(), 11, 31)
+      end.setHours(23, 59, 59, 999)
+      if (end > endDate) end.setTime(endDate.getTime())
+      buckets.push({ start, end, label: `${start.getFullYear()}` })
+      current.setFullYear(current.getFullYear() + 1)
+    }
+  }
+
+  return buckets
+}
+
 function getSalesChartData() {
   const now = new Date()
   const period = selectedPeriod.value
@@ -853,8 +931,18 @@ function getSalesChartData() {
         labels.push(monthStart.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }))
       }
     }
+  } else if (period === 'custom') {
+    for (const bucket of getCustomChartBuckets(startDate, endDate)) {
+      const bucketOrders = periodOrders.filter(order => {
+        if (!order.created_at) return false
+        const orderDate = new Date(order.created_at)
+        return orderDate >= bucket.start && orderDate <= bucket.end
+      })
+      data.push(bucketOrders.reduce((sum, order) => sum + order.total_amount, 0))
+      labels.push(bucket.label)
+    }
   }
-  
+
   return { data, labels }
 }
 
@@ -868,13 +956,6 @@ function getExpensesChartData() {
   
   const data: number[] = []
   const labels: string[] = []
-  
-  const formatLocalDate = (d: Date): string => {
-    const year = d.getFullYear()
-    const month = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  }
   
   if (period === 'today') {
     // Show hourly data for today
@@ -1039,8 +1120,14 @@ function getExpensesChartData() {
         labels.push(monthStart.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }))
       }
     }
+  } else if (period === 'custom') {
+    for (const bucket of getCustomChartBuckets(startDate, endDate)) {
+      const bucketExpenses = filterExpensesByDateRange(periodExpenses, formatLocalDate(bucket.start), formatLocalDate(bucket.end))
+      data.push(calculateTotalExpenses(bucketExpenses))
+      labels.push(bucket.label)
+    }
   }
-  
+
   return { data, labels }
 }
 
