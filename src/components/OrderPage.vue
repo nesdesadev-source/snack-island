@@ -292,14 +292,10 @@ const handleOrderSubmitted = async () => {
   // Close modal
   closeModal()
 
-  // Ensure end=now so the new order is included in the session window
+  // Ensure end=now so the new order is included in the session window.
+  // This triggers the sessionRange watcher in OrderQueue, which reloads orders + items.
   syncSessionRange()
-  
-  // Refresh the order queue
-  if (orderQueueRef.value) {
-    await orderQueueRef.value.refreshAll()
-  }
-  
+
   // Refresh orders to update total sales
   await loadOrders()
   
