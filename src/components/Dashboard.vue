@@ -1329,6 +1329,8 @@ function getSalesByTimeOfDay() {
   const type = periodType.value
   const startDate = getPeriodStartDate(now, period, type)
   const endDate = getPeriodEndDate(now, period, type)
+  const STARTHOUR = 0 // 12am
+  const ENDHOUR = 23 // 11pm
   
   // Get orders for the period
   const periodOrders = getOrdersForPeriod(now, period)
@@ -1347,22 +1349,22 @@ function getSalesByTimeOfDay() {
   // Initialize data structures for each hour (9am to 11:59pm = hours 9-23)
   const hourData: Record<number, { total: number; count: number }> = {}
   
-  // Initialize all hours from 9 to 23
-  for (let hour = 9; hour <= 23; hour++) {
+  // Initialize all hours from 12am to 11pm
+  for (let hour = STARTHOUR; hour <= ENDHOUR; hour++) {
     hourData[hour] = { total: 0, count: 0 }
   }
   
   // Count occurrences of each hour in the date range
   const hourCounts: Record<number, number> = {}
-  for (let hour = 9; hour <= 23; hour++) {
+  for (let hour = STARTHOUR; hour <= ENDHOUR; hour++) {
     hourCounts[hour] = 0
   }
   
   // Iterate through each day in the period and count hour occurrences
   const currentDate = new Date(startDate)
   while (currentDate <= endDate) {
-    // For each day, count hours 9-23
-    for (let hour = 9; hour <= 23; hour++) {
+    // For each day, count hours 0-23
+    for (let hour = STARTHOUR; hour <= ENDHOUR; hour++) {
       hourCounts[hour] = (hourCounts[hour] || 0) + 1
     }
     currentDate.setDate(currentDate.getDate() + 1)
@@ -1377,7 +1379,7 @@ function getSalesByTimeOfDay() {
     const hour = orderDate.getHours()
     
     // Only process hours between 9am (9) and 11:59pm (23)
-    if (hour >= 9 && hour <= 23) {
+    if (hour >= STARTHOUR && hour <= ENDHOUR) {
       const hourInfo = hourData[hour]
       if (hourInfo) {
         hourInfo.total += order.total_amount
@@ -1399,7 +1401,7 @@ function getSalesByTimeOfDay() {
   const totals: number[] = []
   const averages: number[] = []
   
-  for (let hour = 9; hour <= 23; hour++) {
+  for (let hour = STARTHOUR; hour <= 23; hour++) {
     labels.push(formatHourLabel(hour))
     const hourInfo = hourData[hour]
     if (hourInfo) {
