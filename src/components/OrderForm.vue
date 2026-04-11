@@ -110,6 +110,15 @@
                 {{ hasReachedGoal ? 'Reached' : '₱' + remainingToGoal.toFixed(2) + ' left' }}
               </span>
             </div>
+            <div v-if="props.initialFulfillment === 'take_out'" class="order-summary take-out-boxes-summary">
+              <div class="take-out-boxes-row">
+                <button type="button" class="quantity-btn" @click="takeOutBoxCount > 0 && takeOutBoxCount--">−</button>
+                <span class="quantity-display">{{ takeOutBoxCount }}</span>
+                <button type="button" class="quantity-btn" @click="takeOutBoxCount++">+</button>
+                <span class="summary-label">Take Out Boxes</span>
+              </div>
+              <span class="summary-amount">₱{{ takeOutBoxSubtotal.toFixed(2) }}</span>
+            </div>
             <div class="order-summary">
               <span class="summary-label">TOTAL</span>
               <div class="total-amount-container">
@@ -161,29 +170,6 @@
           </div>
         </div>
 
-        <!-- Dine in or Take out -->
-        <div class="section" v-if="orderItems.length > 0">
-          <h3 class="section-title">DINE IN OR TAKE OUT</h3>
-          <div class="payment-grid">
-            <button
-              type="button"
-              @click="selectedOrderFulfillment = 'dine_in'"
-              :class="['payment-btn', { 'payment-btn-active': selectedOrderFulfillment === 'dine_in' }]"
-              data-testid="fulfillment-dine-in"
-            >
-              Dine in
-            </button>
-            <button
-              type="button"
-              @click="selectedOrderFulfillment = 'take_out'"
-              :class="['payment-btn', { 'payment-btn-active': selectedOrderFulfillment === 'take_out' }]"
-              data-testid="fulfillment-take-out"
-            >
-              Take out
-            </button>
-          </div>
-        </div>
-
         <!-- Payment Method -->
         <div class="section" v-if="orderItems.length > 0">
           <h3 class="section-title">PAYMENT METHOD</h3>
@@ -206,7 +192,7 @@
           </button>
           <button
             @click="submitOrder"
-            :disabled="!selectedPaymentMethod || !selectedOrderFulfillment || isSubmitting"
+            :disabled="!selectedPaymentMethod || isSubmitting"
             class="btn btn-primary"
             data-testid="submit-order-btn"
           >
@@ -409,7 +395,11 @@ import { discountService } from '../services/discountService'
 import { filterActiveDiscounts, calculateDiscountedPrice } from '../modules/discounts/discountUtils'
 import { ORDER_GOAL_PESOS } from '../const/orderGoal'
 
-// Props
+// Props & Emits
+const props = defineProps<{
+  initialFulfillment: OrderFulfillment
+}>()
+
 const emit = defineEmits<{
   orderSubmitted: []
   close: []
@@ -419,7 +409,8 @@ const emit = defineEmits<{
 const menuItems = ref<MenuItem[]>([])
 const orderItems = ref<OrderItem[]>([])
 const selectedPaymentMethod = ref<PaymentMethod | null>(null)
-const selectedOrderFulfillment = ref<OrderFulfillment | null>(null)
+const takeOutBoxCount = ref(0)
+const TAKE_OUT_BOX_PRICE = 10
 const customerPayment = ref<number>(0)
 const isSubmitting = ref(false)
 const isLoadingMenuItems = ref(false)
@@ -453,7 +444,8 @@ const selectedDiscountId = ref<string | null>(null)
 const paymentMethods: PaymentMethod[] = ['cash', 'gcash']
 
 // Computed
-const orderTotal = computed(() => calculateOrderTotal(orderItems.value))
+const takeOutBoxSubtotal = computed(() => takeOutBoxCount.value * TAKE_OUT_BOX_PRICE)
+const orderTotal = computed(() => calculateOrderTotal(orderItems.value) + takeOutBoxSubtotal.value)
 const activeDiscounts = computed(() => filterActiveDiscounts(discounts.value))
 const selectedDiscount = computed(() => {
   if (!selectedDiscountId.value) return null
@@ -641,13 +633,13 @@ const removeItem = (index: number) => {
 const clearOrder = () => {
   orderItems.value = []
   selectedPaymentMethod.value = null
-  selectedOrderFulfillment.value = null
+  takeOutBoxCount.value = 0
   customerPayment.value = 0
   selectedDiscountId.value = null
 }
 
 const submitOrder = async () => {
-  if (!selectedPaymentMethod.value || !selectedOrderFulfillment.value || orderItems.value.length === 0) {
+  if (!selectedPaymentMethod.value || orderItems.value.length === 0) {
     return
   }
 
@@ -659,7 +651,7 @@ const submitOrder = async () => {
       total_amount: discountedTotal.value,
       payment_method: selectedPaymentMethod.value,
       status: 'pending' as const,
-      order_fulfillment: selectedOrderFulfillment.value,
+      order_fulfillment: props.initialFulfillment,
       discount_id: selectedDiscountId.value || null
     }
 
@@ -671,7 +663,7 @@ const submitOrder = async () => {
       insufficientItemsList.value = result.inventoryCheck.insufficientItems
       pendingOrderData.value = {
         ...orderData,
-        order_fulfillment: selectedOrderFulfillment.value,
+        order_fulfillment: props.initialFulfillment,
         discount_id: selectedDiscountId.value || null
       }
       pendingOrderItems.value = [...orderItems.value]
@@ -1316,6 +1308,19 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
+}
+
+.take-out-boxes-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.take-out-boxes-summary {
+  border-bottom: 1px solid #e5e5e5;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
 }
 
 .payment-btn {

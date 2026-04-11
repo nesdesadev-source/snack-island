@@ -106,6 +106,13 @@
       </div>
     </div>
 
+    <!-- Order Type Selector Modal -->
+    <OrderTypeSelectorModal
+      v-if="showFulfillmentModal"
+      @chosen="handleFulfillmentChosen"
+      @cancel="showFulfillmentModal = false"
+    />
+
     <!-- Order Form Modal -->
     <Transition name="modal">
       <div v-if="showModal" class="modal-backdrop" @click="closeModal">
@@ -119,7 +126,7 @@
             </button>
           </div>
           <div class="modal-body">
-            <OrderForm @order-submitted="handleOrderSubmitted" @close="closeModal" />
+            <OrderForm :initial-fulfillment="orderFulfillment!" @order-submitted="handleOrderSubmitted" @close="closeModal" />
           </div>
         </div>
       </div>
@@ -169,17 +176,20 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import OrderForm from './OrderForm.vue'
+import OrderTypeSelectorModal from './OrderTypeSelectorModal.vue'
 import OrderQueue from './OrderQueue.vue'
 import ProfitProgressCircle from './ProfitProgressCircle.vue'
 import { OrderService } from '../services/orderService'
 import { expenseService } from '../services/expenseService'
 import { StoreSessionService } from '../services/storeSessionService'
-import type { Order, Expense, StoreSession } from '../models'
+import type { Order, Expense, StoreSession, OrderFulfillment } from '../models'
 
 // State
 const orderQueueRef = ref<InstanceType<typeof OrderQueue> | null>(null)
 const showSuccessMessage = ref(false)
 const showModal = ref(false)
+const showFulfillmentModal = ref(false)
+const orderFulfillment = ref<OrderFulfillment | null>(null)
 const currentTime = ref('')
 const currentDate = ref('')
 const currentDateMobile = ref('')
@@ -276,6 +286,12 @@ const openModal = () => {
     showSessionClosedToast()
     return
   }
+  showFulfillmentModal.value = true
+}
+
+const handleFulfillmentChosen = (fulfillment: OrderFulfillment) => {
+  orderFulfillment.value = fulfillment
+  showFulfillmentModal.value = false
   showModal.value = true
 }
 
@@ -286,6 +302,7 @@ const showSessionClosedToast = () => {
 
 const closeModal = () => {
   showModal.value = false
+  orderFulfillment.value = null
 }
 
 const handleOrderSubmitted = async () => {
