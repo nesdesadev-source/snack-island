@@ -130,10 +130,9 @@ const props = defineProps<{
   profit: number
 }>()
 
-const GOAL = 1800
-const RED_THRESHOLD = 1600
-const ORANGE_THRESHOLD = 1800
-const GOLD_THRESHOLD = 2200
+const RED_THRESHOLD = 2000
+const ORANGE_THRESHOLD = 2500
+const GOLD_THRESHOLD = 3000
 
 const circumference = 2 * Math.PI * 25 // 2πr where r = 25
 
@@ -148,7 +147,7 @@ const isGold = computed(() => {
 const progressPercentage = computed(() => {
   if (props.profit <= 0) return 100;
   const profit = Math.max(props.profit, 0) // Ensure non-negative
-  return Math.min((profit / GOAL) * 100, 100)
+  return Math.min((profit / ORANGE_THRESHOLD) * 100, 100)
 })
 
 const dashOffset = computed(() => {
