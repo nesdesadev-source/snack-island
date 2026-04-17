@@ -128,7 +128,7 @@
                 </span>
               </div>
             </div>
-            <div v-if="false" class="discount-selector">
+            <div v-if="activeDiscounts.length > 0" class="discount-selector">
               <label class="discount-label">Discount</label>
               <select 
                 v-model="selectedDiscountId" 
