@@ -16,23 +16,34 @@ export class OrderService {
   
     const defaultStart = new Date('2025-01-01T00:00:00Z')
     const defaultEnd = new Date() // today
-  
-    const { data, error } = await supabase.rpc('get_orders', {
-      p_start_date: options?.startDate || defaultStart,
-      p_end_date: options?.endDate || defaultEnd,
-      p_status: options?.status || null,
-      p_limit: options?.limit || 5000,
-      p_offset: options?.offset || 0
-    })
-  
-    if (error) {
-      console.error('Error fetching orders:', error)
-      throw error
+    const pageSize = 1000
+    const allOrders: Order[] = []
+    let offset = options?.offset || 0
+
+    while (true) {
+      const { data, error } = await supabase.rpc('get_orders', {
+        p_start_date: options?.startDate || defaultStart,
+        p_end_date: options?.endDate || defaultEnd,
+        p_status: options?.status || null,
+        p_limit: pageSize,
+        p_offset: offset
+      })
+
+      if (error) {
+        console.error('Error fetching orders:', error)
+        throw error
+      }
+
+      const page = data || []
+      allOrders.push(...page)
+
+      if (page.length < pageSize) break
+      offset += pageSize
     }
-  
-    return data || []
+
+    return allOrders
   }
-  
+
 
   /**
    * Get orders by status
@@ -210,6 +221,48 @@ export class OrderService {
     }
     
     return data || []
+  }
+
+  /**
+   * Get order items for multiple orders in a single query
+   */
+  static async getOrderItemsBulk(orderIds: string[]): Promise<OrderItem[]> {
+    if (orderIds.length === 0) return []
+
+    const CHUNK_SIZE = 100
+    const chunks: string[][] = []
+    for (let i = 0; i < orderIds.length; i += CHUNK_SIZE) {
+      chunks.push(orderIds.slice(i, i + CHUNK_SIZE))
+    }
+
+    const results = await Promise.all(
+      chunks.map(chunk =>
+        supabase.from('order_items').select('*').in('order_id', chunk)
+      )
+    )
+
+    const allItems: OrderItem[] = []
+    for (const { data, error } of results) {
+      if (error) {
+        console.error('Error fetching order items bulk:', error)
+        throw error
+      }
+      for (const item of data || []) {
+        allItems.push({
+          id: item.id,
+          order_id: item.order_id,
+          quantity: item.quantity,
+          subtotal: item.subtotal,
+          created_at: item.created_at,
+          created_by: item.created_by,
+          menu_id: item.menu_id,
+          fries_option: item.fries_option,
+          is_spicy: item.is_spicy,
+          drink_option: item.drink_option
+        })
+      }
+    }
+    return allItems
   }
 
   /**

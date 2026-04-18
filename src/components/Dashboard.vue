@@ -1755,10 +1755,8 @@ async function loadDashboardData() {
     menuItems.value = menuItemsData
     recipeMaps.value = recipeMapsData
     
-    // Load order items for all orders
-    const orderItemsPromises = orders.value.map(order => OrderService.getOrderItems(order.id))
-    const orderItemsResults = await Promise.all(orderItemsPromises)
-    orderItems.value = orderItemsResults.flat()
+    // Load all order items in a single bulk query
+    orderItems.value = await OrderService.getOrderItemsBulk(orders.value.map(o => o.id))
     
   } catch (err) {
     console.error('Error loading dashboard data:', err)
