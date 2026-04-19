@@ -625,7 +625,8 @@ function getPreviousPeriod(date: Date, period: string, type: 'toDate' | 'calenda
 
 function calculateTrend(current: number, previous: number): number {
   if (previous === 0) return 0
-  return ((current - previous) / previous) * 100
+  // When previous is negative, dividing flips the sign, so use absolute value as denominator
+  return ((current - previous) / Math.abs(previous)) * 100
 }
 
 function getLowStockItems() {

@@ -77,9 +77,9 @@ function toggleLine(line: 'sales' | 'expenses' | 'profit' | 'breakeven') {
 
 function getBreakevenValue(): number | null {
   const { selectedPeriod, periodType } = props
-  if (selectedPeriod === 'week') return 1600
-  if (selectedPeriod === 'month') return periodType === 'calendar' ? 11200 : 1600
-  if (selectedPeriod === 'year') return 48000
+  if (selectedPeriod === 'week') return 2000
+  if (selectedPeriod === 'month') return periodType === 'calendar' ? 14000 : 2000
+  if (selectedPeriod === 'year') return 60000
   return null
 }
 
