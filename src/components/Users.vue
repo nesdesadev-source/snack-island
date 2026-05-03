@@ -30,6 +30,7 @@
           <option value="">All Roles</option>
           <option value="0">Administrator</option>
           <option value="1">Staff</option>
+          <option value="2">Auditor</option>
         </select>
       </div>
       
@@ -105,6 +106,10 @@
           <label class="role-option">
             <input type="radio" v-model="newRole" :value="1" />
             <span>Staff</span>
+          </label>
+          <label class="role-option">
+            <input type="radio" v-model="newRole" :value="2" />
+            <span>Auditor</span>
           </label>
         </div>
         <div class="modal-actions">
@@ -185,11 +190,29 @@ const filteredUsers = computed(() => {
 })
 
 const getRoleLabel = (role: number) => {
-  return role === 0 ? 'Administrator' : 'Staff'
+  switch (role) {
+    case 0:
+      return 'Administrator'
+    case 1:
+      return 'Staff'
+    case 2:
+      return 'Auditor'
+    default:
+      return 'Staff'
+  }
 }
 
 const getRoleBadgeClass = (role: number) => {
-  return role === 0 ? 'admin' : 'staff'
+  switch (role) {
+    case 0:
+      return 'admin'
+    case 1:
+      return 'staff'
+    case 2:
+      return 'auditor'
+    default:
+      return 'Staff'
+  }
 }
 
 const formatDate = (dateString: string) => {
@@ -333,6 +356,11 @@ const navigateToSignup = () => {
 .role-badge.staff {
   background: #d4edda;
   color: #155724;
+}
+
+.role-badge.auditor {
+  background: lightblue;
+  color: black;
 }
 
 /* Modal Styles */
