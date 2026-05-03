@@ -71,6 +71,23 @@ export class StoreSessionService {
   }
 
   /**
+   * Get all sessions sorted by opened_at descending.
+   */
+  static async getAllSessions(): Promise<StoreSession[]> {
+    const { data, error } = await supabase
+      .from('store_sessions')
+      .select('id, opened_at, closed_at, opened_by, closed_by')
+      .order('opened_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching all store sessions:', error)
+      throw error
+    }
+
+    return (data || []) as StoreSession[]
+  }
+
+  /**
    * Returns session boundaries as Date objects for filtering orders/expenses.
    * For an open session, end is "now".
    */

@@ -31,8 +31,10 @@ const routes = [
       if (!user) {
         return '/login'
       }
-      // Redirect staff to order page, admin to dashboard
-      return user.roleId === 1 ? '/order' : '/dashboard'
+      // Redirect based on role
+      if (user.roleId === 1) return '/order'
+      if (user.roleId === 2) return '/audit'
+      return '/dashboard'
     }
   },
   {
@@ -82,6 +84,12 @@ const routes = [
     name: 'Users',
     component: Users,
     meta: { requiresAuth: true, allowedRoles: [0] } // Admin only
+  },
+  {
+    path: '/audit',
+    name: 'Audit',
+    component: () => import('../components/AuditPage.vue'),
+    meta: { requiresAuth: true, allowedRoles: [0, 2] } // Admin and Auditor
   }
 ]
 
@@ -101,10 +109,10 @@ router.beforeEach((to, _from, next) => {
   // If route is login/signup and user is already authenticated, redirect to appropriate page
   if (hideForAuth && isAuthenticated) {
     if (user.roleId === 1) {
-      // Staff - redirect to order page
       next('/order')
+    } else if (user.roleId === 2) {
+      next('/audit')
     } else {
-      // Admin - redirect to dashboard
       next('/dashboard')
     }
     return
@@ -121,10 +129,10 @@ router.beforeEach((to, _from, next) => {
     if (!allowedRoles.includes(user.roleId)) {
       // User doesn't have permission, redirect to appropriate page
       if (user.roleId === 1) {
-        // Staff can only access order page
         next('/order')
+      } else if (user.roleId === 2) {
+        next('/audit')
       } else {
-        // Admin should have access to everything, but just in case
         next('/dashboard')
       }
       return

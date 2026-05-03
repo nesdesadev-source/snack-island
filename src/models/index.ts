@@ -82,3 +82,6 @@ export type {
 // StoreSession
 export type { StoreSession } from './StoreSession';
 
+// AuditIngredientMapping
+export type { AuditIngredientMapping } from './AuditIngredientMapping';
+

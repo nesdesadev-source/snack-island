@@ -180,6 +180,22 @@ export const authService = {
    */
   isStaff(): boolean {
     return this.hasRole(1)
+  },
+
+  /**
+   * Check if current user is auditor
+   * @returns True if user is auditor, false otherwise
+   */
+  isAuditor(): boolean {
+    return this.hasRole(2)
+  },
+
+  /**
+   * Check if current user can access audit features (admin or auditor)
+   */
+  canAudit(): boolean {
+    const user = this.getCurrentUser()
+    return user?.roleId === 0 || user?.roleId === 2
   }
 }
 
