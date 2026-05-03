@@ -70,7 +70,35 @@
         No ingredient mappings found for the orders in this session.
       </div>
 
-      <div v-else-if="auditRows.length > 0" class="table-wrapper">
+      <div v-if="cashAuditRows.length > 0" class="table-wrapper cash-table-wrapper">
+        <table class="audit-table cash-audit-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Amount</th>
+              <th>Start of Day Count</th>
+              <th>End of Day Count</th>
+              <th>Difference</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in cashAuditRows" :key="row.name" :class="{ flagged: cashDifference(row) !== 0 }">
+              <td>{{ row.name }}</td>
+              <td v-if="row.name !== 'Expenses'">
+                {{ row.amount !== null ? '₱' + row.amount.toFixed(2) : '—' }}
+              </td>
+              <td v-else>
+                <input v-model.number="row.amount" type="number" min="0" class="count-input" />
+              </td>
+              <td><input v-model.number="row.startOfDay" type="number" min="0" class="count-input" /></td>
+              <td><input v-model.number="row.endOfDay" type="number" min="0" class="count-input" /></td>
+              <td class="diff-cell">{{ cashDifferenceLabel(cashDifference(row)) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-if="auditRows.length > 0" class="table-wrapper">
         <table class="audit-table">
           <thead>
             <tr>
@@ -89,7 +117,7 @@
               <td><input v-model.number="row.addOns" type="number" min="0" class="count-input" /></td>
               <td><input v-model.number="row.yesterdayEod" type="number" min="0" class="count-input" /></td>
               <td><input v-model.number="row.todayEod" type="number" min="0" class="count-input" /></td>
-              <td class="diff-cell">{{ difference(row) }}</td>
+              <td class="diff-cell">{{ differenceLabel(difference(row)) }}</td>
             </tr>
           </tbody>
         </table>
@@ -115,6 +143,13 @@ interface AuditRow {
   todayEod: number
 }
 
+interface CashAuditRow {
+  name: string
+  amount: number | null
+  startOfDay: number
+  endOfDay: number
+}
+
 const isAdmin = computed(() => authService.isAdmin())
 
 // Mapping section
@@ -131,6 +166,7 @@ const sessions = ref<StoreSession[]>([])
 const selectedSessionId = ref('')
 const loadingAudit = ref(false)
 const auditRows = ref<AuditRow[]>([])
+const cashAuditRows = ref<CashAuditRow[]>([])
 
 function sessionLabel(s: StoreSession): string {
   const start = formatDateTime(s.opened_at)
@@ -182,8 +218,19 @@ async function onSessionChange() {
 
     if (orders.length === 0) {
       auditRows.value = []
+      cashAuditRows.value = []
       return
     }
+
+    const cashTotal = orders.filter(o => o.payment_method === 'cash').reduce((s, o) => s + (o.total_amount ?? 0), 0)
+    const gcashTotal = orders.filter(o => o.payment_method === 'gcash').reduce((s, o) => s + (o.total_amount ?? 0), 0)
+    const prev = cashAuditRows.value
+    const prevByName = Object.fromEntries(prev.map(r => [r.name, r]))
+    cashAuditRows.value = [
+      { name: 'Cash', amount: cashTotal, startOfDay: prevByName['Cash']?.startOfDay ?? 0, endOfDay: prevByName['Cash']?.endOfDay ?? 0 },
+      { name: 'GCash', amount: gcashTotal, startOfDay: prevByName['GCash']?.startOfDay ?? 0, endOfDay: prevByName['GCash']?.endOfDay ?? 0 },
+      { name: 'Expenses', amount: null, startOfDay: prevByName['Expenses']?.startOfDay ?? 0, endOfDay: prevByName['Expenses']?.endOfDay ?? 0 },
+    ]
 
     const orderIds = orders.map(o => o.id)
     const [items, mappings] = await Promise.all([
@@ -216,8 +263,29 @@ async function onSessionChange() {
   }
 }
 
+function cashDifference(row: CashAuditRow): number {
+  if (row.amount === null) return row.endOfDay - row.startOfDay
+  return row.startOfDay - row.amount - row.endOfDay
+}
+
+function cashDifferenceLabel(diff: number): string {
+  if (diff < 0) return 'Short ₱' + Math.abs(diff).toFixed(2)
+  if (diff === 0) return 'Balanced'
+  return 'Over ₱' + diff.toFixed(2)
+}
+
 function difference(row: AuditRow): number {
   return row.yesterdayEod - row.quantity + row.addOns - row.todayEod
+}
+
+function differenceLabel(diff: number): string {
+  if (diff < 0) {
+    return "Sobra " + Math.abs(diff);
+  } else if (diff == 0) {
+    return "Balanced";
+  } else {
+    return "Missing " + diff;
+  } 
 }
 
 onMounted(async () => {
