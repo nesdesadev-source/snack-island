@@ -145,7 +145,7 @@ interface AuditRow {
 
 interface CashAuditRow {
   name: string
-  amount: number | null
+  amount: number
   startOfDay: number
   endOfDay: number
 }
@@ -229,7 +229,7 @@ async function onSessionChange() {
     cashAuditRows.value = [
       { name: 'Cash', amount: cashTotal, startOfDay: prevByName['Cash']?.startOfDay ?? 0, endOfDay: prevByName['Cash']?.endOfDay ?? 0 },
       { name: 'GCash', amount: gcashTotal, startOfDay: prevByName['GCash']?.startOfDay ?? 0, endOfDay: prevByName['GCash']?.endOfDay ?? 0 },
-      { name: 'Expenses', amount: null, startOfDay: prevByName['Expenses']?.startOfDay ?? 0, endOfDay: prevByName['Expenses']?.endOfDay ?? 0 },
+      { name: 'Expenses', amount: 0, startOfDay: prevByName['Expenses']?.startOfDay ?? 0, endOfDay: prevByName['Expenses']?.endOfDay ?? 0 },
     ]
 
     const orderIds = orders.map(o => o.id)
@@ -264,7 +264,7 @@ async function onSessionChange() {
 }
 
 function cashDifference(row: CashAuditRow): number {
-  if (row.amount === null) return row.endOfDay - row.startOfDay
+  if (row.name !== 'Expenses') return row.endOfDay - (row.startOfDay + row.amount);
   return row.startOfDay - row.amount - row.endOfDay
 }
 
