@@ -122,6 +122,13 @@
           </tbody>
         </table>
       </div>
+
+      <div v-if="selectedSessionId && (auditRows.length > 0 || cashAuditRows.length > 0)" class="save-row">
+        <button class="btn-save" :disabled="saving" @click="saveAudit">
+          {{ saving ? 'Saving…' : 'Save Audit' }}
+        </button>
+        <span v-if="saveMessage" class="save-message">{{ saveMessage }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -133,6 +140,7 @@ import { StoreSessionService } from '../services/storeSessionService'
 import { OrderService } from '../services/orderService'
 import { menuItemService } from '../services/menuItemService'
 import { AuditService, AUDIT_INGREDIENTS } from '../services/auditService'
+import { expenseService } from '../services/expenseService'
 import type { StoreSession, MenuItem, AuditIngredientMapping } from '../models'
 
 interface AuditRow {
@@ -167,6 +175,8 @@ const selectedSessionId = ref('')
 const loadingAudit = ref(false)
 const auditRows = ref<AuditRow[]>([])
 const cashAuditRows = ref<CashAuditRow[]>([])
+const saving = ref(false)
+const saveMessage = ref('')
 
 function sessionLabel(s: StoreSession): string {
   const start = formatDateTime(s.opened_at)
@@ -222,6 +232,7 @@ async function onSessionChange() {
       return
     }
 
+
     const cashTotal = orders.filter(o => o.payment_method === 'cash').reduce((s, o) => s + (o.total_amount ?? 0), 0)
     const gcashTotal = orders.filter(o => o.payment_method === 'gcash').reduce((s, o) => s + (o.total_amount ?? 0), 0)
     const prev = cashAuditRows.value
@@ -249,7 +260,7 @@ async function onSessionChange() {
       }
     }
 
-    auditRows.value = Object.entries(ingredientQty)
+    const baseIngredientRows = Object.entries(ingredientQty)
       .sort(([a], [b]) => AUDIT_INGREDIENTS.indexOf(a as any) - AUDIT_INGREDIENTS.indexOf(b as any))
       .map(([ingredient, quantity]) => ({
         ingredient,
@@ -258,8 +269,64 @@ async function onSessionChange() {
         yesterdayEod: 0,
         todayEod: 0
       }))
+
+    const [cashSnap, ingSnap] = await Promise.all([
+      AuditService.getCashSnapshot(selectedSessionId.value),
+      AuditService.getIngredientSnapshot(selectedSessionId.value)
+    ])
+
+    const cashSnapMap = Object.fromEntries(cashSnap.map(r => [r.name, r]))
+    cashAuditRows.value = cashAuditRows.value.map(row => {
+      const snap = cashSnapMap[row.name]
+      if (!snap) return row
+      return {
+        ...row,
+        startOfDay: snap.start_of_day,
+        endOfDay: snap.end_of_day,
+        amount: row.name === 'Expenses' && snap.expense_amount !== null ? snap.expense_amount : row.amount
+      }
+    })
+
+    const ingSnapMap = Object.fromEntries(ingSnap.map(r => [r.ingredient, r]))
+    auditRows.value = baseIngredientRows.map(row => {
+      const snap = ingSnapMap[row.ingredient]
+      if (!snap) return row
+      return { ...row, addOns: snap.add_ons, yesterdayEod: snap.yesterday_eod, todayEod: snap.today_eod }
+    })
   } finally {
     loadingAudit.value = false
+  }
+}
+
+async function saveAudit() {
+  if (!selectedSessionId.value) return
+  saving.value = true
+  saveMessage.value = ''
+  try {
+    await Promise.all([
+      AuditService.saveCashSnapshot(selectedSessionId.value, cashAuditRows.value),
+      AuditService.saveIngredientSnapshot(selectedSessionId.value, auditRows.value)
+    ])
+
+    const expensesRow = cashAuditRows.value.find(r => r.name === 'Expenses')
+    if (expensesRow && expensesRow.amount > 0) {
+      const session = sessions.value.find(s => s.id === selectedSessionId.value)
+      const date = session ? session.opened_at.slice(0, 10) : new Date().toISOString().slice(0, 10)
+      await expenseService.addExpense({
+        date,
+        category: 'Ingredients',
+        description: "Today's expense",
+        amount: expensesRow.amount,
+        reimburse_status: 0
+      })
+    }
+
+    saveMessage.value = 'Saved!'
+    setTimeout(() => { saveMessage.value = '' }, 3000)
+  } catch (e) {
+    saveMessage.value = 'Save failed. Please try again.'
+  } finally {
+    saving.value = false
   }
 }
 
@@ -564,5 +631,38 @@ onMounted(async () => {
 .diff-cell {
   font-weight: 600;
   text-align: center;
+}
+
+.save-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px 24px;
+}
+
+.btn-save {
+  padding: 9px 22px;
+  background: #0e3b2e;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-save:hover:not(:disabled) {
+  background: #114e43;
+}
+
+.btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.save-message {
+  font-size: 14px;
+  color: #059669;
+  font-weight: 500;
 }
 </style>
