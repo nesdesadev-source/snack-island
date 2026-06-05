@@ -357,6 +357,10 @@ async function saveAudit() {
     const auditDate = session ? session.opened_at.slice(0, 10) : new Date().toISOString().slice(0, 10)
 
     const expensesRow = cashAuditRows.value.find(r => r.name === 'Expenses')
+    const existingExpenses = await expenseService.getByDateAndDescriptions(auditDate, ["Today's expense"], 'Ingredients')
+    for (const e of existingExpenses) {
+      await expenseService.deleteExpense(e.id)
+    }
     if (expensesRow && expensesRow.amount > 0) {
       await expenseService.addExpense({
         date: auditDate,

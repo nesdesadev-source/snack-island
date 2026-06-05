@@ -88,15 +88,16 @@ export const expenseService = {
   // ============================
   // READ BY DATE + DESCRIPTIONS
   // ============================
-  async getByDateAndDescriptions(date: string, descriptions: string[]): Promise<Expense[]> {
-    const { data, error } = await supabase
+  async getByDateAndDescriptions(date: string, descriptions: string[], category?: string): Promise<Expense[]> {
+    let query = supabase
       .from('expenses')
       .select('*')
       .eq('expense_date', date)
-      .eq('category', 'Labor')
+      .eq('category', category ?? 'Labor')
       .in('description', descriptions)
       .order('created_at', { ascending: false })
 
+    const { data, error } = await query
     if (error) throw error
     return data as Expense[]
   },
