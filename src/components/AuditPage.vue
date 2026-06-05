@@ -123,6 +123,23 @@
         </table>
       </div>
 
+      <!-- Salary Tracking -->
+      <div v-if="cashAuditRows.length > 0" class="salary-section">
+        <h3 class="salary-title">Salary</h3>
+        <div class="salary-row">
+          <span class="salary-label">Den</span>
+          <input v-model.number="salaries.den" type="number" min="0" class="count-input" />
+        </div>
+        <div class="salary-row">
+          <span class="salary-label">Shai</span>
+          <input v-model.number="salaries.shai" type="number" min="0" class="count-input" />
+        </div>
+        <div class="salary-row">
+          <span class="salary-label">MJ</span>
+          <input v-model.number="salaries.mj" type="number" min="0" class="count-input" />
+        </div>
+      </div>
+
       <div v-if="selectedSessionId && (auditRows.length > 0 || cashAuditRows.length > 0)" class="save-row">
         <button class="btn-save" :disabled="saving" @click="saveAudit">
           {{ saving ? 'Saving…' : 'Save Audit' }}
@@ -177,6 +194,7 @@ const auditRows = ref<AuditRow[]>([])
 const cashAuditRows = ref<CashAuditRow[]>([])
 const saving = ref(false)
 const saveMessage = ref('')
+const salaries = ref({ den: null as number | null, shai: null as number | null, mj: null as number | null })
 
 function sessionLabel(s: StoreSession): string {
   const start = formatDateTime(s.opened_at)
@@ -308,17 +326,34 @@ async function saveAudit() {
       AuditService.saveIngredientSnapshot(selectedSessionId.value, auditRows.value)
     ])
 
+    const session = sessions.value.find(s => s.id === selectedSessionId.value)
+    const auditDate = session ? session.opened_at.slice(0, 10) : new Date().toISOString().slice(0, 10)
+
     const expensesRow = cashAuditRows.value.find(r => r.name === 'Expenses')
     if (expensesRow && expensesRow.amount > 0) {
-      const session = sessions.value.find(s => s.id === selectedSessionId.value)
-      const date = session ? session.opened_at.slice(0, 10) : new Date().toISOString().slice(0, 10)
       await expenseService.addExpense({
-        date,
+        date: auditDate,
         category: 'Ingredients',
         description: "Today's expense",
         amount: expensesRow.amount,
         reimburse_status: 0
       })
+    }
+    const salaryEntries = [
+      { label: 'Den Salary', amount: salaries.value.den },
+      { label: 'Shai Salary', amount: salaries.value.shai },
+      { label: 'MJ Salary', amount: salaries.value.mj },
+    ]
+    for (const entry of salaryEntries) {
+      if (entry.amount) {
+        await expenseService.addExpense({
+          date: auditDate,
+          category: 'Labor',
+          description: entry.label,
+          amount: entry.amount,
+          reimburse_status: 0,
+        })
+      }
     }
 
     saveMessage.value = 'Saved!'
@@ -631,6 +666,31 @@ onMounted(async () => {
 .diff-cell {
   font-weight: 600;
   text-align: center;
+}
+
+.salary-section {
+  padding: 16px 24px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.salary-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 12px;
+}
+
+.salary-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.salary-label {
+  font-size: 14px;
+  color: #374151;
+  min-width: 100px;
 }
 
 .save-row {
