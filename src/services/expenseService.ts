@@ -86,6 +86,22 @@ export const expenseService = {
   },
 
   // ============================
+  // READ BY DATE + DESCRIPTIONS
+  // ============================
+  async getByDateAndDescriptions(date: string, descriptions: string[]): Promise<Expense[]> {
+    const { data, error } = await supabase
+      .from('expenses')
+      .select('*')
+      .eq('expense_date', date)
+      .eq('category', 'Labor')
+      .in('description', descriptions)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data as Expense[]
+  },
+
+  // ============================
   // DELETE
   // ============================
   async deleteExpense(id: string) {

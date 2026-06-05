@@ -126,18 +126,13 @@
       <!-- Salary Tracking -->
       <div v-if="cashAuditRows.length > 0" class="salary-section">
         <h3 class="salary-title">Salary</h3>
-        <div class="salary-row">
-          <span class="salary-label">Den</span>
-          <input v-model.number="salaries.den" type="number" min="0" class="count-input" />
+        <p class="salary-note">Type how much each person was paid this session. Hit <strong>Save Audit</strong> and it will be recorded automatically. Leave a box empty if someone wasn't paid.</p>
+        <div v-for="key in (['den', 'shai', 'mj'] as const)" :key="key" class="salary-row">
+          <span class="salary-label">{{ SALARY_LABELS[key] }}</span>
+          <input v-model.number="salaries[key].amount" type="number" min="0" class="count-input" />
+          <span v-if="salaries[key].hasMultiple" class="salary-warning" :title="`This person has ${salaries[key].ids.length} pay records for today. Showing the most recent one.`">{{ salaries[key].ids.length }} entries ⚠︎</span>
         </div>
-        <div class="salary-row">
-          <span class="salary-label">Shai</span>
-          <input v-model.number="salaries.shai" type="number" min="0" class="count-input" />
-        </div>
-        <div class="salary-row">
-          <span class="salary-label">MJ</span>
-          <input v-model.number="salaries.mj" type="number" min="0" class="count-input" />
-        </div>
+        <p class="salary-hint">Already saved a salary today? It'll show up here automatically. If you clear a box and save, that person's pay record for this session will be removed.</p>
       </div>
 
       <div v-if="selectedSessionId && (auditRows.length > 0 || cashAuditRows.length > 0)" class="save-row">
@@ -194,7 +189,21 @@ const auditRows = ref<AuditRow[]>([])
 const cashAuditRows = ref<CashAuditRow[]>([])
 const saving = ref(false)
 const saveMessage = ref('')
-const salaries = ref({ den: null as number | null, shai: null as number | null, mj: null as number | null })
+interface SalaryEntry {
+  amount: number | null
+  ids: string[]
+  hasMultiple: boolean
+}
+const salaries = ref<Record<'den' | 'shai' | 'mj', SalaryEntry>>({
+  den: { amount: null, ids: [], hasMultiple: false },
+  shai: { amount: null, ids: [], hasMultiple: false },
+  mj: { amount: null, ids: [], hasMultiple: false },
+})
+const SALARY_LABELS: Record<'den' | 'shai' | 'mj', string> = {
+  den: 'Den Salary',
+  shai: 'Shai Salary',
+  mj: 'MJ Salary',
+}
 
 function sessionLabel(s: StoreSession): string {
   const start = formatDateTime(s.opened_at)
@@ -311,6 +320,24 @@ async function onSessionChange() {
       if (!snap) return row
       return { ...row, addOns: snap.add_ons, yesterdayEod: snap.yesterday_eod, todayEod: snap.today_eod }
     })
+
+    // Load salary expenses for this session's date
+    const sessionDate = session.opened_at.slice(0, 10)
+    const salaryLabels = Object.values(SALARY_LABELS)
+    const salaryExpenses = await expenseService.getByDateAndDescriptions(sessionDate, salaryLabels)
+    for (const key of (['den', 'shai', 'mj'] as const)) {
+      const label = SALARY_LABELS[key]
+      const matching = salaryExpenses.filter(e => e.description?.toLowerCase() === label.toLowerCase())
+      if (matching.length === 0) {
+        salaries.value[key] = { amount: null, ids: [], hasMultiple: false }
+      } else {
+        salaries.value[key] = {
+          amount: matching[0]?.amount ?? null,
+          ids: matching.map(e => e.id),
+          hasMultiple: matching.length > 1,
+        }
+      }
+    }
   } finally {
     loadingAudit.value = false
   }
@@ -339,17 +366,20 @@ async function saveAudit() {
         reimburse_status: 0
       })
     }
-    const salaryEntries = [
-      { label: 'Den Salary', amount: salaries.value.den },
-      { label: 'Shai Salary', amount: salaries.value.shai },
-      { label: 'MJ Salary', amount: salaries.value.mj },
-    ]
-    for (const entry of salaryEntries) {
-      if (entry.amount) {
+    for (const key of (['den', 'shai', 'mj'] as const)) {
+      const entry = salaries.value[key]
+      const label = SALARY_LABELS[key]
+      if (!entry.amount) {
+        // Field cleared — delete all existing records for this person/date
+        for (const id of entry.ids) {
+          await expenseService.deleteExpense(id)
+        }
+        salaries.value[key].ids = []
+      } else {
         await expenseService.addExpense({
           date: auditDate,
           category: 'Labor',
-          description: entry.label,
+          description: label,
           amount: entry.amount,
           reimburse_status: 0,
         })
@@ -687,10 +717,30 @@ onMounted(async () => {
   margin-bottom: 10px;
 }
 
+.salary-note {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+
+.salary-hint {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 10px 0 0;
+  line-height: 1.5;
+}
+
 .salary-label {
   font-size: 14px;
   color: #374151;
   min-width: 100px;
+}
+
+.salary-warning {
+  font-size: 12px;
+  color: #d97706;
+  font-weight: 500;
 }
 
 .save-row {
