@@ -31,6 +31,9 @@
         <div v-if="state === 'ready'" class="voucher-footer">
           <button class="voucher-btn voucher-btn-ghost" @click="generate">Make another</button>
           <button v-if="canShare" class="voucher-btn voucher-btn-secondary" @click="shareImage">Share</button>
+          <button v-if="canCopyImage" class="voucher-btn voucher-btn-secondary" @click="copyImage">
+            {{ imageCopyLabel }}
+          </button>
           <button class="voucher-btn voucher-btn-primary" @click="downloadImage">Download image</button>
         </div>
       </div>
@@ -56,6 +59,9 @@ const imageBlob = ref<Blob | null>(null)
 const imageUrl = ref<string | null>(null)
 const copied = ref(false)
 const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+const canCopyImage =
+  typeof ClipboardItem !== 'undefined' && typeof navigator !== 'undefined' && typeof navigator.clipboard?.write === 'function'
+const imageCopyLabel = ref('Copy image')
 
 function clearImage() {
   if (imageUrl.value) URL.revokeObjectURL(imageUrl.value)
@@ -103,6 +109,18 @@ async function shareImage() {
   } catch {
     // User closed the share sheet
   }
+}
+
+async function copyImage() {
+  if (!imageBlob.value) return
+  try {
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': imageBlob.value })])
+    imageCopyLabel.value = 'Image copied'
+  } catch (error) {
+    console.error('Error copying voucher image:', error)
+    imageCopyLabel.value = "Couldn't copy"
+  }
+  setTimeout(() => { imageCopyLabel.value = 'Copy image' }, 2000)
 }
 
 async function copyCode() {
