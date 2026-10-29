@@ -1,6 +1,7 @@
 import { supabase } from '../supabase'
 import type { Order, OrderItem, CreateOrderInput, CreateOrderItemInput, OrderStatus } from '../models'
 import { deductInventoryForOrder, restoreInventoryForOrder, checkInventoryAvailability } from '../modules/orders/inventoryDeduction'
+import { voucherService } from './voucherService'
 
 export class OrderService {
   /**
@@ -189,7 +190,16 @@ export class OrderService {
       // Note: We don't throw here to avoid breaking the order status update
       // The inventory operation failure should be logged and handled separately
     }
-    
+
+    if (status === 'cancelled') {
+      // Voucher codes on a cancelled order can be used again
+      try {
+        await voucherService.releaseVouchersForOrder(id)
+      } catch (error) {
+        console.error(`Error releasing vouchers for cancelled order ${id}:`, error)
+      }
+    }
+
     return updatedOrder
   }
 
@@ -197,6 +207,13 @@ export class OrderService {
    * Delete an order
    */
   static async deleteOrder(id: string): Promise<void> {
+    // Free any voucher codes first so they can be used again
+    try {
+      await voucherService.releaseVouchersForOrder(id)
+    } catch (error) {
+      console.error(`Error releasing vouchers for deleted order ${id}:`, error)
+    }
+
     const { error } = await supabase.rpc('delete_order', {
       p_id: id
     })

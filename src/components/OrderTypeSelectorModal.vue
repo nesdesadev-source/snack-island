@@ -12,7 +12,7 @@
             <button class="ots-btn" @click="emit('chosen', 'take_out')">
               <span class="ots-btn-icon">🥡</span>
               <span class="ots-btn-label">Take Out</span>
-              <span class="ots-btn-note">+₱10 per box</span>
+              <span v-if="!hideBoxNote" class="ots-btn-note">+₱10 per box</span>
             </button>
           </div>
         </div>
@@ -23,6 +23,8 @@
 
 <script setup lang="ts">
 import type { OrderFulfillment } from '../models'
+
+withDefaults(defineProps<{ hideBoxNote?: boolean }>(), { hideBoxNote: false })
 
 const emit = defineEmits<{
   chosen: [fulfillment: OrderFulfillment]

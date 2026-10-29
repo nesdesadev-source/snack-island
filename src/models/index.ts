@@ -85,3 +85,6 @@ export type { StoreSession } from './StoreSession';
 // AuditIngredientMapping
 export type { AuditIngredientMapping } from './AuditIngredientMapping';
 
+
+// Voucher
+export type { Voucher, VoucherStatus, VoucherState } from './Voucher';

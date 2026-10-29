@@ -47,6 +47,7 @@
           </div>
         </div>
       </div>
+      <button class="voucher-code-btn" @click="showVoucherModal = true">+ Voucher code</button>
     </div>
     
     <!-- Loading State -->
@@ -182,6 +183,15 @@
           :low-stock-items="dashboardData.lowStockItems"
           @view-all="goToInventory"
         />
+
+        <VouchersCard
+          :vouchers="vouchers"
+          :period-start="voucherPeriodStart"
+          :period-end="voucherPeriodEnd"
+          :burger-cost="voucherBurgerCost"
+          :voiding-id="voidingVoucherId"
+          @void="handleVoidVoucher"
+        />
         
         <SalesByDayOfWeekChartCard
           :has-order-data="dashboardData.totalOrders > 0"
@@ -222,6 +232,13 @@
     @close="closePaymentMethodsModal"
     @save="handleSavePaymentMethod"
   />
+
+  <VoucherCodeModal
+    v-if="showVoucherModal"
+    :burger-name="voucherBurgerName"
+    @created="handleVoucherCreated"
+    @close="showVoucherModal = false"
+  />
 </template>
 
 <script setup lang="ts">
@@ -256,6 +273,11 @@ import RecentActivityCard from './dashboard/RecentActivityCard.vue'
 import TopSellingItemsModal from './dashboard/TopSellingItemsModal.vue'
 import TopRevenueItemsModal from './dashboard/TopRevenueItemsModal.vue'
 import PaymentMethodsModal from './dashboard/PaymentMethodsModal.vue'
+import VoucherCodeModal from './dashboard/VoucherCodeModal.vue'
+import VouchersCard from './dashboard/VouchersCard.vue'
+import { voucherService } from '../services/voucherService'
+import { VOUCHER_MENU_ITEM_ID } from '../modules/vouchers/voucherUtils'
+import type { Voucher } from '../models'
 
 // Router
 const router = useRouter()
@@ -1735,6 +1757,35 @@ function toggleChartLine(line: 'sales' | 'expenses' | 'profit' | 'breakeven') {
   chartVisibility.value[line] = !chartVisibility.value[line]
 }
 
+// Vouchers
+const vouchers = ref<Voucher[]>([])
+const showVoucherModal = ref(false)
+const voidingVoucherId = ref<string | null>(null)
+const voucherPeriodStart = computed(() => getPeriodStartDate(new Date(), selectedPeriod.value, periodType.value))
+const voucherPeriodEnd = computed(() => getPeriodEndDate(new Date(), selectedPeriod.value, periodType.value))
+const voucherBurgerName = computed(
+  () => menuItems.value.find(m => m.id === VOUCHER_MENU_ITEM_ID)?.name || 'Burger'
+)
+const voucherBurgerCost = computed(() => computeCostPerOrderForMenuItem(recipeMaps.value, VOUCHER_MENU_ITEM_ID))
+
+function handleVoucherCreated(voucher: Voucher) {
+  vouchers.value = [voucher, ...vouchers.value]
+}
+
+async function handleVoidVoucher(voucher: Voucher) {
+  if (!confirm(`Void ${voucher.code}? The customer won't be able to use it.`)) return
+  voidingVoucherId.value = voucher.id
+  try {
+    const updated = await voucherService.voidVoucher(voucher.id)
+    vouchers.value = vouchers.value.map(v => (v.id === updated.id ? updated : v))
+  } catch (err) {
+    console.error('Error voiding voucher:', err)
+    alert('Could not void this voucher. It may have just been used.')
+  } finally {
+    voidingVoucherId.value = null
+  }
+}
+
 // Data loading
 async function loadDashboardData() {
   try {
@@ -1742,15 +1793,22 @@ async function loadDashboardData() {
     error.value = null
     
     // Load all data in parallel
-    const [ordersData, expensesData, inventoryData, menuItemsData, recipeMapsData] = await Promise.all([
+    const [ordersData, expensesData, inventoryData, menuItemsData, recipeMapsData, vouchersData] = await Promise.all([
       OrderService.getOrders(),
       expenseService.getAll(),
       inventoryService.getAll(),
       menuItemService.getMenuItems(),
-      recipeMapService.getRecipeMaps()
+      recipeMapService.getRecipeMaps(),
+      voucherService.getAll().catch(err => {
+        console.error('Error loading vouchers:', err)
+        return [] as Voucher[]
+      })
     ])
     
-    orders.value = ordersData
+    vouchers.value = vouchersData
+    // Free voucher orders are tracked in the Vouchers card, not in sales, order counts or top items
+    const voucherOrderIds = new Set(vouchersData.map(v => v.order_id).filter(Boolean))
+    orders.value = ordersData.filter(o => !voucherOrderIds.has(o.id))
     expenses.value = expensesData
     inventory.value = inventoryData
     menuItems.value = menuItemsData
@@ -1797,6 +1855,23 @@ onMounted(async () => {
   color: #6c757d;
   font-size: 1.1rem;
   margin: 0.5rem 0 0 0;
+}
+
+.voucher-code-btn {
+  background: #0e3b2e;
+  color: #ffffff;
+  border: 1px solid #0e3b2e;
+  border-radius: 6px;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.voucher-code-btn:hover {
+  background: #114e43;
 }
 
 .period-controls {

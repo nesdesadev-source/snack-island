@@ -86,15 +86,26 @@
       <div class="card order-queue-card">
         <div class="card-header">
           <h2 class="card-title">Order Queue</h2>
-          <button
-            @click="openModal"
-            class="new-order-btn"
-            :class="{ 'new-order-btn-disabled': !activeSession }"
-            :disabled="!activeSession"
-            :title="!activeSession ? 'Start Day to create orders' : ''"
-          >
-            + New Order
-          </button>
+          <div class="new-order-actions">
+            <button
+              @click="openVoucherModal"
+              class="new-order-btn new-voucher-order-btn"
+              :class="{ 'new-order-btn-disabled': !activeSession }"
+              :disabled="!activeSession"
+              :title="!activeSession ? 'Start Day to create orders' : ''"
+            >
+              + New Voucher Order
+            </button>
+            <button
+              @click="openModal"
+              class="new-order-btn"
+              :class="{ 'new-order-btn-disabled': !activeSession }"
+              :disabled="!activeSession"
+              :title="!activeSession ? 'Start Day to create orders' : ''"
+            >
+              + New Order
+            </button>
+          </div>
         </div>
         <div class="card-body">
           <OrderQueue 
@@ -109,6 +120,7 @@
     <!-- Order Type Selector Modal -->
     <OrderTypeSelectorModal
       v-if="showFulfillmentModal"
+      :hide-box-note="isVoucherOrder"
       @chosen="handleFulfillmentChosen"
       @cancel="showFulfillmentModal = false"
     />
@@ -118,7 +130,7 @@
       <div v-if="showModal" class="modal-backdrop" @click="closeModal">
         <div class="modal-dialog" @click.stop>
           <div class="modal-header">
-            <h2 class="modal-title">New Order</h2>
+            <h2 class="modal-title">{{ isVoucherOrder ? 'New Voucher Order' : 'New Order' }}</h2>
             <button @click="closeModal" class="modal-close">
               <svg class="close-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -126,7 +138,13 @@
             </button>
           </div>
           <div class="modal-body">
-            <OrderForm :initial-fulfillment="orderFulfillment!" @order-submitted="handleOrderSubmitted" @close="closeModal" />
+            <VoucherOrderForm
+              v-if="isVoucherOrder"
+              :fulfillment="orderFulfillment!"
+              @order-submitted="handleOrderSubmitted"
+              @close="closeModal"
+            />
+            <OrderForm v-else :initial-fulfillment="orderFulfillment!" @order-submitted="handleOrderSubmitted" @close="closeModal" />
           </div>
         </div>
       </div>
@@ -176,6 +194,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import OrderForm from './OrderForm.vue'
+import VoucherOrderForm from './VoucherOrderForm.vue'
 import OrderTypeSelectorModal from './OrderTypeSelectorModal.vue'
 import OrderQueue from './OrderQueue.vue'
 import ProfitProgressCircle from './ProfitProgressCircle.vue'
@@ -281,11 +300,23 @@ const updateDateTime = () => {
   currentDateMobile.value = `${weekday}, ${month}/${day}/${year}`
 }
 
+const isVoucherOrder = ref(false)
+
 const openModal = () => {
   if (!activeSession.value) {
     showSessionClosedToast()
     return
   }
+  isVoucherOrder.value = false
+  showFulfillmentModal.value = true
+}
+
+const openVoucherModal = () => {
+  if (!activeSession.value) {
+    showSessionClosedToast()
+    return
+  }
+  isVoucherOrder.value = true
   showFulfillmentModal.value = true
 }
 
@@ -688,6 +719,24 @@ onUnmounted(() => {
 
 .closed-banner strong {
   font-weight: 700;
+}
+
+.new-order-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.new-order-btn.new-voucher-order-btn {
+  background: #ffffff;
+  color: #0e3b2e;
+  border-color: #0e3b2e;
+}
+
+.new-order-btn.new-voucher-order-btn:hover:not(:disabled),
+.new-order-btn.new-voucher-order-btn:disabled:hover {
+  background: #eef5f2;
+  border-color: #0e3b2e;
 }
 
 .new-order-btn-disabled {
@@ -1222,6 +1271,11 @@ onUnmounted(() => {
 
   .new-order-btn {
     width: 100%;
+  }
+
+  .new-order-actions {
+    width: 100%;
+    flex-direction: column;
   }
 
   .modal-backdrop {
