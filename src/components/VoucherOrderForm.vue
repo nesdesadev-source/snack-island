@@ -12,26 +12,37 @@
       <form class="vf-entry" @submit.prevent="addCode">
         <label class="vf-label" for="voucher-code-input">Voucher code</label>
         <div class="vf-entry-row">
-          <input
-            id="voucher-code-input"
-            ref="codeInput"
-            v-model="codeInputValue"
-            class="vf-input"
-            :class="{ 'vf-input-error': entryError }"
-            placeholder="SI-XXXXXX"
-            autocomplete="off"
-            autocapitalize="characters"
-            spellcheck="false"
-            :disabled="isChecking || !burger"
-            data-testid="voucher-code-input"
-            @input="entryError = ''"
-          />
-          <button type="submit" class="vf-btn vf-btn-primary" :disabled="!codeInputValue.trim() || isChecking || !burger">
+          <div class="vf-code-field" :class="{ 'vf-input-error': entryError }" @click="codeInput?.focus()">
+            <span class="vf-prefix" aria-hidden="true">{{ VOUCHER_CODE_PREFIX }}</span>
+            <!-- Number pad only; the code is added as soon as the 3rd digit is typed -->
+            <input
+              id="voucher-code-input"
+              ref="codeInput"
+              :value="codeDigits"
+              class="vf-input"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              :maxlength="VOUCHER_CODE_DIGITS"
+              placeholder="123"
+              autocomplete="off"
+              enterkeyhint="done"
+              :readonly="isChecking || !burger"
+              :aria-label="`Voucher code, 3 digits after ${VOUCHER_CODE_PREFIX}`"
+              data-testid="voucher-code-input"
+              @input="onDigitsInput"
+            />
+          </div>
+          <button
+            type="submit"
+            class="vf-btn vf-btn-primary"
+            :disabled="codeDigits.length !== VOUCHER_CODE_DIGITS || isChecking || !burger"
+          >
             {{ isChecking ? 'Checking…' : 'Add' }}
           </button>
         </div>
         <p v-if="entryError" class="vf-entry-error" role="alert" data-testid="voucher-error">{{ entryError }}</p>
-        <p v-else class="vf-hint">Each code adds 1 free {{ burger?.name || 'burger' }}.</p>
+        <p v-else class="vf-hint">Type the 3 numbers. Each code adds 1 free {{ burger?.name || 'burger' }}.</p>
       </form>
 
       <!-- Lines -->
@@ -72,7 +83,7 @@
 
     <!-- Customize the burger (flavors only, no upgrades) -->
     <Teleport to="body">
-      <div v-if="pendingCode && burger" class="vf-overlay" @click.self="pendingCode = null">
+      <div v-if="pendingCode && burger" class="vf-overlay" @click.self="cancelChoice">
         <div class="vf-dialog" role="dialog">
           <h3 class="vf-dialog-title">{{ burger.name }}</h3>
           <p class="vf-dialog-sub">Free with {{ pendingCode }}</p>
@@ -114,7 +125,7 @@
           </div>
 
           <div class="vf-dialog-actions">
-            <button class="vf-btn vf-btn-secondary" @click="pendingCode = null">Cancel</button>
+            <button class="vf-btn vf-btn-secondary" @click="cancelChoice">Cancel</button>
             <button
               class="vf-btn vf-btn-primary"
               :disabled="(burger.has_fries && !choice.fries_option) || (burger.has_drink && !choice.drink_option)"
@@ -135,7 +146,12 @@ import type { MenuItem, OrderFulfillment, FriesOption, DrinkOption } from '../mo
 import { menuItemService } from '../services/menuItemService'
 import { voucherService } from '../services/voucherService'
 import { OrderService } from '../services/orderService'
-import { VOUCHER_MENU_ITEM_ID } from '../modules/vouchers/voucherUtils'
+import {
+  VOUCHER_MENU_ITEM_ID,
+  VOUCHER_CODE_PREFIX,
+  VOUCHER_CODE_DIGITS,
+  sanitizeVoucherDigits,
+} from '../modules/vouchers/voucherUtils'
 import { createVoucherOrder, voucherLinesToOrderItems, type VoucherOrderLine } from '../modules/vouchers/voucherOrder'
 
 const props = defineProps<{ fulfillment: OrderFulfillment }>()
@@ -156,7 +172,7 @@ const drinkOptions: Array<{ value: DrinkOption; label: string }> = [
 const burger = ref<MenuItem | null>(null)
 const loadError = ref('')
 const codeInput = ref<HTMLInputElement | null>(null)
-const codeInputValue = ref('')
+const codeDigits = ref('')
 const entryError = ref('')
 const submitError = ref('')
 const isChecking = ref(false)
@@ -170,6 +186,15 @@ const choice = reactive<{ fries_option: FriesOption | null; is_spicy: boolean; d
   drink_option: null,
 })
 
+function onDigitsInput(event: Event) {
+  const input = event.target as HTMLInputElement
+  const digits = sanitizeVoucherDigits(input.value)
+  input.value = digits
+  codeDigits.value = digits
+  entryError.value = ''
+  if (digits.length === VOUCHER_CODE_DIGITS) addCode()
+}
+
 const hasOptions = (item: MenuItem) => Boolean(item.has_fries || item.has_spicy || item.has_drink)
 
 function pushLine(code: string) {
@@ -179,19 +204,21 @@ function pushLine(code: string) {
     is_spicy: choice.is_spicy || undefined,
     drink_option: choice.drink_option || undefined,
   })
-  codeInputValue.value = ''
+  codeDigits.value = ''
   nextTick(() => codeInput.value?.focus())
 }
 
 async function addCode() {
-  if (!burger.value || !codeInputValue.value.trim()) return
+  if (!burger.value || codeDigits.value.length !== VOUCHER_CODE_DIGITS || isChecking.value) return
   isChecking.value = true
   entryError.value = ''
   submitError.value = ''
   try {
-    const result = await voucherService.lookupForRedemption(codeInputValue.value, lines.value.map(l => l.code))
+    const result = await voucherService.lookupForRedemption(codeDigits.value, lines.value.map(l => l.code))
     if (!result.ok) {
       entryError.value = result.message
+      // Keep the digits visible but selected, so typing again replaces them
+      nextTick(() => codeInput.value?.select())
       return
     }
     choice.fries_option = null
@@ -208,6 +235,12 @@ async function addCode() {
   } finally {
     isChecking.value = false
   }
+}
+
+function cancelChoice() {
+  pendingCode.value = null
+  codeDigits.value = ''
+  nextTick(() => codeInput.value?.focus())
 }
 
 function confirmChoice() {
@@ -320,26 +353,59 @@ onMounted(async () => {
   gap: 0.5rem;
 }
 
-.vf-input {
-  flex: 1;
-  min-width: 0;
-  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  font-size: 1.25rem;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  padding: 0.625rem 0.75rem;
-  border: 1px solid #d2d2d7;
-  border-radius: 6px;
-  min-height: 44px;
+.vf-entry-row .vf-btn {
+  min-height: 56px;
 }
 
-.vf-input:focus {
+.vf-code-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  border: 1px solid #d2d2d7;
+  border-radius: 6px;
+  background: #ffffff;
+  min-height: 56px;
+  padding: 0 0.75rem;
+  cursor: text;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 1.75rem;
+  letter-spacing: 2px;
+}
+
+.vf-code-field:focus-within {
   outline: 2px solid #0e3b2e;
   outline-offset: -1px;
 }
 
+.vf-prefix {
+  color: #0e3b2e;
+  font-weight: 700;
+  user-select: none;
+}
+
+.vf-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  letter-spacing: inherit;
+  color: #1d1d1f;
+  padding: 0;
+}
+
+.vf-input::placeholder {
+  color: #c7c7cc;
+}
+
 .vf-input-error {
   border-color: #dc3545;
+}
+
+.vf-code-field.vf-input-error:focus-within {
+  outline-color: #dc3545;
 }
 
 .vf-entry-error {

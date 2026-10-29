@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest'
 import { buildVoucherImageText, voucherImageFileName } from '../../../src/modules/vouchers/voucherImage'
 
 describe('buildVoucherImageText', () => {
-  const text = buildVoucherImageText({ code: 'SI-ABC234', expires_at: '2026-11-02T15:59:59.000Z' }, 'Classic Burger')
+  const text = buildVoucherImageText({ code: 'ISB-231', expires_at: '2026-11-02T15:59:59.000Z' }, 'Classic Burger')
 
   it('shows the code and the burger', () => {
-    expect(text.code).toBe('SI-ABC234')
+    expect(text.code).toBe('ISB-231')
     expect(text.headline).toMatch(/free/i)
     expect(text.reward).toContain('Classic Burger')
   })
@@ -29,6 +29,6 @@ describe('buildVoucherImageText', () => {
 
 describe('voucherImageFileName', () => {
   it('names the file after the code', () => {
-    expect(voucherImageFileName('SI-ABC234')).toBe('snack-island-voucher-SI-ABC234.png')
+    expect(voucherImageFileName('ISB-231')).toBe('island-snack-bar-voucher-ISB-231.png')
   })
 })

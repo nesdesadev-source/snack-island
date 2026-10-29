@@ -45,7 +45,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import type { Voucher } from '../../models'
 import { voucherService } from '../../services/voucherService'
-import { formatVoucherDate } from '../../modules/vouchers/voucherUtils'
+import { formatVoucherDate, VOUCHER_POOL_EXHAUSTED_MESSAGE } from '../../modules/vouchers/voucherUtils'
 import { renderVoucherImage, voucherImageFileName } from '../../modules/vouchers/voucherImage'
 import logoUrl from '../../assets/logo.png'
 
@@ -84,7 +84,9 @@ async function generate() {
     console.error('Error generating voucher:', error)
     errorMessage.value = voucher.value
       ? 'The code was saved, but the image could not be drawn. Try again.'
-      : 'Could not create a voucher. Check your connection and try again.'
+      : error instanceof Error && error.message === VOUCHER_POOL_EXHAUSTED_MESSAGE
+        ? error.message
+        : 'Could not create a voucher. Check your connection and try again.'
     state.value = 'error'
   }
 }
@@ -102,9 +104,9 @@ async function shareImage() {
   const file = new File([imageBlob.value], voucherImageFileName(voucher.value.code), { type: 'image/png' })
   try {
     if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'Snack Island voucher' })
+      await navigator.share({ files: [file], title: 'Island Snack Bar voucher' })
     } else {
-      await navigator.share({ title: 'Snack Island voucher', text: `Your free burger code: ${voucher.value.code}` })
+      await navigator.share({ title: 'Island Snack Bar voucher', text: `Your free burger code: ${voucher.value.code}` })
     }
   } catch {
     // User closed the share sheet

@@ -15,11 +15,11 @@ export function buildVoucherImageText(voucher: Pick<Voucher, 'code' | 'expires_a
   return {
     headline: 'FREE BURGER',
     reward: `1 ${burgerName}, on us!`,
-    thanks: 'Thanks for tagging Snack Island on your IG story',
+    thanks: 'Thanks for tagging Island Snack Bar on your IG story',
     code: voucher.code,
     validUntil: `Valid until ${formatVoucherDate(voucher.expires_at)}`,
     steps: [
-      'Visit the Snack Island food cart.',
+      'Visit the Island Snack Bar food cart.',
       'Show this voucher code to our staff.',
       `Enjoy your free ${burgerName}!`,
     ],
@@ -35,7 +35,7 @@ export function buildVoucherImageText(voucher: Pick<Voucher, 'code' | 'expires_a
 }
 
 export function voucherImageFileName(code: string): string {
-  return `snack-island-voucher-${code}.png`
+  return `island-snack-bar-voucher-${code}.png`
 }
 
 const W = 1080
@@ -123,7 +123,7 @@ export async function renderVoucherImage(
 
   ctx.fillStyle = COLORS.green
   ctx.font = `800 40px ${FONT}`
-  ctx.fillText('SNACK ISLAND', W / 2, 340)
+  ctx.fillText('ISLAND SNACK BAR', W / 2, 340)
 
   ctx.fillStyle = COLORS.orange
   ctx.font = `900 108px ${FONT}`
@@ -199,7 +199,7 @@ export async function renderVoucherImage(
   ctx.fillStyle = COLORS.cream
   ctx.textAlign = 'center'
   ctx.font = `600 24px ${FONT}`
-  ctx.fillText('See you at Snack Island!', W / 2, H - 20)
+  ctx.fillText('See you at Island Snack Bar!', W / 2, H - 20)
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(blob => (blob ? resolve(blob) : reject(new Error('Could not create image'))), 'image/png')

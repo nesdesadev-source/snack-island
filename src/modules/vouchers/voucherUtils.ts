@@ -3,10 +3,9 @@ import type { Voucher, VoucherState } from '../../models'
 /** The burger every voucher is worth. */
 export const VOUCHER_MENU_ITEM_ID = '91941e73-43cf-4ef0-ab0f-d68736f455bf'
 export const VOUCHER_VALID_DAYS = 3
-export const VOUCHER_CODE_PREFIX = 'SI-'
-const CODE_LENGTH = 6
-// No 0/O, 1/I/L so codes are easy to read off a phone screen.
-const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+export const VOUCHER_CODE_PREFIX = 'ISB-'
+/** Codes are ISB- plus 3 digits (ISB-100 to ISB-999), so staff only type numbers. */
+export const VOUCHER_CODE_DIGITS = 3
 
 export type VoucherRejectReason = 'not_found' | 'redeemed' | 'expired' | 'void' | 'duplicate'
 
@@ -14,26 +13,16 @@ export type VoucherCheckResult =
   | { ok: true; voucher: Voucher }
   | { ok: false; reason: VoucherRejectReason; message: string }
 
-function secureRandom(): number {
-  const buf = new Uint32Array(1)
-  globalThis.crypto.getRandomValues(buf)
-  return (buf[0] ?? 0) / 2 ** 32
+/** What staff type into the number field: digits only, at most 3. */
+export function sanitizeVoucherDigits(input: string): string {
+  const withoutPrefix = (input || '').toUpperCase().replace(/^\s*ISB/, '')
+  return withoutPrefix.replace(/\D/g, '').slice(0, VOUCHER_CODE_DIGITS)
 }
 
-export function generateVoucherCode(random: () => number = secureRandom): string {
-  let body = ''
-  for (let i = 0; i < CODE_LENGTH; i++) {
-    body += CODE_ALPHABET[Math.floor(random() * CODE_ALPHABET.length)]
-  }
-  return VOUCHER_CODE_PREFIX + body
-}
-
-/** Accepts "si-abc234", "abc234", "SI ABC 234" etc. and returns "SI-ABC234". */
+/** Accepts "231", "isb-231", "ISB231" etc. and returns "ISB-231". */
 export function normalizeVoucherCode(input: string): string {
-  let raw = (input || '').toUpperCase().replace(/[^A-Z0-9]/g, '')
-  if (!raw) return ''
-  if (raw.startsWith('SI') && raw.length === CODE_LENGTH + 2) raw = raw.slice(2)
-  return VOUCHER_CODE_PREFIX + raw
+  const digits = sanitizeVoucherDigits(input)
+  return digits ? VOUCHER_CODE_PREFIX + digits : ''
 }
 
 /** Valid until 11:59 PM on the 3rd day after it was issued (local time). */
@@ -105,6 +94,11 @@ const DB_REASONS: Record<string, VoucherRejectReason> = {
   VOUCHER_VOID: 'void',
   VOUCHER_DUPLICATE: 'duplicate',
 }
+
+/** Shown when the database has no free 3-digit code left to hand out. */
+export const VOUCHER_POOL_EXHAUSTED_MESSAGE =
+  'All 900 voucher numbers are in use right now. Numbers free up 30 days after they were issued.'
+
 
 /** Turns an error raised by the redeem_vouchers function into a staff-friendly message. */
 export function voucherErrorFromDb(error: { message?: string } | null | undefined): string | null {

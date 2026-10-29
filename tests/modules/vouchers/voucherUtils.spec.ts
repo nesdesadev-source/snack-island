@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   VOUCHER_CODE_PREFIX,
-  generateVoucherCode,
+  VOUCHER_CODE_DIGITS,
+  sanitizeVoucherDigits,
   normalizeVoucherCode,
   computeVoucherExpiry,
   getVoucherState,
@@ -13,7 +14,7 @@ import type { Voucher } from '../../../src/models'
 
 const makeVoucher = (overrides: Partial<Voucher> = {}): Voucher => ({
   id: 'v1',
-  code: 'SI-ABC234',
+  code: 'ISB-231',
   menu_item_id: 'm1',
   status: 'unused',
   expires_at: '2026-11-02T15:59:59.000Z',
@@ -27,37 +28,32 @@ const makeVoucher = (overrides: Partial<Voucher> = {}): Voucher => ({
 
 const NOW = new Date('2026-10-31T00:00:00.000Z')
 
-describe('generateVoucherCode', () => {
-  it('makes an SI- code with 6 easy-to-read characters', () => {
-    const code = generateVoucherCode()
-    expect(code).toMatch(/^SI-[A-HJ-KM-NP-Z2-9]{6}$/)
-    expect(code.startsWith(VOUCHER_CODE_PREFIX)).toBe(true)
+describe('voucher code format', () => {
+  it('is ISB- followed by 3 digits', () => {
+    expect(VOUCHER_CODE_PREFIX).toBe('ISB-')
+    expect(VOUCHER_CODE_DIGITS).toBe(3)
+  })
+})
+
+describe('sanitizeVoucherDigits', () => {
+  it('keeps only digits, at most 3', () => {
+    expect(sanitizeVoucherDigits('2a3-1')).toBe('231')
+    expect(sanitizeVoucherDigits('23145')).toBe('231')
   })
 
-  it('never uses look-alike characters (0, O, 1, I, L)', () => {
-    for (let i = 0; i < 200; i++) {
-      expect(generateVoucherCode().slice(3)).not.toMatch(/[0O1IL]/)
-    }
-  })
-
-  it('uses the random source it is given', () => {
-    const code = generateVoucherCode(() => 0)
-    expect(code).toBe('SI-AAAAAA')
+  it('drops the prefix if staff paste a full code', () => {
+    expect(sanitizeVoucherDigits('ISB-231')).toBe('231')
   })
 })
 
 describe('normalizeVoucherCode', () => {
-  it('uppercases and trims', () => {
-    expect(normalizeVoucherCode('  si-abc234 ')).toBe('SI-ABC234')
+  it('adds the prefix to the 3 digits staff type', () => {
+    expect(normalizeVoucherCode('231')).toBe('ISB-231')
   })
 
-  it('adds the prefix when staff only type the 6 characters', () => {
-    expect(normalizeVoucherCode('abc234')).toBe('SI-ABC234')
-  })
-
-  it('ignores spaces and missing dash', () => {
-    expect(normalizeVoucherCode('si abc 234')).toBe('SI-ABC234')
-    expect(normalizeVoucherCode('SIABC234')).toBe('SI-ABC234')
+  it('accepts a full code in any case, with or without the dash', () => {
+    expect(normalizeVoucherCode('  isb-231 ')).toBe('ISB-231')
+    expect(normalizeVoucherCode('ISB231')).toBe('ISB-231')
   })
 
   it('returns empty string for empty input', () => {
@@ -98,12 +94,12 @@ describe('getVoucherState', () => {
 
 describe('checkVoucherForRedemption', () => {
   it('accepts a valid unused code', () => {
-    const result = checkVoucherForRedemption(makeVoucher(), 'SI-ABC234', [], NOW)
+    const result = checkVoucherForRedemption(makeVoucher(), 'ISB-231', [], NOW)
     expect(result.ok).toBe(true)
   })
 
   it('says the code does not exist when it is not found', () => {
-    const result = checkVoucherForRedemption(null, 'SI-ZZZZZZ', [], NOW)
+    const result = checkVoucherForRedemption(null, 'ISB-999', [], NOW)
     expect(result).toMatchObject({ ok: false, reason: 'not_found' })
     if (!result.ok) expect(result.message).toMatch(/doesn't exist/i)
   })
@@ -116,18 +112,18 @@ describe('checkVoucherForRedemption', () => {
   })
 
   it('says the code expired', () => {
-    const result = checkVoucherForRedemption(makeVoucher(), 'SI-ABC234', [], new Date('2026-11-05T00:00:00Z'))
+    const result = checkVoucherForRedemption(makeVoucher(), 'ISB-231', [], new Date('2026-11-05T00:00:00Z'))
     expect(result).toMatchObject({ ok: false, reason: 'expired' })
     if (!result.ok) expect(result.message).toMatch(/expired/i)
   })
 
   it('says the code was cancelled', () => {
-    const result = checkVoucherForRedemption(makeVoucher({ status: 'void' }), 'SI-ABC234', [], NOW)
+    const result = checkVoucherForRedemption(makeVoucher({ status: 'void' }), 'ISB-231', [], NOW)
     expect(result).toMatchObject({ ok: false, reason: 'void' })
   })
 
   it('blocks the same code twice in one order', () => {
-    const result = checkVoucherForRedemption(makeVoucher(), 'SI-ABC234', ['SI-ABC234'], NOW)
+    const result = checkVoucherForRedemption(makeVoucher(), 'ISB-231', ['ISB-231'], NOW)
     expect(result).toMatchObject({ ok: false, reason: 'duplicate' })
     if (!result.ok) expect(result.message).toMatch(/already in this order/i)
   })
@@ -135,11 +131,11 @@ describe('checkVoucherForRedemption', () => {
 
 describe('voucherErrorFromDb', () => {
   it('turns a database reason into the matching message', () => {
-    expect(voucherErrorFromDb({ message: 'VOUCHER_REDEEMED:SI-ABC234' })).toMatch(/SI-ABC234 was already used/)
-    expect(voucherErrorFromDb({ message: 'VOUCHER_NOT_FOUND:SI-ABC234' })).toMatch(/doesn't exist/)
-    expect(voucherErrorFromDb({ message: 'VOUCHER_EXPIRED:SI-ABC234' })).toMatch(/expired/)
-    expect(voucherErrorFromDb({ message: 'VOUCHER_VOID:SI-ABC234' })).toMatch(/cancelled/)
-    expect(voucherErrorFromDb({ message: 'VOUCHER_DUPLICATE:SI-ABC234' })).toMatch(/already in this order/)
+    expect(voucherErrorFromDb({ message: 'VOUCHER_REDEEMED:ISB-231' })).toMatch(/ISB-231 was already used/)
+    expect(voucherErrorFromDb({ message: 'VOUCHER_NOT_FOUND:ISB-231' })).toMatch(/doesn't exist/)
+    expect(voucherErrorFromDb({ message: 'VOUCHER_EXPIRED:ISB-231' })).toMatch(/expired/)
+    expect(voucherErrorFromDb({ message: 'VOUCHER_VOID:ISB-231' })).toMatch(/cancelled/)
+    expect(voucherErrorFromDb({ message: 'VOUCHER_DUPLICATE:ISB-231' })).toMatch(/already in this order/)
   })
 
   it('returns null for unrelated errors', () => {

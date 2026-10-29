@@ -14,7 +14,7 @@ vi.mock('../../src/supabase', () => ({
 /** A chainable stand-in for supabase.from(...) that resolves to `result`. */
 function mockQuery(result: { data: unknown; error: unknown }) {
   const chain: Record<string, any> = {}
-  for (const m of ['select', 'insert', 'update', 'eq', 'order', 'gte', 'lte']) {
+  for (const m of ['select', 'insert', 'update', 'eq', 'order', 'limit', 'gte', 'lte']) {
     chain[m] = vi.fn(() => chain)
   }
   chain.single = vi.fn(() => Promise.resolve(result))
@@ -26,7 +26,7 @@ function mockQuery(result: { data: unknown; error: unknown }) {
 
 const voucher = (overrides: Partial<Voucher> = {}): Voucher => ({
   id: 'v1',
-  code: 'SI-ABC234',
+  code: 'ISB-231',
   menu_item_id: VOUCHER_MENU_ITEM_ID,
   status: 'unused',
   expires_at: new Date(Date.now() + 86_400_000).toISOString(),
@@ -44,54 +44,53 @@ describe('voucherService', () => {
   })
 
   describe('createVoucher', () => {
-    it('saves a new code for the voucher burger that expires in 3 days', async () => {
-      const q = mockQuery({ data: voucher(), error: null })
-      vi.mocked(supabase.from).mockReturnValue(q as any)
+    it('asks the database for a new code for the voucher burger that expires in 3 days', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValue({ data: voucher(), error: null } as any)
 
       const result = await voucherService.createVoucher()
 
-      expect(supabase.from).toHaveBeenCalledWith('vouchers')
-      const inserted = q.insert.mock.calls[0][0]
-      expect(inserted.code).toMatch(/^SI-[A-Z2-9]{6}$/)
-      expect(inserted.menu_item_id).toBe(VOUCHER_MENU_ITEM_ID)
-      const days = (new Date(inserted.expires_at).getTime() - Date.now()) / 86_400_000
+      const [fn, args] = vi.mocked(supabase.rpc).mock.calls[0] as [string, any]
+      expect(fn).toBe('create_voucher')
+      expect(args.p_menu_item_id).toBe(VOUCHER_MENU_ITEM_ID)
+      const days = (new Date(args.p_expires_at).getTime() - Date.now()) / 86_400_000
       expect(days).toBeGreaterThan(3)
       expect(days).toBeLessThanOrEqual(4)
-      expect(result.code).toBe('SI-ABC234')
+      expect(result.code).toBe('ISB-231')
     })
 
-    it('retries with a new code if the code is already taken', async () => {
-      const taken = mockQuery({ data: null, error: { code: '23505', message: 'duplicate key' } })
-      const ok = mockQuery({ data: voucher(), error: null })
-      vi.mocked(supabase.from).mockReturnValueOnce(taken as any).mockReturnValueOnce(ok as any)
+    it('handles the function returning a one-row array', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValue({ data: [voucher()], error: null } as any)
+      const result = await voucherService.createVoucher()
+      expect(result.code).toBe('ISB-231')
+    })
 
-      await voucherService.createVoucher()
-
-      expect(supabase.from).toHaveBeenCalledTimes(2)
+    it('explains when every 3-digit code is taken', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: { message: 'VOUCHER_POOL_EXHAUSTED' } } as any)
+      await expect(voucherService.createVoucher()).rejects.toThrow(/all 900/i)
     })
 
     it('throws other errors', async () => {
-      vi.mocked(supabase.from).mockReturnValue(
-        mockQuery({ data: null, error: { code: '42501', message: 'denied' } }) as any,
-      )
+      vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: { code: '42501', message: 'denied' } } as any)
       await expect(voucherService.createVoucher()).rejects.toBeTruthy()
     })
   })
 
   describe('lookupForRedemption', () => {
-    it('normalizes what staff type and accepts a valid code', async () => {
+    it('adds the prefix to the 3 digits and checks the newest voucher with that code', async () => {
       const q = mockQuery({ data: voucher(), error: null })
       vi.mocked(supabase.from).mockReturnValue(q as any)
 
-      const result = await voucherService.lookupForRedemption(' abc234 ', [])
+      const result = await voucherService.lookupForRedemption('231', [])
 
-      expect(q.eq).toHaveBeenCalledWith('code', 'SI-ABC234')
+      expect(q.eq).toHaveBeenCalledWith('code', 'ISB-231')
+      expect(q.order).toHaveBeenCalledWith('created_at', { ascending: false })
+      expect(q.limit).toHaveBeenCalledWith(1)
       expect(result.ok).toBe(true)
     })
 
     it('reports a wrong code as not found', async () => {
       vi.mocked(supabase.from).mockReturnValue(mockQuery({ data: null, error: null }) as any)
-      const result = await voucherService.lookupForRedemption('SI-ZZZZZZ', [])
+      const result = await voucherService.lookupForRedemption('ISB-999', [])
       expect(result).toMatchObject({ ok: false, reason: 'not_found' })
     })
 
@@ -99,12 +98,12 @@ describe('voucherService', () => {
       vi.mocked(supabase.from).mockReturnValue(
         mockQuery({ data: voucher({ status: 'redeemed', order_id: 'o1', redeemed_at: new Date().toISOString() }), error: null }) as any,
       )
-      const result = await voucherService.lookupForRedemption('SI-ABC234', [])
+      const result = await voucherService.lookupForRedemption('ISB-231', [])
       expect(result).toMatchObject({ ok: false, reason: 'redeemed' })
     })
 
     it('blocks a code already in the order without calling the database', async () => {
-      const result = await voucherService.lookupForRedemption('abc234', ['SI-ABC234'])
+      const result = await voucherService.lookupForRedemption('231', ['ISB-231'])
       expect(result).toMatchObject({ ok: false, reason: 'duplicate' })
       expect(supabase.from).not.toHaveBeenCalled()
     })
@@ -113,13 +112,13 @@ describe('voucherService', () => {
   describe('redeemVouchers', () => {
     it('calls redeem_vouchers with the codes and order', async () => {
       vi.mocked(supabase.rpc).mockResolvedValue({ data: [voucher({ status: 'redeemed' })], error: null } as any)
-      await voucherService.redeemVouchers(['SI-ABC234'], 'o1')
-      expect(supabase.rpc).toHaveBeenCalledWith('redeem_vouchers', { p_codes: ['SI-ABC234'], p_order_id: 'o1' })
+      await voucherService.redeemVouchers(['ISB-231'], 'o1')
+      expect(supabase.rpc).toHaveBeenCalledWith('redeem_vouchers', { p_codes: ['ISB-231'], p_order_id: 'o1' })
     })
 
     it('throws a staff-friendly message when a code was used in the meantime', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: { message: 'VOUCHER_REDEEMED:SI-ABC234' } } as any)
-      await expect(voucherService.redeemVouchers(['SI-ABC234'], 'o1')).rejects.toThrow(/SI-ABC234 was already used/)
+      vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: { message: 'VOUCHER_REDEEMED:ISB-231' } } as any)
+      await expect(voucherService.redeemVouchers(['ISB-231'], 'o1')).rejects.toThrow(/ISB-231 was already used/)
     })
   })
 

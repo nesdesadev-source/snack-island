@@ -13,8 +13,8 @@ vi.mock('../../../src/modules/orders/inventoryDeduction', () => ({
 }))
 
 const lines = [
-  { code: 'SI-AAAAAA', fries_option: 'cheese' as const, is_spicy: true },
-  { code: 'SI-BBBBBB' },
+  { code: 'ISB-111', fries_option: 'cheese' as const, is_spicy: true },
+  { code: 'ISB-222' },
 ]
 
 describe('createVoucherOrder', () => {
@@ -38,7 +38,7 @@ describe('createVoucherOrder', () => {
       order_fulfillment: 'dine_in',
       discount_id: null,
     })
-    expect(voucherService.redeemVouchers).toHaveBeenCalledWith(['SI-AAAAAA', 'SI-BBBBBB'], 'o1')
+    expect(voucherService.redeemVouchers).toHaveBeenCalledWith(['ISB-111', 'ISB-222'], 'o1')
     expect(OrderService.createOrderItemsBatch).toHaveBeenCalledWith('o1', [
       { menu_id: VOUCHER_MENU_ITEM_ID, quantity: 1, subtotal: 0, fries_option: 'cheese', is_spicy: true, drink_option: undefined },
       { menu_id: VOUCHER_MENU_ITEM_ID, quantity: 1, subtotal: 0, fries_option: undefined, is_spicy: undefined, drink_option: undefined },
@@ -53,9 +53,9 @@ describe('createVoucherOrder', () => {
   })
 
   it('deletes the order and passes the message on if a code can no longer be used', async () => {
-    vi.mocked(voucherService.redeemVouchers).mockRejectedValue(new Error('Code SI-AAAAAA was already used.'))
+    vi.mocked(voucherService.redeemVouchers).mockRejectedValue(new Error('Code ISB-111 was already used.'))
 
-    await expect(createVoucherOrder(lines, 'dine_in')).rejects.toThrow('Code SI-AAAAAA was already used.')
+    await expect(createVoucherOrder(lines, 'dine_in')).rejects.toThrow('Code ISB-111 was already used.')
     expect(OrderService.deleteOrder).toHaveBeenCalledWith('o1')
     expect(OrderService.createOrderItemsBatch).not.toHaveBeenCalled()
     expect(deductInventoryForOrder).not.toHaveBeenCalled()
